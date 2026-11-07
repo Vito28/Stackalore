@@ -1,0 +1,48 @@
+export const documentationDomains = {
+  dsa: {
+    index: '01',
+    label: 'Data Structures & Algorithms',
+    shortLabel: 'Data Structures',
+    description: 'Understand how data is stored, organized, and processed.',
+    topics: ['Array', 'Linked List', 'Stack', 'Queue', 'Tree', 'Graph'],
+    accent: 'text-domain-dsa',
+    border: 'border-domain-dsa/30',
+    background: 'bg-domain-dsa/10',
+    indicator: 'bg-domain-dsa',
+  },
+  ml: {
+    index: '02',
+    label: 'Machine Learning',
+    shortLabel: 'Machine Learning',
+    description: 'Understand how machines learn useful patterns from data.',
+    topics: ['Regression', 'Classification', 'Clustering', 'Decision Trees'],
+    accent: 'text-domain-ml',
+    border: 'border-domain-ml/30',
+    background: 'bg-domain-ml/10',
+    indicator: 'bg-domain-ml',
+  },
+  dl: {
+    index: '03',
+    label: 'Deep Learning',
+    shortLabel: 'Deep Learning',
+    description: 'Explore how neural networks learn complex representations.',
+    topics: ['Neural Networks', 'CNN', 'RNN', 'Transformers'],
+    accent: 'text-domain-dl',
+    border: 'border-domain-dl/30',
+    background: 'bg-domain-dl/10',
+    indicator: 'bg-domain-dl',
+  },
+  crypto: {
+    index: '04',
+    label: 'Cryptography',
+    shortLabel: 'Cryptography',
+    description: 'Understand how information can be protected and verified.',
+    topics: ['Hashing', 'Encryption', 'Public Keys', 'Digital Signatures'],
+    accent: 'text-domain-crypto',
+    border: 'border-domain-crypto/30',
+    background: 'bg-domain-crypto/10',
+    indicator: 'bg-domain-crypto',
+  },
+} as const;
+
+export type DomainKey = keyof typeof documentationDomains;

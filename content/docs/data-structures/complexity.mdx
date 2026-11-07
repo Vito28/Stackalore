@@ -1,0 +1,27 @@
+---
+title: Complexity & Big O
+description: Estimate how an algorithm's time and memory grow as its input becomes larger.
+icon: Gauge
+---
+
+Complexity describes growth, not a stopwatch result. It helps us compare algorithms without depending on a particular computer, language, or input sample.
+
+## The question Big O answers
+
+If the input size is `n`, how quickly does the amount of work grow? Accessing an array index stays constant, while scanning every item grows linearly.
+
+| Complexity | Common shape | Typical example |
+| --- | --- | --- |
+| `O(1)` | Constant | Array index access |
+| `O(log n)` | Logarithmic | Binary search |
+| `O(n)` | Linear | Full traversal |
+| `O(n log n)` | Linearithmic | Efficient comparison sort |
+| `O(n²)` | Quadratic | Nested pair comparison |
+
+<Callout type="info" title="Keep both dimensions in view">
+  Time complexity counts operations. Space complexity estimates the additional memory an algorithm needs.
+</Callout>
+
+## A practical workflow
+
+Identify the input, count the dominant repeated operation, then keep the fastest-growing term. Constants matter in real systems, but the growth class gives you the first useful comparison.

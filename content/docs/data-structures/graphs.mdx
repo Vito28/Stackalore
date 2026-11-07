@@ -1,0 +1,22 @@
+---
+title: Graphs
+description: Model networks of vertices and edges, then choose a representation for the work you need.
+icon: Share2
+---
+
+A graph represents entities as vertices and relationships as edges. Unlike a tree, a graph may contain cycles, multiple paths, and disconnected regions.
+
+## Two common representations
+
+| Representation | Space | Best fit |
+| --- | --- | --- |
+| Adjacency list | `O(V + E)` | Sparse graphs and neighbor traversal |
+| Adjacency matrix | `O(V²)` | Dense graphs and fast edge checks |
+
+## Directed and weighted edges
+
+A directed edge has an orientation, such as one account following another. A weighted edge adds a cost or distance, such as travel time between cities.
+
+<Callout type="info" title="Before choosing an algorithm">
+  Ask whether the graph is directed, weighted, cyclic, and potentially disconnected. Those properties determine which traversal or shortest-path algorithm is valid.
+</Callout>

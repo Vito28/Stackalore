@@ -1,38 +1,44 @@
-import { getPageImage, getPageMarkdownUrl, source } from '@/lib/source';
+import { getPageImage, source } from '@/lib/source';
 import {
   DocsBody,
   DocsDescription,
   DocsPage,
   DocsTitle,
-  MarkdownCopyButton,
-  ViewOptionsPopover,
 } from 'fumadocs-ui/layouts/docs/page';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getMDXComponents } from '@/components/mdx';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
-import { gitConfig } from '@/lib/shared';
+import { DocumentationHub } from '@/components/docs/documentation-hub';
 
 export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const params = await props.params;
+  if (!params.slug || params.slug.length === 0) {
+    return <DocumentationHub />;
+  }
+  if (params.slug.length === 1 && params.slug[0] === 'data-structures') {
+    redirect('/docs/data-structures/welcome');
+  }
+
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const markdownUrl = getPageMarkdownUrl(page).url;
-
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
-      <div className="flex flex-row gap-2 items-center border-b pb-6">
-        <MarkdownCopyButton markdownUrl={markdownUrl} />
-        <ViewOptionsPopover
-          markdownUrl={markdownUrl}
-          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/content/docs/${page.path}`}
-        />
-      </div>
-      <DocsBody>
+    <DocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+      className="docs-article"
+      tableOfContent={{
+        style: 'clerk',
+        container: { className: 'docs-subject-toc' },
+        list: { className: 'mt-4' },
+      }}
+      tableOfContentPopover={{ style: 'clerk' }}
+    >
+      <DocsTitle className="text-4xl font-semibold tracking-tight md:text-5xl">{page.data.title}</DocsTitle>
+      <DocsDescription className="mb-0 border-b pb-6 text-lg leading-8 text-fd-foreground/68 md:text-xl">{page.data.description}</DocsDescription>
+      <DocsBody className="docs-readable text-[1.0625rem] leading-8">
         <MDX
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths
@@ -50,6 +56,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): Promise<Metadata> {
   const params = await props.params;
+  if (!params.slug || params.slug.length === 0) {
+    return {
+      title: 'Documentation — Stacklore',
+      description:
+        'Explore data structures, machine learning, deep learning, and cryptography through documentation, code, and visualization.',
+    };
+  }
+
   const page = source.getPage(params.slug);
   if (!page) notFound();
 

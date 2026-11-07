@@ -1,0 +1,23 @@
+---
+title: Searching
+description: Compare sequential search with binary search and understand the precondition that makes halving possible.
+icon: Search
+---
+
+Searching locates a target value or determines that it is absent. The available structure and ordering determine how much of the data must be inspected.
+
+## Linear search
+
+Check values from one end to the other. It works on unsorted data and costs `O(n)` in the worst case.
+
+## Binary search
+
+Compare the target with the middle value, discard the impossible half, and repeat. This reduces the remaining search space from `n` to `n / 2` on every step, giving `O(log n)` time.
+
+<Callout type="warn" title="The critical precondition">
+  Binary search requires a sorted search space and a way to access its middle efficiently. Applying it to arbitrary unsorted data does not work.
+</Callout>
+
+## Trace the invariant
+
+At every step, the target—if present—must remain inside the current low-to-high interval. This invariant is the easiest way to verify an implementation.

@@ -1,0 +1,22 @@
+---
+title: Linked Lists
+description: Follow references between nodes and compare flexible insertion with sequential access.
+icon: ListTree
+---
+
+A linked list stores values in nodes. Each node points to the next node, so the structure can grow without keeping every value next to each other in memory.
+
+## How traversal works
+
+To reach the fourth node, begin at the head and follow three links. There is no direct index calculation, which makes access `O(n)` in the general case.
+
+## Main tradeoff
+
+- Inserting after a known node changes only a small number of references.
+- Finding that node may still require a traversal.
+- Each node uses additional memory for its link or links.
+- Poor memory locality can make traversal slower than an array in practice.
+
+<Callout type="warn" title="Constant time needs context">
+  Linked-list insertion is `O(1)` only when you already hold a reference to the insertion point.
+</Callout>
