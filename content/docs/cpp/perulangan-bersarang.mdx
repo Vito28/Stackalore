@@ -1,0 +1,304 @@
+---
+title: Perulangan Bersarang
+description: Perulangan di dalam perulangan untuk mengolah baris dan kolom, membuat pola, dan memahami berapa kali sebuah langkah benar-benar dijalankan.
+sumber:
+  - ref: cppreference
+    judul: for loop
+    url: https://en.cppreference.com/w/cpp/language/for
+  - ref: python-docs
+    judul: Tutorial, for Statements
+    url: https://docs.python.org/3/tutorial/controlflow.html#for-statements
+  - ref: busbee
+---
+
+## Perulangan di dalam perulangan
+
+Bayangkan jam digital. Setiap kali jarum jam bergerak satu langkah, jarum menit harus berputar penuh dari 0 sampai 59 terlebih dahulu. Jam adalah **perulangan luar**, menit adalah **perulangan dalam**.
+
+Di program, perulangan bersarang (_nested loop_) paling sering dipakai untuk data berbentuk **baris dan kolom**: tabel, matriks, atau pola gambar di layar.
+
+```cpp tab="C++"
+for (int baris = 1; baris <= 3; baris++) {
+    for (int kolom = 1; kolom <= 5; kolom++) {
+        cout << "*";
+    }
+    cout << endl;          // pindah baris setelah satu baris selesai
+}
+```
+
+```python tab="Python"
+for baris in range(1, 4):
+    for kolom in range(1, 6):
+        print("*", end="")
+    print()                # pindah baris setelah satu baris selesai
+```
+
+```txt title="Output"
+*****
+*****
+*****
+```
+
+## Urutan eksekusi
+
+Untuk **setiap satu** putaran perulangan luar, perulangan dalam dijalankan **sampai habis**. Berikut urutan pasangan `(baris, kolom)` untuk 2 baris × 3 kolom:
+
+| Langkah | `baris` | `kolom` | Keterangan |
+| --- | --- | --- | --- |
+| 1 | 1 | 1 | |
+| 2 | 1 | 2 | |
+| 3 | 1 | 3 | perulangan dalam selesai, pindah baris |
+| 4 | 2 | 1 | `kolom` mulai lagi dari 1 |
+| 5 | 2 | 2 | |
+| 6 | 2 | 3 | perulangan dalam selesai, perulangan luar juga selesai |
+
+Totalnya **2 × 3 = 6** langkah. Secara umum, badan perulangan dalam dijalankan sebanyak **jumlah putaran luar × jumlah putaran dalam**.
+
+<Callout type="info" title="Perhatikan jumlah langkahnya">
+  Dua perulangan bersarang masing-masing 1.000 kali berarti 1.000.000 langkah. Tiga perulangan bersarang berarti 1.000.000.000 langkah, yang bisa membuat program berjalan beberapa detik. Inilah alasan programmer peduli pada efisiensi algoritma.
+</Callout>
+
+## Membuat pola: cari rumusnya
+
+Soal pola bintang melatih satu kemampuan penting: **menghubungkan nomor baris dengan apa yang harus dicetak**. Caranya, buat tabel kecil lalu cari rumusnya.
+
+### Segitiga siku-siku
+
+```txt title="Target (n = 4)"
+*
+**
+***
+****
+```
+
+| `baris` | Jumlah `*` |
+| --- | --- |
+| 1 | 1 |
+| 2 | 2 |
+| 3 | 3 |
+| 4 | 4 |
+
+Jumlah bintang **sama dengan nomor baris**, jadi batas perulangan dalam adalah `baris`:
+
+```cpp tab="C++"
+int n = 4;
+
+for (int baris = 1; baris <= n; baris++) {
+    for (int kolom = 1; kolom <= baris; kolom++) {
+        cout << "*";
+    }
+    cout << endl;
+}
+```
+
+```python tab="Python"
+n = 4
+
+for baris in range(1, n + 1):
+    for kolom in range(1, baris + 1):
+        print("*", end="")
+    print()
+```
+
+### Piramida
+
+```txt title="Target (n = 4)"
+   *
+  ***
+ *****
+*******
+```
+
+| `baris` | Spasi | Bintang |
+| --- | --- | --- |
+| 1 | 3 | 1 |
+| 2 | 2 | 3 |
+| 3 | 1 | 5 |
+| 4 | 0 | 7 |
+
+Polanya: spasi = `n - baris`, bintang = `2 * baris - 1`. Setiap baris butuh **dua** perulangan dalam: satu untuk spasi, satu untuk bintang.
+
+```cpp tab="C++"
+int n = 4;
+
+for (int baris = 1; baris <= n; baris++) {
+    for (int s = 1; s <= n - baris; s++) {
+        cout << " ";
+    }
+    for (int b = 1; b <= 2 * baris - 1; b++) {
+        cout << "*";
+    }
+    cout << endl;
+}
+```
+
+```python tab="Python"
+n = 4
+
+for baris in range(1, n + 1):
+    for s in range(n - baris):
+        print(" ", end="")
+    for b in range(2 * baris - 1):
+        print("*", end="")
+    print()
+```
+
+<Callout title="Jalan pintas di Python">
+  Python bisa mengalikan teks dengan angka: `"*" * 3` menghasilkan `"***"`. Piramida di atas bisa ditulis `print(" " * (n - baris) + "*" * (2 * baris - 1))`. Pahami dulu versi perulangannya, karena C++ dan kebanyakan bahasa lain tidak punya jalan pintas ini.
+</Callout>
+
+## Tabel perkalian
+
+Perulangan luar mewakili baris (`i`), perulangan dalam mewakili kolom (`j`), dan setiap sel berisi `i * j`. Agar kolomnya rata, setiap angka diberi lebar 4 karakter dengan [`setw`](/docs/cpp/pustaka/iomanip#lebar-kolom-setw).
+
+```cpp tab="C++"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+int main() {
+    for (int i = 1; i <= 5; i++) {
+        for (int j = 1; j <= 5; j++) {
+            cout << setw(4) << i * j;
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+for i in range(1, 6):
+    for j in range(1, 6):
+        print(f"{i * j:4}", end="")
+    print()
+```
+
+```txt title="Output"
+   1   2   3   4   5
+   2   4   6   8  10
+   3   6   9  12  15
+   4   8  12  16  20
+   5  10  15  20  25
+```
+
+## `break` hanya keluar dari satu perulangan
+
+`break` menghentikan perulangan **tempat ia berada**, yaitu perulangan yang paling dalam. Perulangan luar tetap berjalan:
+
+```cpp tab="C++"
+for (int i = 1; i <= 3; i++) {
+    for (int j = 1; j <= 3; j++) {
+        if (j == 2) {
+            break;               // keluar dari perulangan j saja
+        }
+        cout << i << "," << j << "  ";
+    }
+}
+// Output: 1,1  2,1  3,1
+```
+
+```python tab="Python"
+for i in range(1, 4):
+    for j in range(1, 4):
+        if j == 2:
+            break                # keluar dari perulangan j saja
+        print(f"{i},{j}", end="  ")
+# Output: 1,1  2,1  3,1
+```
+
+Jika perlu menghentikan **semua** perulangan sekaligus, cara paling rapi adalah memindahkan perulangan itu ke dalam sebuah [fungsi](/docs/cpp/fungsi) lalu memakai `return`.
+
+## Rangkuman
+
+- Perulangan bersarang menjalankan perulangan dalam **sampai habis** untuk setiap putaran perulangan luar.
+- Jumlah langkah = putaran luar × putaran dalam. Perulangan bersarang bisa membuat program lambat untuk data besar.
+- Untuk pola, buat tabel "nomor baris → apa yang dicetak", lalu ubah menjadi rumus batas perulangan.
+- `break` hanya keluar dari perulangan terdalam.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Buat segitiga angka untuk n = 4: baris ke-k berisi angka 1 sampai k.">
+    ```txt title="Target"
+    1
+    12
+    123
+    1234
+    ```
+
+    Sama seperti segitiga bintang, tetapi yang dicetak adalah `kolom`:
+
+    ```cpp tab="C++"
+    for (int baris = 1; baris <= 4; baris++) {
+        for (int kolom = 1; kolom <= baris; kolom++) {
+            cout << kolom;
+        }
+        cout << endl;
+    }
+    ```
+
+    ```python tab="Python"
+    for baris in range(1, 5):
+        for kolom in range(1, baris + 1):
+            print(kolom, end="")
+        print()
+    ```
+  </Accordion>
+  <Accordion title="2. Buat segitiga terbalik: baris pertama berisi n bintang, baris terakhir 1 bintang.">
+    | `baris` | Bintang (n = 4) |
+    | --- | --- |
+    | 1 | 4 |
+    | 2 | 3 |
+    | 3 | 2 |
+    | 4 | 1 |
+
+    Rumusnya `n - baris + 1`:
+
+    ```cpp tab="C++"
+    for (int baris = 1; baris <= n; baris++) {
+        for (int kolom = 1; kolom <= n - baris + 1; kolom++) {
+            cout << "*";
+        }
+        cout << endl;
+    }
+    ```
+
+    ```python tab="Python"
+    for baris in range(1, n + 1):
+        for kolom in range(n - baris + 1):
+            print("*", end="")
+        print()
+    ```
+  </Accordion>
+  <Accordion title="3. Buat papan catur n × n dengan # dan . bergantian.">
+    ```txt title="Target (n = 4)"
+    #.#.
+    .#.#
+    #.#.
+    .#.#
+    ```
+
+    Sel berisi `#` jika `baris + kolom` genap:
+
+    ```cpp tab="C++"
+    for (int baris = 0; baris < n; baris++) {
+        for (int kolom = 0; kolom < n; kolom++) {
+            if ((baris + kolom) % 2 == 0) {
+                cout << "#";
+            } else {
+                cout << ".";
+            }
+        }
+        cout << endl;
+    }
+    ```
+
+    ```python tab="Python"
+    for baris in range(n):
+        for kolom in range(n):
+            print("#" if (baris + kolom) % 2 == 0 else ".", end="")
+        print()
+    ```
+  </Accordion>
+</Accordions>

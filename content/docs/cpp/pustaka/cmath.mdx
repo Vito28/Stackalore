@@ -1,0 +1,118 @@
+---
+title: <cmath>
+description: Fungsi matematika di C++ seperti pow, sqrt, abs, round, ceil, floor, dan fmod, beserta padanannya di Python.
+sumber:
+  - ref: cppreference
+    judul: "Standard library header <cmath>"
+    url: https://en.cppreference.com/w/cpp/header/cmath
+  - ref: python-docs
+    judul: "math"
+    url: https://docs.python.org/3/library/math.html
+  - ref: python-docs
+    judul: "round()"
+    url: https://docs.python.org/3/library/functions.html#round
+---
+
+<BackToLesson href="/docs/cpp/operator-aritmatika" label="Operator Aritmatika" />
+
+<Callout title="Ringkasan">
+  `<cmath>` berisi fungsi matematika siap pakai. Tambahkan `#include <cmath>` di bagian atas program. Padanannya di Python adalah `import math`.
+</Callout>
+
+## Fungsi yang paling sering dipakai
+
+| Fungsi C++ | Arti | Contoh | Hasil | Python |
+| --- | --- | --- | --- | --- |
+| `pow(x, y)` | x pangkat y | `pow(2, 10)` | `1024` | `2 ** 10` atau `pow(2, 10)` |
+| `sqrt(x)` | akar kuadrat | `sqrt(81)` | `9` | `math.sqrt(81)` |
+| `abs(x)` | nilai mutlak | `abs(-7.5)` | `7.5` | `abs(-7.5)` |
+| `ceil(x)` | bulatkan ke atas | `ceil(2.1)` | `3` | `math.ceil(2.1)` |
+| `floor(x)` | bulatkan ke bawah | `floor(2.9)` | `2` | `math.floor(2.9)` |
+| `round(x)` | bulatkan ke terdekat | `round(2.5)` | `3` | `round(2.5)` → `2` ⚠️ |
+| `trunc(x)` | buang pecahan | `trunc(-2.7)` | `-2` | `math.trunc(-2.7)` |
+| `fmod(x, y)` | sisa bagi pecahan | `fmod(7.5, 2)` | `1.5` | `7.5 % 2` |
+| `hypot(x, y)` | √(x² + y²) | `hypot(3, 4)` | `5` | `math.hypot(3, 4)` |
+
+```cpp tab="C++"
+#include <iostream>
+#include <cmath>
+using namespace std;
+
+int main() {
+    double a = 3, b = 4;
+    double c = sqrt(pow(a, 2) + pow(b, 2));   // teorema Pythagoras
+
+    cout << "Sisi miring: " << c << endl;      // 5
+    cout << ceil(7.0 / 2) << endl;             // 4
+    cout << floor(7.0 / 2) << endl;            // 3
+    return 0;
+}
+```
+
+```python tab="Python"
+import math
+
+a, b = 3, 4
+c = math.sqrt(a ** 2 + b ** 2)    # teorema Pythagoras
+
+print("Sisi miring:", c)          # 5.0
+print(math.ceil(7 / 2))           # 4
+print(math.floor(7 / 2))          # 3
+```
+
+## Hal yang perlu diperhatikan
+
+### Hasil `pow` selalu pecahan
+
+`pow` bekerja dengan bilangan pecahan (`double`), meskipun yang dimasukkan adalah bilangan bulat. Ini menimbulkan dua efek.
+
+**1. Angka besar ditampilkan dalam notasi ilmiah.** `cout` menampilkan `double` dengan 6 digit signifikan:
+
+```cpp
+cout << pow(10, 9) << endl;    // 1e+09, bukan 1000000000
+```
+
+Untuk mencetak angka utuh, simpan dulu ke tipe bilangan bulat, atau atur format output dengan [`<iomanip>`](/docs/cpp/pustaka/iomanip).
+
+**2. Hasilnya bisa sedikit meleset.** Bilangan pecahan di komputer tidak selalu tepat. Di beberapa compiler (misalnya MinGW versi lama di Windows), `pow(5, 2)` bisa menghasilkan `24.9999999…`. Jika langsung disimpan ke `int`, bagian pecahannya **dibuang** sehingga hasilnya `24`.
+
+```cpp
+int salah = pow(5, 2);           // ✗ berisiko menjadi 24
+int aman = round(pow(5, 2));     // ✓ dibulatkan dulu, pasti 25
+int kuadrat = 5 * 5;             // ✓ untuk pangkat kecil, kalikan saja
+```
+
+### `round` di Python berbeda
+
+`round(2.5)` di C++ menghasilkan `3`, karena angka `.5` selalu dibulatkan menjauhi nol. Di Python hasilnya **`2`**, karena Python memakai _banker's rounding_: angka `.5` dibulatkan ke bilangan **genap** terdekat.
+
+| | `round(0.5)` | `round(1.5)` | `round(2.5)` | `round(3.5)` |
+| --- | --- | --- | --- | --- |
+| C++ | `1` | `2` | `3` | `4` |
+| Python | `0` | `2` | `2` | `4` |
+
+### `abs` untuk bilangan bulat
+
+`abs` untuk `int` secara resmi berada di header `<cstdlib>`, sedangkan `<cmath>` menyediakannya untuk bilangan pecahan. Di compiler modern, menulis `#include <cmath>` biasanya sudah cukup untuk keduanya. Jika compiler mengeluh, tambahkan `#include <cstdlib>`.
+
+### Nilai π
+
+C++ tidak punya konstanta π yang **dijamin** tersedia di semua compiler. Beberapa pilihan:
+
+```cpp
+const double PI = 3.14159265358979;   // 1. tulis sendiri (paling aman)
+// const double PI = acos(-1.0);      // 2. dihitung dari cos(π) = -1
+// M_PI                               // 3. ada di g++, tetapi bukan standar
+// std::numbers::pi                   // 4. standar sejak C++20, #include <numbers>
+```
+
+Di Python cukup gunakan `math.pi`.
+
+## Rangkuman
+
+- `#include <cmath>` menyediakan `pow`, `sqrt`, `abs`, `ceil`, `floor`, `round`, `fmod`, dan fungsi matematika lainnya.
+- C++ tidak punya operator pangkat. Gunakan `pow(x, y)`, dan ingat bahwa `^` adalah XOR.
+- Hasil `pow` bertipe `double`. Bulatkan dengan `round` sebelum disimpan ke `int`.
+- `round(2.5)` menghasilkan `3` di C++, tetapi `2` di Python.
+
+<BackToLesson href="/docs/cpp/operator-aritmatika" label="Operator Aritmatika" />

@@ -1,0 +1,62 @@
+---
+title: Pengantar C++
+description: Peta belajar dasar pemrograman dengan C++, lengkap dengan padanan kodenya di Python.
+sumber:
+  - ref: cppreference
+  - ref: python-docs
+    judul: "Tutorial"
+    url: https://docs.python.org/3/tutorial/
+  - ref: busbee
+  - ref: mit-ocw-6096
+---
+
+Selamat datang! Seri ini mengajak kamu belajar pemrograman **dari nol**. Kita mulai dari ide paling dasar, yaitu apa itu bahasa pemrograman dan bagaimana menyusun langkah penyelesaian masalah, lalu pelan-pelan masuk ke penulisan kode C++.
+
+Setiap contoh kode ditulis dalam **C++** dan **Python**. Pilih tab bahasa di atas blok kode. Pilihanmu diingat di semua halaman.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Halo, Stacklore!" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+print("Halo, Stacklore!")
+```
+
+## Urutan belajar
+
+Ikuti materi sesuai nomor. Setiap materi memakai konsep dari materi sebelumnya.
+
+<LessonList />
+
+<Callout title="Fondasi sebelum vibe coding">
+  Seri ini dirancang sebagai bekal sebelum kamu memakai AI untuk menulis kode (_vibe coding_). Setelah menyelesaikan materi 14, kamu bisa membaca kode C++ dan Python, menelusuri alurnya, dan menemukan kesalahannya. Dengan begitu, kode dari AI bisa kamu periksa, bukan sekadar disalin.
+</Callout>
+
+## Cara memakai dokumentasi ini
+
+- **Sidebar kanan** berisi semua materi. Materi yang sedang dibuka menampilkan daftar subbab sehingga kamu bisa langsung melompat. Di layar kecil, buka lewat tombol **Materi** di pojok kanan atas.
+- **Kotak Pendalaman** muncul saat sebuah topik butuh penjelasan panjang, misalnya _buffer_ atau `getline`. Topik itu sengaja dipisah agar alur materi utama tetap ringan. Baca saat kamu penasaran, lalu kembali ke materi.
+- Tekan <kbd>Ctrl</kbd> <kbd>K</kbd> untuk mencari materi dari mana saja.
+
+<DeepDive href="/docs/cpp/pendalaman/buffer" kind="konsep" title="Contoh kotak Pendalaman">
+  Kotak seperti ini mengarah ke penjelasan yang lebih dalam. Materi utama tetap bisa dipahami tanpa membukanya.
+</DeepDive>
+
+## Yang kamu butuhkan
+
+Kamu tidak perlu pengalaman pemrograman sebelumnya. Untuk menjalankan contoh kode, pilih salah satu:
+
+| Cara | C++ | Python |
+| --- | --- | --- |
+| Online, tanpa instalasi | [OnlineGDB](https://www.onlinegdb.com/online_c++_compiler), [Programiz](https://www.programiz.com/cpp-programming/online-compiler/) | [OnlineGDB](https://www.onlinegdb.com/online_python_compiler), [Programiz](https://www.programiz.com/python-programming/online-compiler/) |
+| Di komputer sendiri | Compiler `g++` (MinGW di Windows) + VS Code | Python 3 dari [python.org](https://www.python.org/downloads/) + VS Code |
+
+<Callout title="Fokus seri ini">
+  Fokus kita adalah memahami **cara berpikir** pemrograman. C++ dipakai sebagai bahasa utama karena memaksa kita memahami tipe data dan memori. Python ditampilkan sebagai pembanding supaya kamu melihat bahwa konsepnya sama, hanya cara menulisnya yang berbeda.
+</Callout>

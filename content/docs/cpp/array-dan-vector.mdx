@@ -1,0 +1,368 @@
+---
+title: Array & vector
+description: Menyimpan banyak nilai dalam satu variabel, mengaksesnya lewat indeks, dan mengolahnya dengan perulangan.
+sumber:
+  - ref: cppreference
+    judul: Array declaration
+    url: https://en.cppreference.com/w/cpp/language/array
+  - ref: cppreference
+    judul: std::vector
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: python-docs
+    judul: Tutorial, Lists
+    url: https://docs.python.org/3/tutorial/introduction.html#lists
+  - ref: busbee
+---
+
+## Masalah: data yang banyak
+
+Menyimpan nilai lima mahasiswa dengan variabel biasa berarti membuat lima variabel: `nilai1`, `nilai2`, sampai `nilai5`. Untuk 100 mahasiswa, cara ini jelas tidak mungkin, dan perulangan pun tidak bisa membantu karena setiap variabel punya nama berbeda.
+
+**Array** menyelesaikan masalah ini: satu nama untuk sekumpulan nilai **bertipe sama** yang tersimpan **berurutan** di memori. Setiap nilai disebut **elemen** dan diakses lewat nomor urutnya, yaitu **indeks**.
+
+<MemoryBoxes
+  caption="Array nilai berisi 5 elemen. Indeks dimulai dari 0, jadi elemen terakhir ada di indeks 4."
+  items={[
+    { name: 'nilai[0]', type: 'int', value: '80' },
+    { name: 'nilai[1]', type: 'int', value: '75' },
+    { name: 'nilai[2]', type: 'int', value: '90' },
+    { name: 'nilai[3]', type: 'int', value: '60' },
+    { name: 'nilai[4]', type: 'int', value: '85' },
+  ]}
+/>
+
+## Membuat dan mengakses array
+
+```cpp tab="C++"
+int nilai[5] = {80, 75, 90, 60, 85};
+
+cout << nilai[0] << endl;   // 80, elemen pertama
+cout << nilai[4] << endl;   // 85, elemen terakhir
+
+nilai[2] = 95;              // ubah elemen ketiga
+```
+
+```python tab="Python"
+# Python memakai list, padanan array yang lebih fleksibel
+nilai = [80, 75, 90, 60, 85]
+
+print(nilai[0])    # 80, elemen pertama
+print(nilai[4])    # 85, elemen terakhir
+print(nilai[-1])   # 85, indeks negatif dihitung dari belakang (khusus Python)
+
+nilai[2] = 95      # ubah elemen ketiga
+```
+
+<Callout type="warning" title="Indeks dimulai dari 0">
+  Array berukuran 5 memiliki indeks **0 sampai 4**. Tidak ada `nilai[5]`. Ini sumber kesalahan _off-by-one_ yang paling umum.
+</Callout>
+
+## Mengolah array dengan perulangan
+
+Kekuatan array muncul saat dipadukan dengan [perulangan](/docs/cpp/perulangan): indeksnya bisa berupa variabel.
+
+```cpp tab="C++"
+int nilai[5] = {80, 75, 90, 60, 85};
+int total = 0;
+
+for (int i = 0; i < 5; i++) {
+    total += nilai[i];
+}
+cout << "Rata-rata: " << total / 5.0 << endl;   // 78
+```
+
+```python tab="Python"
+nilai = [80, 75, 90, 60, 85]
+total = 0
+
+for i in range(len(nilai)):
+    total += nilai[i]
+print("Rata-rata:", total / len(nilai))          # 78.0
+```
+
+Jika indeksnya tidak dibutuhkan, ada bentuk yang lebih ringkas, yaitu mengambil elemen satu per satu:
+
+```cpp tab="C++"
+for (int x : nilai) {          // range-based for, tersedia sejak C++11
+    cout << x << " ";
+}
+```
+
+```python tab="Python"
+for x in nilai:
+    print(x, end=" ")
+
+# Python juga punya fungsi siap pakai:
+print(len(nilai), sum(nilai), max(nilai))
+```
+
+## Indeks di luar batas
+
+Apa yang terjadi jika kita mengakses `nilai[5]` pada array berukuran 5?
+
+```cpp tab="C++"
+int nilai[5] = {80, 75, 90, 60, 85};
+cout << nilai[5];      // ✗ tidak ada error! Hasilnya angka acak, atau program crash
+```
+
+```python tab="Python"
+nilai = [80, 75, 90, 60, 85]
+print(nilai[5])        # IndexError: list index out of range
+```
+
+C++ **tidak memeriksa** batas array. Program membaca memori di sebelah array, yang isinya entah apa. Situasi seperti ini disebut _undefined behavior_: standar C++ tidak menjamin apa pun tentang hasilnya. Python lebih aman karena langsung berhenti dengan `IndexError`.
+
+<DeepDive href="/docs/cpp/pendalaman/undefined-behavior" kind="konsep" title="Undefined behavior">
+  Kenapa C++ tidak memeriksa indeks, kesalahan lain yang termasuk _undefined behavior_, dan cara meminta compiler menangkapnya.
+</DeepDive>
+
+## `vector`: array yang bisa bertambah
+
+Array biasa punya dua kekurangan: **ukurannya tetap** dan harus diketahui saat menulis kode. Padahal jumlah data sering baru diketahui dari input. C++ menyediakan `vector` dari pustaka `<vector>`, yang ukurannya bisa berubah. Dalam praktik modern, **gunakan `vector` kecuali ada alasan khusus memakai array biasa**.
+
+```cpp tab="C++"
+#include <vector>
+
+vector<int> nilai = {80, 75, 90};   // tipe elemen ditulis di dalam < >
+
+nilai.push_back(60);                 // tambah di akhir: {80, 75, 90, 60}
+cout << nilai.size() << endl;        // 4
+cout << nilai[1] << endl;            // 75
+```
+
+```python tab="Python"
+nilai = [80, 75, 90]
+
+nilai.append(60)        # tambah di akhir: [80, 75, 90, 60]
+print(len(nilai))       # 4
+print(nilai[1])         # 75
+```
+
+Ada juga cara membuat `vector` dengan ukuran tertentu, yang semua elemennya bernilai awal 0:
+
+```cpp
+vector<int> data(5);    // {0, 0, 0, 0, 0}
+```
+
+<Callout type="info" title="Bagaimana dengan int data[n]?">
+  Kamu mungkin melihat kode seperti `int n; cin >> n; int data[n];`. Compiler `g++` menerimanya, tetapi bentuk ini **bukan C++ standar** dan bisa gagal di compiler lain. Gunakan `vector<int> data(n);`.
+</Callout>
+
+<DeepDive href="/docs/cpp/pustaka/vector" kind="pustaka" title="<vector>: fungsi-fungsi lengkap">
+  `pop_back`, `front`, `back`, `at`, `insert`, `erase`, mengurutkan dengan `sort`, dan jebakan `size()` yang bertipe unsigned. Lengkap dengan padanan method list di Python.
+</DeepDive>
+
+## Contoh lengkap: nilai di atas rata-rata
+
+Untuk menampilkan nilai yang **di atas rata-rata**, semua data harus disimpan dulu. Rata-rata baru diketahui setelah semua data dibaca, lalu data perlu diperiksa sekali lagi. Inilah alasan kita membutuhkan array.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cout << "Banyak data: ";
+    cin >> n;
+
+    vector<int> data(n);
+    double total = 0;
+
+    for (int i = 0; i < n; i++) {
+        cin >> data[i];
+        total += data[i];
+    }
+
+    double rata = total / n;
+    cout << "Rata-rata: " << rata << endl;
+
+    cout << "Di atas rata-rata:";
+    for (int x : data) {
+        if (x > rata) {
+            cout << " " << x;
+        }
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input("Banyak data: "))
+data = list(map(int, input().split()))    # n angka dalam satu baris
+
+rata = sum(data) / n
+print("Rata-rata:", rata)
+
+print("Di atas rata-rata:", end="")
+for x in data:
+    if x > rata:
+        print(" ", x, sep="", end="")
+print()
+```
+
+```txt title="Contoh jalannya program (C++)"
+Banyak data: 5
+70 85 60 90 75
+Rata-rata: 76
+Di atas rata-rata: 85 90
+```
+
+## Mencari elemen
+
+Pola dasar mencari sebuah nilai di dalam array: periksa elemen satu per satu, berhenti saat ditemukan. Teknik ini disebut **pencarian linear** (_linear search_).
+
+```cpp tab="C++"
+int dicari;
+cin >> dicari;
+
+int posisi = -1;                 // -1 berarti "belum ditemukan"
+for (int i = 0; i < n; i++) {
+    if (data[i] == dicari) {
+        posisi = i;
+        break;
+    }
+}
+
+if (posisi == -1) {
+    cout << "Tidak ditemukan" << endl;
+} else {
+    cout << "Ditemukan di indeks " << posisi << endl;
+}
+```
+
+```python tab="Python"
+dicari = int(input())
+
+posisi = -1
+for i in range(len(data)):
+    if data[i] == dicari:
+        posisi = i
+        break
+
+if posisi == -1:
+    print("Tidak ditemukan")
+else:
+    print("Ditemukan di indeks", posisi)
+
+# Versi singkat Python: if dicari in data: data.index(dicari)
+```
+
+## Array dua dimensi
+
+Array juga bisa berbentuk **tabel** (baris × kolom), misalnya matriks. Aksesnya memakai dua indeks: `[baris][kolom]`, dan pengolahannya memakai [perulangan bersarang](/docs/cpp/perulangan-bersarang).
+
+```cpp tab="C++"
+int matriks[2][3] = {
+    {1, 2, 3},
+    {4, 5, 6},
+};
+
+for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+        cout << matriks[i][j] << " ";
+    }
+    cout << endl;
+}
+// Versi vector: vector<vector<int>> matriks = {{1, 2, 3}, {4, 5, 6}};
+```
+
+```python tab="Python"
+matriks = [
+    [1, 2, 3],
+    [4, 5, 6],
+]
+
+for i in range(2):
+    for j in range(3):
+        print(matriks[i][j], end=" ")
+    print()
+```
+
+```txt title="Output"
+1 2 3 
+4 5 6 
+```
+
+## Rangkuman
+
+- Array menyimpan banyak nilai bertipe sama dengan satu nama. Elemennya diakses lewat indeks yang **dimulai dari 0**.
+- Array diolah dengan perulangan: `for (int i = 0; i < n; i++)` atau `for (int x : data)`.
+- C++ **tidak memeriksa** indeks di luar batas (_undefined behavior_), sedangkan Python berhenti dengan `IndexError`.
+- `vector` adalah array yang ukurannya bisa berubah (`push_back`, `size`). Padanannya di Python adalah `list`.
+- Data perlu disimpan di array jika harus diperiksa lebih dari sekali, misalnya membandingkan dengan rata-rata.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Baca n bilangan, lalu tampilkan dalam urutan terbalik.">
+    ```cpp tab="C++"
+    int n;
+    cin >> n;
+    vector<int> data(n);
+    for (int i = 0; i < n; i++) {
+        cin >> data[i];
+    }
+
+    for (int i = n - 1; i >= 0; i--) {    // mulai dari indeks terakhir
+        cout << data[i] << " ";
+    }
+    cout << endl;
+    ```
+
+    ```python tab="Python"
+    data = list(map(int, input().split()))
+
+    for i in range(len(data) - 1, -1, -1):
+        print(data[i], end=" ")
+    print()
+
+    # Versi singkat: print(*data[::-1])
+    ```
+  </Accordion>
+  <Accordion title="2. Hitung berapa kali sebuah angka x muncul di dalam data.">
+    Pola _counter_ dari materi perulangan:
+
+    ```cpp tab="C++"
+    int jumlah = 0;
+    for (int v : data) {
+        if (v == x) {
+            jumlah++;
+        }
+    }
+    cout << x << " muncul " << jumlah << " kali" << endl;
+    ```
+
+    ```python tab="Python"
+    jumlah = 0
+    for v in data:
+        if v == x:
+            jumlah += 1
+    print(x, "muncul", jumlah, "kali")    # versi singkat: data.count(x)
+    ```
+  </Accordion>
+  <Accordion title="3. Cari nilai terbesar beserta indeksnya.">
+    Simpan **indeks** kandidat terbesar, bukan hanya nilainya:
+
+    ```cpp tab="C++"
+    int idx = 0;
+    for (int i = 1; i < n; i++) {
+        if (data[i] > data[idx]) {
+            idx = i;
+        }
+    }
+    cout << "Terbesar " << data[idx] << " di indeks " << idx << endl;
+    ```
+
+    ```python tab="Python"
+    idx = 0
+    for i in range(1, len(data)):
+        if data[i] > data[idx]:
+            idx = i
+    print("Terbesar", data[idx], "di indeks", idx)
+    ```
+
+    Perulangan dimulai dari indeks 1 karena indeks 0 sudah menjadi kandidat awal.
+  </Accordion>
+</Accordions>

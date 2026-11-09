@@ -1,0 +1,382 @@
+---
+title: Fungsi
+description: Membungkus langkah-langkah menjadi fungsi bernama, memberi parameter dan nilai kembalian, serta memahami ruang lingkup variabel.
+sumber:
+  - ref: cppreference
+    judul: Function declaration
+    url: https://en.cppreference.com/w/cpp/language/function
+  - ref: cppreference
+    judul: return statement
+    url: https://en.cppreference.com/w/cpp/language/return
+  - ref: python-docs
+    judul: Tutorial, Defining Functions
+    url: https://docs.python.org/3/tutorial/controlflow.html#defining-functions
+  - ref: busbee
+  - ref: think-python
+---
+
+## Kenapa butuh fungsi?
+
+Program yang makin besar akan berisi langkah-langkah yang **berulang** di banyak tempat, misalnya menghitung huruf mutu atau mengecek bilangan prima. Menyalin kode yang sama berkali-kali membuat program panjang, dan jika ada kesalahan, kita harus memperbaikinya di semua salinan.
+
+**Fungsi** adalah sekumpulan langkah yang diberi **nama**, sehingga bisa dipanggil kapan pun dibutuhkan. Kamu sudah memakai banyak fungsi buatan orang lain: `sqrt()`, `pow()`, `getline()`, dan `main()` sendiri juga sebuah fungsi. Di flowchart, pemanggilan fungsi digambar dengan simbol [proses terdefinisi](/docs/cpp/algoritma-dan-flowchart#simbol-simbol-flowchart).
+
+## Membuat dan memanggil fungsi
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int kuadrat(int x) {
+    return x * x;
+}
+
+int main() {
+    cout << kuadrat(5) << endl;              // 25
+
+    int hasil = kuadrat(3) + kuadrat(4);     // 9 + 16
+    cout << hasil << endl;                   // 25
+    return 0;
+}
+```
+
+```python tab="Python"
+def kuadrat(x):
+    return x * x
+
+
+print(kuadrat(5))                  # 25
+
+hasil = kuadrat(3) + kuadrat(4)    # 9 + 16
+print(hasil)                       # 25
+```
+
+| Bagian | C++ | Python | Arti |
+| --- | --- | --- | --- |
+| Tipe kembalian | `int` | tidak ditulis | Tipe nilai yang dihasilkan fungsi |
+| Nama | `kuadrat` | `kuadrat` | Dipakai untuk memanggil fungsi |
+| Parameter | `(int x)` | `(x)` | Data yang diterima fungsi |
+| Badan | `{ ... }` | blok berindentasi setelah `def ...:` | Langkah-langkahnya |
+| Nilai kembalian | `return x * x;` | `return x * x` | Hasil yang dikirim ke pemanggil |
+
+Saat `kuadrat(5)` dipanggil, eksekusi **melompat** ke dalam fungsi dengan `x = 5`. Ketika sampai di `return`, fungsi berhenti dan nilai `25` dikirim kembali ke tempat pemanggilan, seolah-olah `kuadrat(5)` diganti dengan `25`.
+
+Nilai yang dikirim saat memanggil (`5`) disebut **argumen**. Variabel penerimanya di dalam fungsi (`x`) disebut **parameter**.
+
+<Callout type="info" title="Petunjuk tipe di Python">
+  Python juga bisa mencantumkan tipe sebagai keterangan: `def kuadrat(x: int) -> int:`. Penulisan ini tidak wajib dan tidak diperiksa saat program berjalan, tetapi membantu pembaca dan editor kode.
+</Callout>
+
+## Fungsi tanpa nilai kembalian: `void`
+
+Tidak semua fungsi menghasilkan nilai. Fungsi yang hanya **melakukan sesuatu**, misalnya mencetak ke layar, memakai tipe `void` di C++. Di Python, fungsi tanpa `return` otomatis mengembalikan `None`.
+
+```cpp tab="C++"
+void garis(int panjang) {
+    for (int i = 0; i < panjang; i++) {
+        cout << "-";
+    }
+    cout << endl;
+}
+
+int main() {
+    garis(10);       // ----------
+    cout << "Laporan Nilai" << endl;
+    garis(10);       // ----------
+    return 0;
+}
+```
+
+```python tab="Python"
+def garis(panjang):
+    for i in range(panjang):
+        print("-", end="")
+    print()
+
+
+garis(10)        # ----------
+print("Laporan Nilai")
+garis(10)        # ----------
+```
+
+## `return` langsung mengakhiri fungsi
+
+`return` tidak harus berada di baris terakhir. Begitu `return` dijalankan, fungsi **langsung berhenti**. Sifat ini membuat kode pengecekan lebih ringkas:
+
+```cpp tab="C++"
+bool isPrima(int n) {
+    if (n < 2) {
+        return false;            // 0 dan 1 bukan prima, selesai di sini
+    }
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            return false;        // ketemu pembagi, langsung selesai
+        }
+    }
+    return true;                 // tidak ada pembagi sama sekali
+}
+
+int main() {
+    for (int n = 1; n <= 30; n++) {
+        if (isPrima(n)) {
+            cout << n << " ";
+        }
+    }
+    cout << endl;                // 2 3 5 7 11 13 17 19 23 29
+    return 0;
+}
+```
+
+```python tab="Python"
+def is_prima(n):
+    if n < 2:
+        return False             # 0 dan 1 bukan prima, selesai di sini
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            return False         # ketemu pembagi, langsung selesai
+        i += 1
+    return True                  # tidak ada pembagi sama sekali
+
+
+for n in range(1, 31):
+    if is_prima(n):
+        print(n, end=" ")
+print()                          # 2 3 5 7 11 13 17 19 23 29
+```
+
+Kenapa cukup memeriksa sampai `i * i <= n`? Jika `n` punya pembagi yang lebih besar dari akar `n`, pasangannya pasti lebih kecil dari akar `n` dan sudah diperiksa lebih dulu. Untuk `n = 97`, cukup 8 pemeriksaan (`i` = 2 sampai 9), bukan 95.
+
+## Urutan penulisan fungsi di C++
+
+C++ membaca kode dari atas ke bawah. Fungsi harus sudah **dikenal** sebelum dipanggil. Jika `kuadrat` ditulis di bawah `main`, compiler menolak:
+
+```txt title="Error"
+error: 'kuadrat' was not declared in this scope
+```
+
+Ada dua solusi: tulis fungsinya di atas `main`, atau tulis **deklarasi** (_prototype_) di atas dan definisinya di bawah:
+
+```cpp
+int kuadrat(int x);          // deklarasi: "fungsi ini ada"
+
+int main() {
+    cout << kuadrat(5) << endl;
+    return 0;
+}
+
+int kuadrat(int x) {         // definisi lengkap
+    return x * x;
+}
+```
+
+Python tidak butuh deklarasi, tetapi baris `def` tetap harus **sudah dijalankan** sebelum fungsinya dipanggil. Karena itu fungsi Python biasanya ditulis di bagian atas file.
+
+## Ruang lingkup variabel (scope)
+
+Variabel yang dibuat di dalam sebuah fungsi, termasuk parameternya, adalah **variabel lokal**. Variabel lokal hanya hidup selama fungsi itu berjalan dan tidak terlihat dari fungsi lain.
+
+```cpp tab="C++"
+void sapa() {
+    string nama = "Budi";        // lokal milik sapa()
+    cout << "Halo, " << nama << endl;
+}
+
+int main() {
+    sapa();
+    cout << nama;                // ✗ error: 'nama' was not declared in this scope
+    return 0;
+}
+```
+
+```python tab="Python"
+def sapa():
+    nama = "Budi"                # lokal milik sapa()
+    print("Halo,", nama)
+
+
+sapa()
+print(nama)                      # ✗ NameError: name 'nama' is not defined
+```
+
+Dua fungsi boleh memakai nama variabel yang sama, karena keduanya tetap variabel yang berbeda. Variabel **global** (dibuat di luar semua fungsi) memang bisa diakses dari mana saja, tetapi sebaiknya dihindari: sulit melacak fungsi mana yang mengubahnya.
+
+## Parameter menerima salinan
+
+Secara bawaan, parameter C++ menerima **salinan** nilai argumen (_pass by value_). Mengubah parameter tidak mengubah variabel asli milik pemanggil:
+
+```cpp tab="C++"
+void tambahSatu(int x) {
+    x = x + 1;                   // yang berubah hanya salinannya
+}
+
+int main() {
+    int a = 5;
+    tambahSatu(a);
+    cout << a << endl;           // tetap 5
+    return 0;
+}
+```
+
+```python tab="Python"
+def tambah_satu(x):
+    x = x + 1                    # x sekarang menunjuk nilai baru, a tidak terpengaruh
+
+
+a = 5
+tambah_satu(a)
+print(a)                         # tetap 5
+```
+
+Cara yang dianjurkan: **kembalikan hasilnya dengan `return`**, lalu simpan di pemanggil (`a = tambahSatu(a);`). C++ juga punya cara agar fungsi bisa mengubah variabel asli, yaitu _pass by reference_.
+
+<DeepDive href="/docs/cpp/pendalaman/pass-by-value-dan-reference" kind="konsep" title="Pass by value vs pass by reference">
+  Kapan perlu `&`, kenapa `vector` dan `string` sebaiknya dikirim sebagai `const &`, dan mengapa list Python bisa berubah di dalam fungsi sementara angka tidak.
+</DeepDive>
+
+## Nilai bawaan parameter
+
+Parameter bisa diberi nilai bawaan (_default_), yang dipakai jika argumen tidak diberikan:
+
+```cpp tab="C++"
+void garis(int panjang = 20, char simbol = '-') {
+    for (int i = 0; i < panjang; i++) {
+        cout << simbol;
+    }
+    cout << endl;
+}
+
+garis();          // 20 tanda -
+garis(5);         // -----
+garis(5, '=');    // =====
+```
+
+```python tab="Python"
+def garis(panjang=20, simbol="-"):
+    print(simbol * panjang)
+
+
+garis()           # 20 tanda -
+garis(5)          # -----
+garis(5, "=")     # =====
+```
+
+## Contoh lengkap: memecah program menjadi fungsi
+
+Program huruf mutu dari materi [Percabangan](/docs/cpp/percabangan#banyak-pilihan-else-if) kini dibungkus menjadi fungsi, lalu dipanggil untuk setiap mahasiswa:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+char hurufMutu(int nilai) {
+    if (nilai >= 85) return 'A';
+    if (nilai >= 70) return 'B';
+    if (nilai >= 55) return 'C';
+    if (nilai >= 40) return 'D';
+    return 'E';
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i <= n; i++) {
+        int nilai;
+        cin >> nilai;
+        cout << "Mahasiswa " << i << ": " << hurufMutu(nilai) << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+def huruf_mutu(nilai):
+    if nilai >= 85:
+        return "A"
+    if nilai >= 70:
+        return "B"
+    if nilai >= 55:
+        return "C"
+    if nilai >= 40:
+        return "D"
+    return "E"
+
+
+n = int(input())
+for i in range(1, n + 1):
+    nilai = int(input())
+    print(f"Mahasiswa {i}: {huruf_mutu(nilai)}")
+```
+
+Karena `return` langsung mengakhiri fungsi, `else` tidak diperlukan lagi. Bagian `main` kini lebih mudah dibaca: tugasnya hanya membaca data dan menampilkan hasil, sedangkan aturan penilaian ada di satu tempat.
+
+<Callout title="Ciri fungsi yang baik">
+  - **Satu fungsi, satu tugas.** Jika sulit memberi nama, mungkin fungsinya mengerjakan terlalu banyak hal.
+  - **Nama menjelaskan tugasnya**, misalnya `hitungRata`, `isPrima`, `cetakLaporan`.
+  - **Pendek.** Fungsi yang muat di satu layar jauh lebih mudah diperiksa.
+</Callout>
+
+## Rangkuman
+
+- Fungsi adalah sekumpulan langkah bernama yang bisa dipanggil berulang kali.
+- Bagian fungsi: tipe kembalian, nama, parameter, badan, dan `return`. Python memakai `def` tanpa menulis tipe.
+- `void` menandai fungsi tanpa nilai kembalian. `return` langsung mengakhiri fungsi.
+- Di C++, fungsi harus dikenal sebelum dipanggil: tulis di atas `main` atau gunakan deklarasi.
+- Variabel lokal hanya hidup di dalam fungsinya.
+- Parameter menerima salinan nilai. Untuk mengubah data pemanggil, kembalikan hasil dengan `return`.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Tulis fungsi maks(a, b) yang mengembalikan bilangan terbesar, lalu pakai untuk mencari terbesar dari tiga bilangan.">
+    ```cpp tab="C++"
+    int maks(int a, int b) {
+        if (a > b) return a;
+        return b;
+    }
+
+    int main() {
+        int x, y, z;
+        cin >> x >> y >> z;
+        cout << maks(maks(x, y), z) << endl;   // hasil fungsi bisa jadi argumen fungsi lain
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def maks(a, b):
+        if a > b:
+            return a
+        return b
+
+
+    x, y, z = map(int, input().split())
+    print(maks(maks(x, y), z))
+    ```
+  </Accordion>
+  <Accordion title="2. Ubah program faktorial dari materi Perulangan menjadi fungsi faktorial(n).">
+    ```cpp tab="C++"
+    long long faktorial(int n) {
+        long long hasil = 1;
+        for (int i = 2; i <= n; i++) {
+            hasil *= i;
+        }
+        return hasil;
+    }
+    ```
+
+    ```python tab="Python"
+    def faktorial(n):
+        hasil = 1
+        for i in range(2, n + 1):
+            hasil *= i
+        return hasil
+    ```
+
+    Variabel `hasil` dan `i` adalah variabel lokal. Setiap kali `faktorial` dipanggil, keduanya dibuat baru.
+  </Accordion>
+  <Accordion title="3. Apa output program berikut, dan kenapa? void ubah(int n) { n = 100; } lalu di main: int n = 1; ubah(n); cout << n;">
+    Output-nya **1**. Parameter `n` di dalam `ubah` adalah variabel lokal yang menerima **salinan** nilai `n` milik `main`. Mengubahnya tidak berpengaruh ke luar, walaupun namanya sama.
+  </Accordion>
+</Accordions>

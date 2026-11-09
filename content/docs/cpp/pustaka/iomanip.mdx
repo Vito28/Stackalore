@@ -1,0 +1,135 @@
+---
+title: <iomanip>
+description: Mengatur jumlah angka di belakang koma dan lebar kolom output dengan fixed, setprecision, setw, dan setfill.
+sumber:
+  - ref: cppreference
+    judul: "std::setprecision"
+    url: https://en.cppreference.com/w/cpp/io/manip/setprecision
+  - ref: cppreference
+    judul: "std::setw"
+    url: https://en.cppreference.com/w/cpp/io/manip/setw
+  - ref: python-docs
+    judul: "Format Specification Mini-Language"
+    url: https://docs.python.org/3/library/string.html#format-specification-mini-language
+---
+
+<BackToLesson href="/docs/cpp/variabel-dan-tipe-data" label="Variabel & Tipe Data" />
+
+<Callout title="Ringkasan">
+  `<iomanip>` (_input-output manipulator_) berisi pengatur format output untuk `cout`. Tambahkan `#include <iomanip>`. Padanannya di Python adalah format di dalam f-string, misalnya `f"{x:.2f}"`.
+</Callout>
+
+## Angka di belakang koma: `fixed` + `setprecision`
+
+Secara bawaan, `cout` menampilkan bilangan pecahan dengan 6 digit signifikan dan membuang angka nol di belakang. Hasilnya sering tidak sesuai harapan:
+
+```cpp
+cout << 10.0 / 3 << endl;   // 3.33333
+cout << 2.50 << endl;       // 2.5   (ingin 2.50)
+cout << 1234567.0 << endl;  // 1.23457e+06
+```
+
+Gabungan `fixed` dan `setprecision(n)` menampilkan **tepat n angka di belakang koma**:
+
+```cpp tab="C++"
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+int main() {
+    double ipk = 3.5;
+    double harga = 12500;
+
+    cout << fixed << setprecision(2);
+    cout << "IPK   : " << ipk << endl;           // 3.50
+    cout << "Harga : " << harga << endl;         // 12500.00
+    cout << "Bagi  : " << 10.0 / 3 << endl;      // 3.33
+    return 0;
+}
+```
+
+```python tab="Python"
+ipk = 3.5
+harga = 12500
+
+print(f"IPK   : {ipk:.2f}")           # 3.50
+print(f"Harga : {harga:.2f}")         # 12500.00
+print(f"Bagi  : {10 / 3:.2f}")        # 3.33
+```
+
+### Tanpa `fixed`, artinya berbeda
+
+Hati-hati: tanpa `fixed`, `setprecision(n)` mengatur jumlah **digit signifikan** (seluruh digit), bukan angka di belakang koma.
+
+| Kode | Output |
+| --- | --- |
+| `cout << setprecision(3) << 3.14159;` | `3.14` (3 digit total) |
+| `cout << setprecision(3) << 1234.5;` | `1.23e+03` |
+| `cout << fixed << setprecision(3) << 3.14159;` | `3.142` (3 di belakang koma) |
+| `cout << fixed << setprecision(3) << 1234.5;` | `1234.500` |
+
+Perhatikan bahwa angkanya **dibulatkan**, bukan dipotong: `3.14159` menjadi `3.142`.
+
+### Pengaturan ini menempel
+
+`fixed` dan `setprecision` berlaku untuk **semua** output berikutnya, sampai diubah lagi. Cukup tulis sekali di awal program. Untuk kembali ke format bawaan, gunakan `defaultfloat`:
+
+```cpp
+cout << fixed << setprecision(2) << 1.5 << endl;   // 1.50
+cout << 2.0 << endl;                               // 2.00, masih menempel
+cout << defaultfloat << 2.0 << endl;               // 2
+```
+
+## Lebar kolom: `setw`
+
+`setw(n)` (_set width_) membuat output **berikutnya** menempati minimal `n` karakter. Sisa tempatnya diisi spasi. Manipulator ini berguna untuk membuat tabel yang rapi.
+
+```cpp tab="C++"
+cout << left << setw(10) << "Nama" << right << setw(6) << "Nilai" << endl;
+cout << left << setw(10) << "Budi" << right << setw(6) << 90 << endl;
+cout << left << setw(10) << "Siti" << right << setw(6) << 100 << endl;
+```
+
+```python tab="Python"
+print(f"{'Nama':<10}{'Nilai':>6}")
+print(f"{'Budi':<10}{90:>6}")
+print(f"{'Siti':<10}{100:>6}")
+```
+
+```txt title="Output"
+Nama       Nilai
+Budi          90
+Siti         100
+```
+
+- `left` membuat teks rata kiri, sedangkan `right` (bawaan) membuat teks rata kanan. Keduanya **menempel**.
+- `setw` **tidak menempel**. Ia hanya berlaku untuk **satu** output tepat setelahnya, jadi harus ditulis ulang setiap kali.
+
+## Karakter pengisi: `setfill`
+
+Secara bawaan, sisa tempat dari `setw` diisi spasi. `setfill(c)` menggantinya dengan karakter lain. Contohnya untuk menampilkan jam dengan format `07:05`:
+
+```cpp tab="C++"
+int jam = 7, menit = 5;
+cout << setfill('0') << setw(2) << jam << ":" << setw(2) << menit << endl;   // 07:05
+```
+
+```python tab="Python"
+jam, menit = 7, 5
+print(f"{jam:02d}:{menit:02d}")   # 07:05
+```
+
+## Rangkuman
+
+| Manipulator | Fungsi | Menempel? | Python |
+| --- | --- | --- | --- |
+| `fixed` | Format desimal biasa (bukan notasi ilmiah) | Ya | `f"{x:f}"` |
+| `setprecision(n)` | Dengan `fixed`: n angka di belakang koma | Ya | `f"{x:.2f}"` |
+| `setw(n)` | Lebar minimal output berikutnya | **Tidak** | `f"{x:10}"` |
+| `left` / `right` | Rata kiri / kanan dalam lebar `setw` | Ya | `f"{x:<10}"` / `f"{x:>10}"` |
+| `setfill(c)` | Karakter pengisi untuk `setw` | Ya | `f"{x:0>2}"` |
+| `defaultfloat` | Kembali ke format pecahan bawaan | Ya | — |
+
+Sebagai catatan, `fixed`, `left`, `right`, dan `defaultfloat` sebenarnya sudah tersedia lewat `<iostream>`. Manipulator yang menerima angka, seperti `setprecision`, `setw`, dan `setfill`, baru tersedia setelah `#include <iomanip>`. Agar aman, tulis keduanya.
+
+<BackToLesson href="/docs/cpp/variabel-dan-tipe-data" label="Variabel & Tipe Data" />

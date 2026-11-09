@@ -1,0 +1,300 @@
+---
+title: Operator Aritmatika
+description: Melakukan perhitungan dengan tambah, kurang, kali, bagi, dan modulus, serta memahami urutan operasi dan jebakan pembagian bilangan bulat.
+sumber:
+  - ref: cppreference
+    judul: "Arithmetic operators"
+    url: https://en.cppreference.com/w/cpp/language/operator_arithmetic
+  - ref: cppreference
+    judul: "Operator precedence"
+    url: https://en.cppreference.com/w/cpp/language/operator_precedence
+  - ref: python-docs
+    judul: "Binary arithmetic operations"
+    url: https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations
+---
+
+## Operator dasar
+
+**Operator** adalah simbol yang memerintahkan komputer melakukan operasi tertentu. Nilai yang dioperasikan disebut **operand**. Pada `a + b`, tanda `+` adalah operator, sedangkan `a` dan `b` adalah operand.
+
+| Operasi | C++ | Python | Contoh | Hasil |
+| --- | --- | --- | --- | --- |
+| Penjumlahan | `+` | `+` | `7 + 2` | `9` |
+| Pengurangan | `-` | `-` | `7 - 2` | `5` |
+| Perkalian | `*` | `*` | `7 * 2` | `14` |
+| Pembagian | `/` | `/` | `7 / 2` | C++: `3` · Python: `3.5` |
+| Pembagian bulat | `/` (jika kedua operand `int`) | `//` | `7 // 2` | `3` |
+| Sisa bagi (modulus) | `%` | `%` | `7 % 2` | `1` |
+| Pangkat | _tidak ada_, pakai `pow()` | `**` | `2 ** 3` | `8` |
+
+```cpp tab="C++"
+int a = 17, b = 5;
+
+cout << a + b << endl;   // 22
+cout << a - b << endl;   // 12
+cout << a * b << endl;   // 85
+cout << a / b << endl;   // 3
+cout << a % b << endl;   // 2
+```
+
+```python tab="Python"
+a, b = 17, 5
+
+print(a + b)    # 22
+print(a - b)    # 12
+print(a * b)    # 85
+print(a / b)    # 3.4
+print(a // b)   # 3
+print(a % b)    # 2
+print(a ** 2)   # 289
+```
+
+<Callout type="warning" title="Perkalian wajib ditulis">
+  Di matematika, `2x` berarti `2 × x`. Di pemrograman, perkalian harus selalu ditulis: `2 * x`. Simbol `×` dan `÷` juga tidak dikenal, jadi gunakan `*` dan `/`.
+</Callout>
+
+## Pembagian bilangan bulat
+
+Inilah perbedaan terpenting antara C++ dan Python, sekaligus sumber _bug_ yang paling sering dialami pemula.
+
+**Di C++, hasil operator `/` bergantung pada tipe operand-nya:**
+
+- Jika **kedua** operand `int`, hasilnya `int`. Bagian pecahan **dibuang**.
+- Jika **salah satu saja** operand berupa pecahan (`double`), hasilnya pecahan.
+
+```cpp
+cout << 7 / 2 << endl;      // 3     int / int       -> int
+cout << 7.0 / 2 << endl;    // 3.5   double / int    -> double
+cout << 7 / 2.0 << endl;    // 3.5   int / double    -> double
+cout << 1 / 3 << endl;      // 0     bukan 0.333!
+```
+
+**Di Python, ada dua operator berbeda:** `/` selalu menghasilkan pecahan (`float`), sedangkan `//` selalu menghasilkan pembagian bulat.
+
+```python
+print(7 / 2)     # 3.5
+print(7 // 2)    # 3
+print(1 / 3)     # 0.3333333333333333
+```
+
+Jebakan klasiknya ada pada menghitung rata-rata:
+
+```cpp tab="C++"
+int total = 250, jumlahSiswa = 3;
+
+double rata = total / jumlahSiswa;                      // ✗ 83
+double benar = static_cast<double>(total) / jumlahSiswa; // ✓ 83.3333
+```
+
+```python tab="Python"
+total, jumlah_siswa = 250, 3
+
+rata = total / jumlah_siswa   # ✓ 83.33333333333333
+```
+
+Meskipun `rata` bertipe `double`, hasilnya tetap `83`. Pembagian `total / jumlahSiswa` sudah dihitung sebagai `int / int` **sebelum** hasilnya disimpan. Solusinya, ubah salah satu operand menjadi `double` lebih dulu. Cara ini sudah dikenalkan di [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data#konversi-tipe-casting).
+
+### Pembagian dengan bilangan negatif
+
+Untuk bilangan negatif, C++ dan Python bahkan memberi hasil berbeda:
+
+| Ekspresi | C++ | Python | Penjelasan |
+| --- | --- | --- | --- |
+| `-7 / 2` (C++) · `-7 // 2` (Python) | `-3` | `-4` | C++ memotong ke arah nol. Python membulatkan ke bawah. |
+| `-7 % 2` | `-1` | `1` | Tanda hasil modulus mengikuti cara pembagiannya. |
+
+Kamu tidak perlu menghafal tabel ini. Cukup ingat bahwa **hasilnya bisa berbeda**, jadi berhati-hatilah saat memindahkan rumus yang melibatkan bilangan negatif dari satu bahasa ke bahasa lain.
+
+## Modulus (sisa bagi)
+
+Operator `%` menghasilkan **sisa** dari pembagian. Contohnya `17 % 5 = 2`, karena 17 = 5 × 3 + **2**.
+
+Operator yang sering diremehkan ini ternyata sangat berguna:
+
+| Kegunaan | Ekspresi | Contoh |
+| --- | --- | --- |
+| Mengecek genap / ganjil | `n % 2` | `0` berarti genap, `1` berarti ganjil |
+| Mengecek kelipatan | `n % k == 0` | `15 % 5 == 0` → 15 kelipatan 5 |
+| Mengambil digit terakhir | `n % 10` | `1234 % 10` → `4` |
+| Membuang digit terakhir | `n / 10` (C++) · `n // 10` (Python) | `1234 / 10` → `123` |
+
+Contoh penerapannya: mengubah total detik menjadi jam, menit, dan detik.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int totalDetik;
+    cout << "Total detik: ";
+    cin >> totalDetik;                       // misalnya 3725
+
+    int jam   = totalDetik / 3600;           // 1
+    int sisa  = totalDetik % 3600;           // 125
+    int menit = sisa / 60;                   // 2
+    int detik = sisa % 60;                   // 5
+
+    cout << jam << " jam " << menit << " menit " << detik << " detik" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+total_detik = int(input("Total detik: "))   # misalnya 3725
+
+jam = total_detik // 3600                    # 1
+sisa = total_detik % 3600                    # 125
+menit = sisa // 60                           # 2
+detik = sisa % 60                            # 5
+
+print(jam, "jam", menit, "menit", detik, "detik")
+```
+
+```txt title="Output"
+Total detik: 3725
+1 jam 2 menit 5 detik
+```
+
+<Callout type="warning" title="% di C++ hanya untuk bilangan bulat">
+  `7.5 % 2` menyebabkan **error** di C++. Untuk sisa bagi bilangan pecahan, gunakan fungsi `fmod(7.5, 2)` dari pustaka [`<cmath>`](/docs/cpp/pustaka/cmath). Python mengizinkan `7.5 % 2` dan hasilnya `1.5`.
+</Callout>
+
+## Pangkat dan akar
+
+Python punya operator pangkat `**`. **C++ tidak punya operator pangkat.** Sebagai gantinya, C++ memakai fungsi `pow()` dan `sqrt()` dari pustaka `<cmath>`.
+
+```cpp tab="C++"
+#include <cmath>
+
+cout << pow(2, 10) << endl;   // 1024
+cout << sqrt(81) << endl;     // 9
+```
+
+```python tab="Python"
+import math
+
+print(2 ** 10)          # 1024
+print(math.sqrt(81))    # 9.0
+```
+
+<Callout type="error" title="Jebakan: ^ bukan pangkat">
+  Banyak pemula menulis `2 ^ 3` dan berharap hasilnya `8`. Di C++ (dan Python), `^` adalah operator **XOR** (operasi bit), sehingga `2 ^ 3` menghasilkan **`1`**. Compiler tidak menganggapnya error (paling-paling hanya peringatan), jadi kesalahan ini mudah terlewat.
+</Callout>
+
+<DeepDive href="/docs/cpp/pustaka/cmath" kind="pustaka" title="<cmath>: fungsi matematika">
+  `pow`, `sqrt`, `abs`, `round`, `ceil`, `floor`, `fmod`, dan jebakan saat hasil `pow` disimpan ke `int`. Lengkap dengan padanannya di modul `math` Python.
+</DeepDive>
+
+## Urutan operasi
+
+Seperti di matematika, tidak semua operator dikerjakan dari kiri ke kanan. Perkalian dikerjakan lebih dulu daripada penjumlahan.
+
+| Prioritas | C++ | Python |
+| --- | --- | --- |
+| 1 (paling dulu) | `( )` | `( )` |
+| 2 | — | `**` |
+| 3 | `*` `/` `%` | `*` `/` `//` `%` |
+| 4 (paling akhir) | `+` `-` | `+` `-` |
+
+Operator dengan prioritas **sama** dikerjakan dari **kiri ke kanan**.
+
+```cpp
+cout << 2 + 3 * 4 << endl;      // 14, perkalian dulu
+cout << (2 + 3) * 4 << endl;    // 20, kurung dulu
+cout << 20 / 4 * 2 << endl;     // 10, kiri ke kanan: (20 / 4) * 2
+cout << 10 - 4 - 3 << endl;     // 3,  kiri ke kanan: (10 - 4) - 3
+```
+
+<Callout title="Jika ragu, pakai kurung">
+  Tanda kurung tidak membuat program lebih lambat, tetapi membuat maksud kode jauh lebih jelas. `(a + b) / 2` lebih mudah dibaca dan tidak mungkin salah dibandingkan berharap pembaca hafal tabel prioritas.
+</Callout>
+
+## Operator penugasan majemuk
+
+Kode seperti `skor = skor + 10` sangat sering ditulis. Ada bentuk singkatnya:
+
+| Bentuk singkat | Sama dengan |
+| --- | --- |
+| `x += 5` | `x = x + 5` |
+| `x -= 5` | `x = x - 5` |
+| `x *= 5` | `x = x * 5` |
+| `x /= 5` | `x = x / 5` |
+| `x %= 5` | `x = x % 5` |
+
+Bentuk ini berlaku di C++ maupun Python. Python juga punya `x //= 5` dan `x **= 2`.
+
+### Increment dan decrement
+
+C++ punya operator khusus untuk menambah atau mengurangi **1**: `++` dan `--`. Python **tidak** punya operator ini, jadi gunakan `x += 1`.
+
+```cpp tab="C++"
+int x = 5;
+x++;        // x menjadi 6, sama dengan x += 1
+x--;        // x kembali 5, sama dengan x -= 1
+```
+
+```python tab="Python"
+x = 5
+x += 1      # x menjadi 6
+x -= 1      # x kembali 5
+# x++ tidak ada di Python (SyntaxError)
+```
+
+Posisi `++` (di depan atau di belakang variabel) berpengaruh jika dipakai **di dalam ekspresi lain**:
+
+```cpp
+int a = 5;
+int b = a++;   // postfix: b diisi nilai lama (5), BARU a naik menjadi 6
+int c = ++a;   // prefix:  a naik dulu menjadi 7, lalu c diisi 7
+```
+
+Agar tidak bingung, biasakan menulis `x++` di barisnya sendiri. Dengan begitu prefix dan postfix tidak ada bedanya.
+
+## Rangkuman
+
+- Operator aritmatika: `+`, `-`, `*`, `/`, `%`. Python menambah `//` dan `**`.
+- **C++: `int / int` menghasilkan `int`** (pecahan dibuang). Python: `/` selalu pecahan, `//` pembagian bulat.
+- `%` menghasilkan sisa bagi. Berguna untuk cek genap/ganjil, kelipatan, dan memecah digit.
+- C++ tidak punya operator pangkat. Gunakan `pow()` dari `<cmath>`, dan ingat bahwa `^` adalah XOR.
+- Urutan operasi: kurung → (pangkat) → `*` `/` `%` → `+` `-`, dari kiri ke kanan.
+- `x += 1` dan `x++` adalah cara singkat menambah nilai variabel.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Hitung (tanpa komputer) hasil C++ dari: 10 + 6 / 4 * 2 dan 10 % 4 + 3 * 2.">
+    - `10 + 6 / 4 * 2` → `6 / 4 = 1` (pembagian int) → `1 * 2 = 2` → `10 + 2` = **12**.
+    - `10 % 4 + 3 * 2` → `10 % 4 = 2` dan `3 * 2 = 6` → `2 + 6` = **8**.
+  </Accordion>
+  <Accordion title="2. Buat program yang membaca bilangan tiga digit (misal 472) lalu menampilkan jumlah digitnya (4 + 7 + 2 = 13).">
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;                    // 472
+
+        int satuan  = n % 10;        // 2
+        int puluhan = (n / 10) % 10; // 7
+        int ratusan = n / 100;       // 4
+
+        cout << satuan + puluhan + ratusan << endl;   // 13
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())            # 472
+
+    satuan = n % 10             # 2
+    puluhan = (n // 10) % 10    # 7
+    ratusan = n // 100          # 4
+
+    print(satuan + puluhan + ratusan)   # 13
+    ```
+  </Accordion>
+  <Accordion title="3. Kode C++ double c = 5 / 9 * (f - 32); selalu menghasilkan 0. Kenapa, dan bagaimana memperbaikinya?">
+    `5 / 9` adalah pembagian `int / int` yang menghasilkan `0`, sehingga seluruh perkalian menjadi `0`. Perbaiki dengan menjadikan salah satu operand pecahan: `5.0 / 9 * (f - 32)`.
+  </Accordion>
+</Accordions>

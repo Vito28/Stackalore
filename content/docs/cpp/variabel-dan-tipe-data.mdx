@@ -1,0 +1,280 @@
+---
+title: Variabel & Tipe Data
+description: Menyimpan nilai di memori dengan variabel, memilih tipe data yang tepat, dan memahami konstanta serta konversi tipe.
+sumber:
+  - ref: cppreference
+    judul: "Fundamental types"
+    url: https://en.cppreference.com/w/cpp/language/types
+  - ref: cppreference
+    judul: "cv (const and volatile) type qualifiers"
+    url: https://en.cppreference.com/w/cpp/language/cv
+  - ref: python-docs
+    judul: "Built-in Types"
+    url: https://docs.python.org/3/library/stdtypes.html
+  - ref: busbee
+---
+
+## Apa itu variabel?
+
+Program perlu **mengingat** data: umur pengguna, nilai ujian, total belanja. Data ini disimpan di memori komputer, dan untuk mengaksesnya kita memberi nama pada tempat penyimpanan tersebut.
+
+<Callout title="Definisi">
+  **Variabel** adalah tempat penyimpanan di memori yang memiliki **nama**, menyimpan sebuah **nilai**, dan (di C++) memiliki **tipe data** yang menentukan jenis nilai yang boleh disimpan.
+</Callout>
+
+Bayangkan variabel seperti **kotak berlabel**. Labelnya adalah nama variabel, isinya adalah nilai, dan bentuk kotaknya adalah tipe data. Kotak berbentuk `int` hanya bisa diisi bilangan bulat.
+
+<MemoryBoxes
+  items={[
+    { name: 'umur', type: 'int', value: '19' },
+    { name: 'ipk', type: 'double', value: '3.75' },
+    { name: 'grade', type: 'char', value: "'A'" },
+    { name: 'lulus', type: 'bool', value: 'true' },
+  ]}
+/>
+
+## Membuat variabel
+
+Di C++, variabel harus **dideklarasikan** dulu: sebutkan tipe datanya, lalu namanya. Setelah itu baru variabel bisa diisi nilai. Pengisian nilai pertama kali disebut **inisialisasi**.
+
+```cpp tab="C++"
+int umur;          // deklarasi: buat kotak bernama umur bertipe int
+umur = 19;         // penugasan: isi kotak dengan 19
+
+double ipk = 3.75; // deklarasi sekaligus inisialisasi
+int a = 5, b = 10; // beberapa variabel sekaligus
+
+umur = 20;         // nilai lama (19) ditimpa nilai baru
+```
+
+```python tab="Python"
+umur = 19      # langsung isi, tanpa menyebut tipe
+ipk = 3.75
+a, b = 5, 10   # beberapa variabel sekaligus
+
+umur = 20      # nilai lama (19) ditimpa nilai baru
+```
+
+Tanda `=` di pemrograman **bukan** berarti "sama dengan" seperti di matematika. Artinya adalah **"isi dengan"**: nilai di kanan disimpan ke variabel di kiri. Karena itu `x = x + 1` sah. Artinya ambil nilai `x`, tambah 1, lalu simpan kembali ke `x`.
+
+<Callout type="warning" title="Variabel belum diisi">
+  Di C++, variabel lokal yang hanya dideklarasikan (`int x;`) berisi **nilai sampah**, yaitu sisa data acak di memori. Biasakan selalu memberi nilai awal: `int x = 0;`.
+</Callout>
+
+### Statically typed vs dynamically typed
+
+Perbedaan C++ dan Python yang paling terasa ada di sini:
+
+- **C++ bersifat _statically typed_.** Tipe variabel ditentukan saat ditulis dan **tidak bisa berubah**. Variabel `int` selamanya `int`.
+- **Python bersifat _dynamically typed_.** Tipe ditentukan otomatis dari nilainya dan boleh berubah saat program berjalan.
+
+```cpp tab="C++"
+int x = 10;
+x = "halo";   // ✗ error: teks tidak bisa disimpan di variabel int
+```
+
+```python tab="Python"
+x = 10
+print(type(x))   # <class 'int'>
+x = "halo"       # boleh, sekarang x bertipe str
+print(type(x))   # <class 'str'>
+```
+
+## Aturan penamaan variabel
+
+Nama variabel (disebut juga **identifier**) harus mengikuti aturan berikut:
+
+1. Hanya boleh berisi **huruf**, **angka**, dan **garis bawah** `_`.
+2. **Tidak boleh diawali angka.**
+3. **Tidak boleh mengandung spasi** atau simbol seperti `-`, `!`, `@`.
+4. **Case-sensitive**: `nilai` dan `Nilai` adalah dua variabel berbeda.
+5. Tidak boleh memakai **kata kunci** (_keyword_) bahasa itu, seperti `int`, `return`, `if`, `class`.
+
+| Nama | Sah? | Alasan |
+| --- | --- | --- |
+| `nilaiAkhir` | ✓ | Gaya _camelCase_ |
+| `nilai_akhir` | ✓ | Gaya _snake_case_, lazim di Python |
+| `_total` | ✓ | Boleh diawali garis bawah |
+| `2nilai` | ✗ | Diawali angka |
+| `nilai akhir` | ✗ | Mengandung spasi |
+| `nilai-akhir` | ✗ | `-` dibaca sebagai operator pengurangan |
+| `int` | ✗ | Kata kunci C++ |
+
+Pilih nama yang **menjelaskan isinya**. `totalHarga` jauh lebih mudah dipahami daripada `th` atau `x1`.
+
+## Tipe data dasar
+
+Tipe data menentukan **jenis nilai** yang bisa disimpan, **besar memori** yang dipakai, dan **operasi** yang bisa dilakukan.
+
+### Tipe data di C++
+
+| Tipe | Isi | Ukuran* | Rentang / ketelitian | Contoh |
+| --- | --- | --- | --- | --- |
+| `int` | Bilangan bulat | 4 byte | −2.147.483.648 s.d. 2.147.483.647 | `int umur = 19;` |
+| `long long` | Bilangan bulat besar | 8 byte | sekitar ±9,2 × 10¹⁸ | `long long populasi = 8000000000;` |
+| `float` | Bilangan pecahan | 4 byte | ±6–7 digit signifikan | `float suhu = 36.5f;` |
+| `double` | Bilangan pecahan | 8 byte | ±15–16 digit signifikan | `double ipk = 3.75;` |
+| `char` | Satu karakter | 1 byte | Satu huruf, angka, atau simbol | `char grade = 'A';` |
+| `bool` | Nilai logika | 1 byte | `true` atau `false` | `bool lulus = true;` |
+| `string` | Teks | bervariasi | Deretan karakter | `string nama = "Budi";` |
+
+<small>* Ukuran yang umum di komputer 64-bit dengan compiler `g++`. Standar C++ hanya menetapkan ukuran minimum, jadi bisa berbeda di sistem lain.</small>
+
+Hal-hal yang perlu diperhatikan:
+
+- **Gunakan `double` untuk pecahan.** `double` lebih teliti daripada `float`, dan angka pecahan seperti `3.75` di C++ secara bawaan bertipe `double`.
+- **`char` memakai kutip tunggal** (`'A'`), sedangkan **`string` memakai kutip ganda** (`"Budi"`). `'AB'` bukan `char` yang sah.
+- **Pemisah desimal adalah titik**, bukan koma. Tulis `3.75`, bukan `3,75`.
+- **`string` bukan tipe dasar.** `string` berasal dari pustaka standar, jadi sebaiknya tambahkan `#include <string>`.
+- **`bool` dicetak sebagai angka.** `cout << true;` menampilkan `1`, dan `false` menampilkan `0`.
+
+Kamu bisa memeriksa ukuran sebuah tipe dengan `sizeof`:
+
+```cpp
+cout << sizeof(int) << endl;     // 4
+cout << sizeof(double) << endl;  // 8
+cout << sizeof(char) << endl;    // 1
+```
+
+### Padanannya di Python
+
+Python hanya punya sedikit tipe dasar, dan semuanya ditentukan otomatis:
+
+| Python | Padanan di C++ | Catatan |
+| --- | --- | --- |
+| `int` | `int`, `long long` | **Tidak punya batas**. Bisa menyimpan angka sebesar apa pun selama memori cukup. |
+| `float` | `double` | Ketelitian setara `double` di C++. |
+| `str` | `char`, `string` | Python tidak membedakan satu karakter dan teks. `'A'` dan `"A"` sama-sama `str`. |
+| `bool` | `bool` | Ditulis `True` dan `False`, diawali huruf kapital. |
+
+## Konstanta
+
+Beberapa nilai tidak boleh berubah selama program berjalan, misalnya nilai π atau batas nilai kelulusan. Simpan nilai seperti itu sebagai **konstanta**.
+
+```cpp tab="C++"
+const double PI = 3.14159;
+const int NILAI_LULUS = 60;
+
+PI = 3.14;   // ✗ error: konstanta tidak bisa diubah
+```
+
+```python tab="Python"
+# Python tidak punya konstanta sungguhan.
+# Kesepakatannya: nama HURUF_KAPITAL berarti jangan diubah.
+PI = 3.14159
+NILAI_LULUS = 60
+```
+
+### Hindari magic number
+
+**Magic number** adalah angka yang muncul begitu saja di kode tanpa penjelasan. Pembaca kode tidak tahu dari mana angka itu berasal:
+
+```cpp
+// ✗ Apa arti 60? Kalau batas lulus berubah, semua 60 harus dicari satu per satu.
+if (nilai >= 60) { /* ... */ }
+
+// ✓ Maknanya jelas, dan cukup diubah di satu tempat.
+const int NILAI_LULUS = 60;
+if (nilai >= NILAI_LULUS) { /* ... */ }
+```
+
+## Batas tipe data: overflow
+
+Setiap tipe di C++ punya batas. Jika nilainya melewati batas, terjadi **overflow** dan hasilnya tidak bisa diandalkan.
+
+```cpp tab="C++"
+int besar = 2147483647;   // nilai maksimum int
+besar = besar + 1;        // ✗ overflow
+cout << besar;            // biasanya mencetak -2147483648
+```
+
+```python tab="Python"
+besar = 2147483647
+besar = besar + 1
+print(besar)              # 2147483648, int Python tidak punya batas
+```
+
+Secara resmi, overflow pada `int` adalah _undefined behavior_: standar C++ tidak menjamin hasilnya. Di kebanyakan komputer nilainya "berputar" menjadi negatif. Jika angka bisa sangat besar, misalnya hasil perkalian dua angka jutaan, gunakan `long long`.
+
+## Konversi tipe (casting)
+
+Kadang kita perlu mengubah nilai dari satu tipe ke tipe lain.
+
+**Konversi otomatis (implisit)** terjadi saat nilai disimpan ke tipe lain:
+
+```cpp
+double d = 7;     // int 7 otomatis menjadi 7.0
+int i = 9.99;     // pecahan DIBUANG, i berisi 9 (bukan dibulatkan!)
+```
+
+**Konversi eksplisit** ditulis sendiri oleh programmer:
+
+```cpp tab="C++"
+int jumlah = 7, banyak = 2;
+
+double rata1 = jumlah / banyak;                       // 3   ✗ pembagian int
+double rata2 = static_cast<double>(jumlah) / banyak;  // 3.5 ✓
+double rata3 = (double) jumlah / banyak;              // 3.5 ✓ gaya lama (C)
+```
+
+```python tab="Python"
+jumlah, banyak = 7, 2
+
+rata = jumlah / banyak      # 3.5, operator / di Python selalu menghasilkan float
+bulat = int(3.99)           # 3, bagian pecahan dibuang
+angka = float("3.5")        # str  -> float
+teks = str(19)              # int  -> str
+```
+
+Mengapa `jumlah / banyak` di C++ menghasilkan `3`? Karena **int dibagi int menghasilkan int**. Bagian pecahannya dibuang sebelum hasilnya disimpan ke `double`. Ini salah satu jebakan paling umum di C++, dan dibahas tuntas di [Operator Aritmatika](/docs/cpp/operator-aritmatika#pembagian-bilangan-bulat).
+
+## Menampilkan bilangan pecahan
+
+Secara bawaan, `cout` menampilkan bilangan pecahan dengan **6 digit signifikan**:
+
+```cpp tab="C++"
+double x = 10.0 / 3;
+cout << x << endl;          // 3.33333
+cout << 2.50 << endl;       // 2.5, angka nol di belakang tidak ditampilkan
+```
+
+```python tab="Python"
+x = 10 / 3
+print(x)                    # 3.3333333333333335
+print(f"{x:.2f}")           # 3.33, dua angka di belakang koma
+```
+
+Untuk mengatur jumlah angka di belakang koma, misalnya menampilkan `Rp 2500.00` atau IPK `3.50`, C++ memakai `fixed` dan `setprecision` dari pustaka `<iomanip>`.
+
+<DeepDive href="/docs/cpp/pustaka/iomanip" kind="pustaka" title="<iomanip>: mengatur format angka">
+  Pelajari `fixed`, `setprecision`, dan `setw` untuk menampilkan angka desimal dan tabel yang rapi, beserta padanannya dengan f-string di Python.
+</DeepDive>
+
+## Rangkuman
+
+- **Variabel** adalah tempat penyimpanan bernama di memori. `=` berarti "isi dengan".
+- C++ **statically typed**: tipe ditulis saat deklarasi dan tidak berubah. Python **dynamically typed**.
+- Tipe dasar C++: `int`, `long long`, `float`, `double`, `char`, `bool`, ditambah `string` dari pustaka standar.
+- Gunakan **konstanta** (`const`) untuk nilai tetap, dan hindari _magic number_.
+- Tipe di C++ punya batas. Melewatinya menyebabkan **overflow**.
+- `int / int` menghasilkan `int`. Gunakan `static_cast<double>` agar hasilnya pecahan.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Tentukan tipe data yang paling tepat untuk: jumlah mahasiswa, harga barang, jenis kelamin (L/P), status aktif, dan nama kota.">
+    | Data | Tipe C++ | Tipe Python |
+    | --- | --- | --- |
+    | Jumlah mahasiswa | `int` | `int` |
+    | Harga barang | `double` (atau `long long` jika dalam rupiah tanpa sen) | `float` / `int` |
+    | Jenis kelamin (L/P) | `char` | `str` |
+    | Status aktif | `bool` | `bool` |
+    | Nama kota | `string` | `str` |
+  </Accordion>
+  <Accordion title="2. Mana nama variabel yang tidak sah: totalNilai, 1stPlace, harga_akhir, return, jumlah-data?">
+    Yang tidak sah: `1stPlace` (diawali angka), `return` (kata kunci), dan `jumlah-data` (mengandung `-`).
+  </Accordion>
+  <Accordion title="3. Berapa nilai x setelah int x = 7.9; dijalankan?">
+    `x` bernilai **7**. Saat `double` dikonversi ke `int`, bagian pecahan **dibuang**, bukan dibulatkan.
+  </Accordion>
+</Accordions>

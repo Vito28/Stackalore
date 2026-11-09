@@ -3,186 +3,268 @@
 @import 'fumadocs-ui/css/preset.css';
 
 @theme {
-  /* Stacklore brand */
-
-  --color-brand-blue: #3b82f6;
-  --color-brand-indigo: #6366f1;
-  --color-brand-violet: #8b5cf6;
-
-  /* Visualization states */
-
-  --color-viz-current: #6366f1;
-  --color-viz-selected: #3b82f6;
-  --color-viz-compare: #f59e0b;
-  --color-viz-transform: #8b5cf6;
-  --color-viz-success: #10b981;
-  --color-viz-danger: #f43f5e;
-
-  --color-domain-dsa: #06b6d4;
-  --color-domain-ml: #10b981;
-  --color-domain-dl: #8b5cf6;
-  --color-domain-crypto: #f59e0b;
-
-  --shadow-glow-current:
-    0 0 0 1px rgb(99 102 241 / 0.18),
-    0 0 24px rgb(99 102 241 / 0.2);
-  --shadow-glow-selected:
-    0 0 0 1px rgb(59 130 246 / 0.18),
-    0 0 24px rgb(59 130 246 / 0.18);
-  --shadow-glow-compare:
-    0 0 0 1px rgb(245 158 11 / 0.2),
-    0 0 24px rgb(245 158 11 / 0.18);
-  --shadow-glow-transform:
-    0 0 0 1px rgb(139 92 246 / 0.2),
-    0 0 28px rgb(139 92 246 / 0.2);
-  --shadow-glow-success:
-    0 0 0 1px rgb(16 185 129 / 0.18),
-    0 0 24px rgb(16 185 129 / 0.18);
-  --shadow-glow-danger:
-    0 0 0 1px rgb(244 63 94 / 0.2),
-    0 0 24px rgb(244 63 94 / 0.18);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+/* ------------------------------------------------------------------------ */
+/* Color tokens. Fumadocs components read these too, so everything follows  */
+/* the same light/dark palette.                                             */
+/* ------------------------------------------------------------------------ */
+
+:root {
+  --color-fd-background: hsl(0 0% 100%);
+  --color-fd-foreground: hsl(240 10% 4%);
+  --color-fd-muted: hsl(240 5% 96%);
+  --color-fd-muted-foreground: hsl(240 4% 42%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-popover-foreground: hsl(240 10% 4%);
+  --color-fd-card: hsl(240 5% 98.5%);
+  --color-fd-card-foreground: hsl(240 10% 4%);
+  --color-fd-border: hsl(240 6% 90%);
+  --color-fd-primary: hsl(221 83% 53%);
+  --color-fd-primary-foreground: hsl(0 0% 100%);
+  --color-fd-secondary: hsl(240 5% 96%);
+  --color-fd-secondary-foreground: hsl(240 6% 10%);
+  --color-fd-accent: hsl(240 5% 94%);
+  --color-fd-accent-foreground: hsl(240 6% 10%);
+  --color-fd-ring: hsl(221 83% 53% / 0.55);
+  --color-fd-overlay: hsl(240 10% 4% / 0.25);
+
+  /* Flowchart */
+  --fc-terminal-fill: #ecfdf5;
+  --fc-terminal-stroke: #10b981;
+  --fc-io-fill: #eff6ff;
+  --fc-io-stroke: #3b82f6;
+  --fc-process-fill: #ffffff;
+  --fc-process-stroke: #a1a1aa;
+  --fc-decision-fill: #fffbeb;
+  --fc-decision-stroke: #f59e0b;
+  --fc-line: #71717a;
+}
+
+.dark {
+  --color-fd-background: hsl(240 6% 6%);
+  --color-fd-foreground: hsl(0 0% 95%);
+  --color-fd-muted: hsl(240 4% 12%);
+  --color-fd-muted-foreground: hsl(240 5% 65%);
+  --color-fd-popover: hsl(240 5% 9%);
+  --color-fd-popover-foreground: hsl(0 0% 95%);
+  --color-fd-card: hsl(240 5% 8.5%);
+  --color-fd-card-foreground: hsl(0 0% 95%);
+  --color-fd-border: hsl(240 4% 17%);
+  --color-fd-primary: hsl(213 94% 68%);
+  --color-fd-primary-foreground: hsl(222 47% 11%);
+  --color-fd-secondary: hsl(240 4% 12%);
+  --color-fd-secondary-foreground: hsl(0 0% 95%);
+  --color-fd-accent: hsl(240 4% 15%);
+  --color-fd-accent-foreground: hsl(0 0% 95%);
+  --color-fd-ring: hsl(213 94% 68% / 0.55);
+  --color-fd-overlay: hsl(0 0% 0% / 0.5);
+
+  --fc-terminal-fill: rgb(16 185 129 / 0.12);
+  --fc-terminal-stroke: #34d399;
+  --fc-io-fill: rgb(59 130 246 / 0.14);
+  --fc-io-stroke: #60a5fa;
+  --fc-process-fill: rgb(255 255 255 / 0.03);
+  --fc-process-stroke: #71717a;
+  --fc-decision-fill: rgb(245 158 11 / 0.12);
+  --fc-decision-stroke: #fbbf24;
+  --fc-line: #a1a1aa;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Base                                                                     */
+/* ------------------------------------------------------------------------ */
 
 html {
   scrollbar-gutter: stable;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-fd-background);
+  color: var(--color-fd-foreground);
 }
 
 html > body[data-scroll-locked] {
-  margin-right: 0px !important;
+  margin-right: 0 !important;
   --removed-body-scroll-bar-size: 0px !important;
 }
 
+/* Show `<<`, `>>`, `!=`, `<=` exactly as typed: ligatures confuse beginners. */
+code,
+pre,
+kbd,
+.font-mono {
+  font-variant-ligatures: none;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+}
+
 ::selection {
-  background: color-mix(in oklab, var(--color-viz-current) 22%, transparent);
+  background: color-mix(in oklab, var(--color-fd-primary) 25%, transparent);
 }
 
-.tech-glass {
-  background:
-    linear-gradient(
-      145deg,
-      rgb(255 255 255 / 0.78) 0%,
-      rgb(255 255 255 / 0.52) 48%,
-      rgb(236 254 255 / 0.42) 100%
-    ),
-    color-mix(
-      in oklab,
-      var(--color-fd-background) 36%,
-      transparent
-    );
-  border-color: color-mix(
-    in oklab,
-    var(--color-fd-border) 72%,
-    rgb(255 255 255 / 0.7)
-  );
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.95) inset,
-    1px 0 0 rgb(255 255 255 / 0.45) inset,
-    0 20px 55px -36px rgb(15 23 42 / 0.32),
-    0 8px 22px -18px rgb(8 145 178 / 0.2);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  backdrop-filter: blur(22px) saturate(1.4);
-}
-
-.dark .tech-glass {
-  background:
-    linear-gradient(
-      145deg,
-      rgb(15 23 42 / 0.52) 0%,
-      rgb(8 15 26 / 0.66) 52%,
-      rgb(4 13 22 / 0.58) 100%
-    ),
-    color-mix(in oklab, var(--color-fd-background) 45%, transparent);
-  border-color: color-mix(
-    in oklab,
-    var(--color-fd-border) 82%,
-    rgb(34 211 238 / 0.12)
-  );
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.07) inset,
-    1px 0 0 rgb(255 255 255 / 0.025) inset,
-    0 22px 70px -44px rgb(6 182 212 / 0.3);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .tech-glass {
-    background: var(--color-fd-background);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }
 
-.tech-code-scroll {
-  scrollbar-color: rgb(34 211 238 / 0.4) rgb(2 8 15 / 0.9);
+/* ------------------------------------------------------------------------ */
+/* Theme switching                                                          */
+/* ------------------------------------------------------------------------ */
+
+/* Circular reveal (see ThemeToggle). The new theme grows from the button.  */
+:root[data-theme-transition]::view-transition-old(root),
+:root[data-theme-transition]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-theme-transition]::view-transition-old(root) {
+  z-index: 1;
+}
+
+:root[data-theme-transition]::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Fallback for browsers without the View Transitions API. */
+.theme-fade,
+.theme-fade *,
+.theme-fade *::before,
+.theme-fade *::after {
+  transition:
+    background-color 350ms ease,
+    border-color 350ms ease,
+    color 350ms ease,
+    fill 350ms ease,
+    stroke 350ms ease !important;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Article typography                                                       */
+/* ------------------------------------------------------------------------ */
+
+.docs-prose {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.docs-prose :where(h2) {
+  margin-top: 3rem;
+  padding-top: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.docs-prose :where(h3) {
+  margin-top: 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.docs-prose :where(h2, h3, h4)[id] {
+  scroll-margin-top: 5rem;
+}
+
+.docs-prose :where(strong) {
+  font-weight: 600;
+}
+
+.docs-prose :where(table) {
+  font-size: 0.9rem;
+}
+
+.docs-prose :where(kbd) {
+  font-size: 0.8em;
+}
+
+/* Inline links that open a deep-dive page */
+.prose a.term-link {
+  text-decoration-style: dashed;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.deep-dive code {
+  border-radius: 0.3rem;
+  background: var(--color-fd-muted);
+  padding: 0.05rem 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--color-fd-foreground);
+}
+
+.buffer-stepper p code {
+  border-radius: 0.3rem;
+  border: 1px solid var(--color-fd-border);
+  background: var(--color-fd-background);
+  padding: 0.05rem 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Flowchart (src/components/mdx/flowchart.tsx)                             */
+/* ------------------------------------------------------------------------ */
+
+.fc-shape {
+  stroke-width: 1.5;
+}
+
+.fc-terminal {
+  fill: var(--fc-terminal-fill);
+  stroke: var(--fc-terminal-stroke);
+}
+
+.fc-io {
+  fill: var(--fc-io-fill);
+  stroke: var(--fc-io-stroke);
+}
+
+.fc-process {
+  fill: var(--fc-process-fill);
+  stroke: var(--fc-process-stroke);
+}
+
+.fc-decision {
+  fill: var(--fc-decision-fill);
+  stroke: var(--fc-decision-stroke);
+}
+
+.fc-line {
+  fill: none;
+  stroke: var(--fc-line);
+  stroke-width: 1.5;
+}
+
+.fc-head {
+  fill: var(--fc-line);
+}
+
+.fc-text {
+  fill: var(--color-fd-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.fc-branch {
+  fill: var(--color-fd-muted-foreground);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Sidebar                                                                  */
+/* ------------------------------------------------------------------------ */
+
+.sidebar-scroll {
   scrollbar-width: thin;
-}
-
-.tech-code-scroll::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.tech-code-scroll::-webkit-scrollbar-track {
-  background: rgb(2 8 15 / 0.9);
-}
-
-.tech-code-scroll::-webkit-scrollbar-thumb {
-  border: 3px solid rgb(2 8 15 / 0.9);
-  background: rgb(34 211 238 / 0.4);
-}
-
-.docs-readable {
-  --tw-prose-body: color-mix(in oklab, var(--color-fd-foreground) 82%, transparent);
-  --tw-prose-headings: var(--color-fd-foreground);
-}
-
-.docs-readable :where(h2) {
-  margin-top: 2.75rem;
-  font-size: 1.75rem;
-  line-height: 1.25;
-  letter-spacing: -0.025em;
-}
-
-.docs-readable :where(h3) {
-  font-size: 1.35rem;
-  line-height: 1.35;
-}
-
-.docs-readable :where(p, li) {
-  color: color-mix(in oklab, var(--color-fd-foreground) 78%, transparent);
-}
-
-.docs-subject-toc #toc-title {
-  font-weight: 600;
-  color: color-mix(in oklab, var(--color-fd-foreground) 72%, transparent);
-}
-
-.docs-subject-toc a[data-active='true'] {
-  font-weight: 600;
-}
-
-.docs-subject-toc a {
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.docs-subject-toc a > svg :where(path, line) {
-  stroke: color-mix(in oklab, var(--color-fd-foreground) 16%, transparent);
-  stroke-width: 1.25;
-}
-
-.docs-subject-toc a:hover {
-  color: var(--color-fd-primary);
-}
-
-/* Keep course navigation anchored to the left on every screen size. */
-#nd-sidebar-mobile {
-  inset-inline-start: 0;
-  inset-inline-end: auto;
-  border-inline-start-width: 0;
-  border-inline-end-width: 1px;
-  --fd-sidebar-drawer-offset: -100%;
-}
-
-.docs-domain-sidebar [data-radix-scroll-area-viewport] {
-  scroll-behavior: smooth;
+  scrollbar-color: var(--color-fd-border) transparent;
 }

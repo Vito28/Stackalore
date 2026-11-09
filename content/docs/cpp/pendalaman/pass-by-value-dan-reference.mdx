@@ -1,0 +1,169 @@
+---
+title: Pass by Value & Pass by Reference
+description: Kapan fungsi menerima salinan, kapan menerima variabel aslinya, dan bagaimana Python memperlakukan argumen.
+sumber:
+  - ref: cppreference
+    judul: Reference declaration
+    url: https://en.cppreference.com/w/cpp/language/reference
+  - ref: python-docs
+    judul: FAQ, How do I write a function with output parameters (call by reference)?
+    url: https://docs.python.org/3/faq/programming.html#how-do-i-write-a-function-with-output-parameters-call-by-reference
+---
+
+<BackToLesson href="/docs/cpp/fungsi" label="Fungsi" />
+
+## Pass by value: fungsi menerima salinan
+
+Di materi [Fungsi](/docs/cpp/fungsi#parameter-menerima-salinan), kita melihat bahwa mengubah parameter tidak mengubah variabel milik pemanggil. Alasannya, secara bawaan C++ memakai **pass by value**: nilai argumen **disalin** ke kotak memori baru milik parameter.
+
+```cpp
+void tambahSatu(int x) {
+    x = x + 1;
+}
+
+int main() {
+    int a = 5;
+    tambahSatu(a);
+    cout << a << endl;    // 5
+}
+```
+
+<MemoryBoxes
+  caption="Pass by value: a dan x adalah dua kotak berbeda. Yang bertambah hanya salinannya."
+  items={[
+    { name: 'a (main)', type: 'int', value: '5' },
+    { name: 'x (tambahSatu)', type: 'int', value: '6' },
+  ]}
+/>
+
+## Pass by reference: fungsi menerima variabel aslinya
+
+Tambahkan tanda `&` setelah tipe parameter. Parameter itu tidak lagi menjadi kotak baru, melainkan **nama lain** (_reference_) untuk variabel milik pemanggil:
+
+```cpp
+void tambahSatu(int& x) {     // perhatikan tanda &
+    x = x + 1;                // yang berubah adalah variabel aslinya
+}
+
+int main() {
+    int a = 5;
+    tambahSatu(a);
+    cout << a << endl;    // 6
+}
+```
+
+<MemoryBoxes
+  caption="Pass by reference: a dan x adalah dua nama untuk kotak yang sama."
+  items={[{ name: 'a (main) = x (tambahSatu)', type: 'int', value: '6' }]}
+/>
+
+Karena parameter reference harus terhubung ke sebuah variabel, kita tidak bisa mengirim nilai langsung seperti `tambahSatu(5)`:
+
+```txt title="Error"
+error: cannot bind non-const lvalue reference of type ‘int&’ to an rvalue of type ‘int’
+```
+
+### Kapan reference berguna?
+
+**1. Fungsi memang perlu mengubah variabel pemanggil.** Contoh klasiknya menukar dua nilai:
+
+```cpp
+void tukar(int& a, int& b) {
+    int sementara = a;
+    a = b;
+    b = sementara;
+}
+
+int x = 1, y = 2;
+tukar(x, y);              // x = 2, y = 1
+```
+
+Pustaka standar sudah menyediakan fungsi yang sama: `swap(x, y)`.
+
+**2. Fungsi perlu "mengembalikan" lebih dari satu nilai.**
+
+```cpp
+void hitung(int a, int b, int& jumlah, int& selisih) {
+    jumlah = a + b;
+    selisih = a - b;
+}
+
+int j, s;
+hitung(10, 3, j, s);      // j = 13, s = 7
+```
+
+**3. Menghindari penyalinan data besar.** Mengirim `vector` berisi sejuta elemen secara _by value_ berarti menyalin sejuta elemen setiap kali fungsi dipanggil. Kirimkan sebagai **`const` reference**: tidak ada salinan, dan `const` menjamin fungsi tidak mengubahnya.
+
+```cpp
+double rataRata(const vector<int>& data) {
+    double total = 0;
+    for (int x : data) {
+        total += x;
+    }
+    return total / data.size();
+}
+```
+
+Jika fungsi itu tidak sengaja mencoba mengubah `data`, compiler langsung menolak:
+
+```txt title="Error"
+error: assignment of read-only location ...
+```
+
+### Pegangan praktis
+
+| Situasi | Cara mengirim | Contoh |
+| --- | --- | --- |
+| Tipe kecil (`int`, `double`, `char`, `bool`), hanya dibaca | by value | `int kuadrat(int x)` |
+| Data besar (`string`, `vector`), hanya dibaca | `const` reference | `double rataRata(const vector<int>& data)` |
+| Fungsi harus mengubah variabel pemanggil | reference | `void tukar(int& a, int& b)` |
+
+<Callout type="info" title="Utamakan return">
+  Jika fungsi menghasilkan satu nilai, `return` lebih mudah dibaca daripada parameter reference: `a = tambahSatu(a);` jelas menunjukkan bahwa `a` berubah, sedangkan `tambahSatu(a);` tidak.
+</Callout>
+
+## Bagaimana dengan Python?
+
+Python tidak punya tanda `&`. Setiap variabel Python adalah **nama yang menunjuk sebuah objek**, dan parameter menerima **nama baru untuk objek yang sama**. Hasilnya bergantung pada apa yang dilakukan fungsi terhadap objek tersebut:
+
+```python
+def tambah_satu(x):
+    x = x + 1             # x kini menunjuk objek BARU; objek lama tidak berubah
+
+
+def tambah_nilai(daftar):
+    daftar.append(100)    # MENGUBAH objek yang sama
+
+
+a = 5
+tambah_satu(a)
+print(a)                  # 5
+
+nilai = [80]
+tambah_nilai(nilai)
+print(nilai)              # [80, 100]
+```
+
+- **Mengisi ulang** parameter (`x = ...`) hanya memindahkan nama `x` ke objek lain. Variabel pemanggil tidak terpengaruh.
+- **Mengubah isi** objek yang bisa diubah (_mutable_), seperti `list`, terlihat dari luar fungsi.
+- `int`, `float`, `str`, dan `bool` tidak bisa diubah isinya (_immutable_), jadi fungsi tidak mungkin mengubah angka milik pemanggil.
+
+Untuk menghasilkan beberapa nilai, Python cukup mengembalikan beberapa nilai sekaligus:
+
+```python
+def hitung(a, b):
+    return a + b, a - b
+
+
+j, s = hitung(10, 3)      # j = 13, s = 7
+x, y = y, x               # menukar dua variabel, tanpa fungsi tukar
+```
+
+## Rangkuman
+
+- **By value** (bawaan C++): parameter menerima salinan. Perubahan tidak terlihat dari luar.
+- **By reference** (`int& x`): parameter adalah nama lain untuk variabel pemanggil. Perubahan terlihat dari luar.
+- Gunakan **`const` reference** untuk data besar yang hanya dibaca, seperti `string` dan `vector`.
+- Python mengirim nama untuk objek yang sama: mengisi ulang parameter tidak berpengaruh ke luar, tetapi mengubah isi `list` berpengaruh.
+
+<BackToLesson href="/docs/cpp/fungsi" label="Fungsi" />

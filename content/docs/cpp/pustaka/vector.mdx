@@ -1,0 +1,177 @@
+---
+title: <vector>
+description: Membuat, mengubah, menelusuri, dan mengurutkan vector, beserta padanannya dengan list di Python.
+sumber:
+  - ref: cppreference
+    judul: std::vector
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: cppreference
+    judul: std::sort
+    url: https://en.cppreference.com/w/cpp/algorithm/sort
+  - ref: python-docs
+    judul: Tutorial, More on Lists
+    url: https://docs.python.org/3/tutorial/datastructures.html#more-on-lists
+---
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & vector" />
+
+<Callout title="Ringkasan">
+  `vector` adalah array yang ukurannya bisa berubah. Tambahkan `#include <vector>`. Padanannya di Python adalah `list`.
+</Callout>
+
+## Membuat vector
+
+| C++ | Isi | Python |
+| --- | --- | --- |
+| `vector<int> v;` | kosong | `v = []` |
+| `vector<int> v = {80, 75, 90};` | 80, 75, 90 | `v = [80, 75, 90]` |
+| `vector<int> v(5);` | 0, 0, 0, 0, 0 | `v = [0] * 5` |
+| `vector<int> v(3, 7);` | 7, 7, 7 | `v = [7] * 3` |
+| `vector<string> nama;` | kosong, berisi teks | `nama = []` |
+
+Tipe di dalam `< >` menentukan tipe **semua** elemennya. Satu `vector` tidak bisa berisi campuran `int` dan `string`, sedangkan `list` Python bisa.
+
+## Fungsi yang sering dipakai
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `v.push_back(x)` | Tambah `x` di akhir | `v.append(x)` |
+| `v.pop_back()` | Buang elemen terakhir | `v.pop()` |
+| `v.size()` | Banyak elemen | `len(v)` |
+| `v.empty()` | Apakah kosong? | `len(v) == 0` |
+| `v.front()` / `v.back()` | Elemen pertama / terakhir | `v[0]` / `v[-1]` |
+| `v[i]` | Elemen ke-`i`, **tanpa** pemeriksaan batas | `v[i]` |
+| `v.at(i)` | Elemen ke-`i`, **dengan** pemeriksaan batas | `v[i]` |
+| `v.insert(v.begin() + i, x)` | Sisipkan `x` di indeks `i` | `v.insert(i, x)` |
+| `v.erase(v.begin() + i)` | Hapus elemen di indeks `i` | `del v[i]` |
+| `v.clear()` | Kosongkan | `v.clear()` |
+
+```cpp tab="C++"
+vector<int> a = {10, 20, 30, 40};
+
+a.erase(a.begin() + 2);        // hapus indeks 2:  10 20 40
+a.insert(a.begin() + 1, 99);   // sisip di indeks 1: 10 99 20 40
+
+cout << a.front() << " " << a.back() << endl;   // 10 40
+```
+
+```python tab="Python"
+a = [10, 20, 30, 40]
+
+del a[2]           # hapus indeks 2:  [10, 20, 40]
+a.insert(1, 99)    # sisip di indeks 1: [10, 99, 20, 40]
+
+print(a[0], a[-1]) # 10 40
+```
+
+`v.begin()` menunjuk posisi elemen pertama, jadi `v.begin() + 2` berarti "posisi indeks 2". Penunjuk posisi seperti ini disebut _iterator_.
+
+## `[]` atau `at()`?
+
+`v[i]` tidak memeriksa apakah `i` masih di dalam batas. Jika tidak, terjadi [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior). `v.at(i)` memeriksanya dan menghentikan program dengan pesan yang jelas:
+
+```txt title="Output v.at(10) pada vector berisi 4 elemen"
+terminate called after throwing an instance of 'std::out_of_range'
+  what():  vector::_M_range_check: __n (which is 10) >= this->size() (which is 4)
+```
+
+Saat belajar dan menguji, `at()` membantu menemukan kesalahan lebih cepat.
+
+## Menelusuri vector
+
+```cpp tab="C++"
+vector<int> nilai = {70, 85, 90};
+
+for (int i = 0; i < (int)nilai.size(); i++) {   // pakai indeks
+    cout << i << ": " << nilai[i] << endl;
+}
+
+for (int x : nilai) {          // x adalah SALINAN setiap elemen
+    cout << x << " ";
+}
+
+for (int& x : nilai) {         // x adalah REFERENCE, jadi bisa mengubah elemen
+    x += 5;                    // nilai menjadi {75, 90, 95}
+}
+```
+
+```python tab="Python"
+nilai = [70, 85, 90]
+
+for i in range(len(nilai)):    # pakai indeks
+    print(f"{i}: {nilai[i]}")
+
+for x in nilai:                # x adalah nama untuk setiap elemen
+    print(x, end=" ")
+
+for i in range(len(nilai)):    # untuk mengubah elemen, tulis lewat indeks
+    nilai[i] += 5              # nilai menjadi [75, 90, 95]
+```
+
+Tanda `&` pada `int& x` dijelaskan di [Pass by Value & Pass by Reference](/docs/cpp/pendalaman/pass-by-value-dan-reference).
+
+## Jebakan: `size()` tidak bisa negatif [#jebakan-size-unsigned]
+
+`v.size()` bertipe **bilangan tak bertanda** (_unsigned_), yang tidak bisa bernilai negatif. Akibatnya, jika `v` kosong, `v.size() - 1` **tidak** bernilai -1:
+
+```cpp
+vector<int> v;                       // kosong
+cout << v.size() - 1 << endl;        // 18446744073709551615
+```
+
+Nilainya "berputar" ke angka terbesar yang bisa disimpan. Perulangan seperti `for (int i = 0; i < v.size() - 1; i++)` pada vector kosong akan berjalan dan membaca memori di luar batas. Ada dua cara aman:
+
+```cpp
+for (int i = 0; i < (int)v.size() - 1; i++)   // ubah dulu ke int
+for (int i = 0; i + 1 < (int)v.size(); i++)   // hindari pengurangan
+```
+
+Compiler dengan `-Wall` akan memperingatkan setiap perbandingan `int` dengan `size()`: `comparison of integer expressions of different signedness`. Itulah alasan banyak contoh di materi ini menulis `(int)v.size()`.
+
+## Mengurutkan dan mencari dengan `<algorithm>`
+
+Pustaka `<algorithm>` menyediakan fungsi-fungsi umum untuk vector:
+
+```cpp tab="C++"
+#include <algorithm>
+
+vector<int> nilai = {70, 90, 60, 85};
+
+sort(nilai.begin(), nilai.end());     // naik:  60 70 85 90
+sort(nilai.rbegin(), nilai.rend());   // turun: 90 85 70 60
+
+int terbesar = *max_element(nilai.begin(), nilai.end());   // 90
+int terkecil = *min_element(nilai.begin(), nilai.end());   // 60
+```
+
+```python tab="Python"
+nilai = [70, 90, 60, 85]
+
+nilai.sort()                  # naik:  [60, 70, 85, 90]
+nilai.sort(reverse=True)      # turun: [90, 85, 70, 60]
+
+terbesar = max(nilai)         # 90
+terkecil = min(nilai)         # 60
+```
+
+`max_element` mengembalikan **posisi** (iterator) elemen terbesar, sehingga perlu tanda `*` di depannya untuk mengambil nilainya.
+
+## Vector dua dimensi
+
+```cpp tab="C++"
+// 3 baris x 4 kolom, semuanya 0
+vector<vector<int>> m(3, vector<int>(4, 0));
+m[0][0] = 9;
+```
+
+```python tab="Python"
+# 3 baris x 4 kolom, semuanya 0
+m = [[0] * 4 for _ in range(3)]
+m[0][0] = 9
+```
+
+<Callout type="warning" title="Jebakan Python: [[0] * 4] * 3">
+  Menulis `m = [[0] * 4] * 3` di Python membuat **tiga nama untuk baris yang sama**. Mengubah `m[0][0]` akan ikut mengubah `m[1][0]` dan `m[2][0]`. Selalu buat setiap baris secara terpisah dengan `for` seperti contoh di atas.
+</Callout>
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & vector" />

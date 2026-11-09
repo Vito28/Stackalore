@@ -1,0 +1,6 @@
+{
+  "title": "Pustaka C++",
+  "icon": "Library",
+  "defaultOpen": true,
+  "pages": ["getline", "cmath", "iomanip", "vector"]
+}

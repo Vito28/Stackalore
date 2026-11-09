@@ -48,14 +48,14 @@ export function AISearchPanelHeader({ className, ...props }: ComponentProps<'div
       {...props}
     >
       <div className="px-3 py-2 flex-1">
-        <p className="text-sm font-medium mb-2">AI Chat</p>
+        <p className="text-sm font-medium mb-2">Tanya AI</p>
         <p className="text-xs text-fd-muted-foreground">
-          AI can be inaccurate, please verify the answers.
+          Jawaban AI bisa keliru. Cocokkan kembali dengan materi.
         </p>
       </div>
 
       <button
-        aria-label="Close"
+        aria-label="Tutup"
         tabIndex={-1}
         className={cn(
           buttonVariants({
@@ -93,7 +93,7 @@ export function AISearchInputActions() {
           onClick={() => regenerate()}
         >
           <RefreshCw className="size-4" />
-          Retry
+          Ulangi
         </button>
       )}
       <button
@@ -107,7 +107,7 @@ export function AISearchInputActions() {
         )}
         onClick={() => setMessages([])}
       >
-        Clear Chat
+        Hapus Chat
       </button>
     </>
   );
@@ -150,7 +150,7 @@ export function AISearchInput(props: ComponentProps<'form'>) {
     <form {...props} className={cn('flex items-start pe-2', props.className)} onSubmit={onStart}>
       <Input
         value={input}
-        placeholder={isLoading ? 'AI is answering...' : 'Ask a question'}
+        placeholder={isLoading ? 'AI sedang menjawab...' : 'Tanyakan sesuatu tentang materi'}
         autoFocus
         className="p-3"
         disabled={status === 'streaming' || status === 'submitted'}
@@ -177,7 +177,7 @@ export function AISearchInput(props: ComponentProps<'form'>) {
           onClick={stop}
         >
           <Loader2 className="size-4 animate-spin text-fd-muted-foreground" />
-          Abort Answer
+          Hentikan
         </button>
       ) : (
         <button
@@ -305,7 +305,7 @@ function Message({ message, ...props }: { message: ChatUIMessage } & ComponentPr
           >
             <SearchIcon className="size-4" />
             {call.state === 'output-error' || call.state === 'output-denied' ? (
-              <p className="text-fd-error">{call.errorText ?? 'Failed to search'}</p>
+              <p className="text-fd-error">{call.errorText ?? 'Pencarian gagal'}</p>
             ) : (
               <p>{!call.output ? 'Searching…' : `${call.output.length} search results`}</p>
             )}
@@ -376,17 +376,17 @@ export function AISearchPanel() {
         }
         @keyframes ask-ai-close {
           from {
-            width: var(--ai-chat-width);
+            translate: 0 0;
           }
           to {
-            width: 0px;
+            translate: 100% 0;
           }
         }`}
       </style>
       {actualOpen && (
         <div
           className={cn(
-            'fixed inset-0 z-30 backdrop-blur-xs bg-fd-overlay lg:hidden',
+            'fixed inset-0 z-50 backdrop-blur-xs bg-fd-overlay',
             open ? 'animate-fd-fade-in' : 'animate-fd-fade-out',
           )}
           onClick={() => setOpen(false)}
@@ -398,9 +398,9 @@ export function AISearchPanel() {
       {actualOpen && (
         <div
           className={cn(
-            'overflow-hidden z-30 bg-fd-card text-fd-card-foreground [--ai-chat-width:400px] 2xl:[--ai-chat-width:460px]',
+            'overflow-hidden z-50 bg-fd-card text-fd-card-foreground [--ai-chat-width:400px] 2xl:[--ai-chat-width:460px]',
             'max-lg:fixed max-lg:inset-x-2 max-lg:inset-y-4 max-lg:border max-lg:rounded-2xl max-lg:shadow-xl',
-            'lg:sticky lg:top-0 lg:h-dvh lg:border-s lg:ms-auto lg:in-[#nd-docs-layout]:[grid-area:toc] lg:in-[#nd-notebook-layout]:row-span-full lg:in-[#nd-notebook-layout]:col-start-5',
+            'lg:fixed lg:inset-y-0 lg:end-0 lg:border-s lg:shadow-2xl',
             open
               ? 'animate-fd-dialog-in lg:animate-[ask-ai-open_200ms]'
               : 'animate-fd-dialog-out lg:animate-[ask-ai-close_200ms]',
@@ -442,7 +442,7 @@ export function AISearchPanelList({ className, style, ...props }: ComponentProps
       {messages.length === 0 ? (
         <div className="text-sm text-fd-muted-foreground/80 size-full flex flex-col items-center justify-center text-center gap-2">
           <MessageCircleIcon fill="currentColor" stroke="none" />
-          <p onClick={(e) => e.stopPropagation()}>Start a new chat below.</p>
+          <p onClick={(e) => e.stopPropagation()}>Mulai percakapan baru di bawah.</p>
         </div>
       ) : (
         <div className="flex flex-col px-3 gap-4">

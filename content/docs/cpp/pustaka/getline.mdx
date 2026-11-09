@@ -1,0 +1,221 @@
+---
+title: getline
+description: Membaca satu baris penuh termasuk spasi, dan mengatasi getline yang "terlewati" setelah cin >>.
+sumber:
+  - ref: cppreference
+    judul: "std::getline"
+    url: https://en.cppreference.com/w/cpp/string/basic_string/getline
+  - ref: cppreference
+    judul: "std::ws"
+    url: https://en.cppreference.com/w/cpp/io/manip/ws
+  - ref: cppreference
+    judul: "std::basic_istream::ignore"
+    url: https://en.cppreference.com/w/cpp/io/basic_istream/ignore
+---
+
+<BackToLesson href="/docs/cpp/input-dengan-cin" label="Input dengan cin" />
+
+<Callout title="Ringkasan">
+  `getline(cin, s)` membaca **satu baris penuh** (termasuk spasi) ke variabel `string`. Butuh `#include <string>`.
+</Callout>
+
+## Masalah: `cin >>` hanya membaca satu kata
+
+Seperti dibahas di [Input dengan cin](/docs/cpp/input-dengan-cin#membaca-teks), `cin >>` berhenti di spasi. Jika pengguna mengetik nama lengkap, hanya kata pertama yang terbaca.
+
+`getline` menyelesaikan masalah ini. Fungsi ini membaca **semua karakter sampai menemukan `\n`** (tombol Enter), termasuk spasi.
+
+## Cara memakai
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string nama;
+    cout << "Nama lengkap: ";
+    getline(cin, nama);             // diketik: Budi Santoso
+
+    cout << "Halo, " << nama << "!" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+nama = input("Nama lengkap: ")      # input() memang selalu membaca satu baris
+print(f"Halo, {nama}!")
+```
+
+```txt title="Output"
+Nama lengkap: Budi Santoso
+Halo, Budi Santoso!
+```
+
+Bentuk umumnya:
+
+```cpp
+getline(sumber, variabel);
+getline(sumber, variabel, pemisah);
+```
+
+| Parameter | Arti |
+| --- | --- |
+| `sumber` | Asal data. Untuk keyboard, gunakan `cin`. |
+| `variabel` | Variabel bertipe `string` untuk menampung hasil. |
+| `pemisah` | _(opsional)_ Karakter tempat berhenti membaca. Bawaannya `'\n'`. |
+
+Hal penting tentang `getline`:
+
+- Karakter pemisah (`\n`) **diambil lalu dibuang**. Isinya tidak masuk ke variabel dan tidak tertinggal di buffer.
+- `getline` **tidak** melewati whitespace di depan. Spasi di awal baris ikut terbaca.
+- `getline` hanya bisa menyimpan ke `string`. Untuk angka, tetap gunakan `cin >>`.
+
+### Memakai pemisah lain
+
+Dengan parameter ketiga, `getline` bisa berhenti di karakter selain Enter. Contohnya untuk membaca data yang dipisah koma:
+
+```cpp
+string kota;
+getline(cin, kota, ',');   // diketik: Medan,Jakarta  ->  kota = "Medan"
+```
+
+## Jebakan: `cin >>` lalu `getline` [#jebakan-cin-dan-getline]
+
+Ini adalah salah satu kebingungan paling umum di C++. Perhatikan program berikut:
+
+```cpp
+int umur;
+string nama;
+
+cout << "Umur: ";
+cin >> umur;
+
+cout << "Nama: ";
+getline(cin, nama);
+
+cout << "[" << nama << "] berumur " << umur << endl;
+```
+
+```txt title="Output"
+Umur: 19
+Nama: [] berumur 19
+```
+
+Program **tidak menunggu** pengguna mengetik nama, dan `nama` kosong! Telusuri apa yang terjadi di buffer:
+
+<BufferStepper
+  code={`int umur;
+string nama;
+cout << "Umur: ";
+cin >> umur;
+cout << "Nama: ";
+getline(cin, nama);`}
+  steps={[
+    {
+      line: 3,
+      buffer: '',
+      consumed: 0,
+      vars: { umur: '?', nama: '?' },
+      terminal: 'Umur: ',
+      waiting: true,
+      note: 'Buffer kosong, jadi `cin >> umur` menunggu pengguna mengetik.',
+    },
+    {
+      line: 3,
+      buffer: '19\n',
+      consumed: 0,
+      vars: { umur: '?', nama: '?' },
+      terminal: 'Umur: 19\n',
+      note: 'Pengguna mengetik `19` lalu menekan Enter. Buffer berisi `1`, `9`, dan `\\n`.',
+    },
+    {
+      line: 3,
+      buffer: '19\n',
+      consumed: 2,
+      read: [0, 2],
+      vars: { umur: '19', nama: '?' },
+      terminal: 'Umur: 19\n',
+      note: '`cin >> umur` mengambil `19` dan berhenti di `\\n`. Karakter `\\n` **tertinggal** di buffer.',
+    },
+    {
+      line: 5,
+      buffer: '19\n',
+      consumed: 2,
+      leftover: [2, 3],
+      vars: { umur: '19', nama: '?' },
+      terminal: 'Umur: 19\nNama: ',
+      note: '`getline` membaca sampai menemukan `\\n`. Masalahnya, `\\n` sudah ada tepat di depan!',
+    },
+    {
+      line: 5,
+      buffer: '19\n',
+      consumed: 3,
+      read: [2, 3],
+      vars: { umur: '19', nama: '""' },
+      terminal: 'Umur: 19\nNama: ',
+      note: '`getline` langsung berhenti dan membuang `\\n`. Hasilnya `nama` berisi teks kosong, dan pengguna tidak sempat mengetik apa pun.',
+    },
+  ]}
+/>
+
+<DeepDive href="/docs/cpp/pendalaman/buffer#newline-tertinggal" kind="konsep" title="Kenapa \n tertinggal?">
+  Penjelasan lengkap tentang cara kerja buffer input dan aturan berhenti `cin >>`.
+</DeepDive>
+
+### Solusi 1: `cin.ignore()`
+
+Buang `\n` yang tertinggal **sebelum** memanggil `getline`:
+
+```cpp
+cin >> umur;
+cin.ignore();              // buang 1 karakter, yaitu '\n' yang tertinggal
+getline(cin, nama);
+```
+
+`cin.ignore()` tanpa parameter hanya membuang **satu** karakter. Jika pengguna mengetik `19   ` (ada spasi setelah angka), yang terbuang hanya satu spasi, sementara `\n` tetap tertinggal. Versi yang lebih aman membuang **seluruh sisa baris**:
+
+```cpp
+#include <limits>
+
+cin >> umur;
+cin.ignore(numeric_limits<streamsize>::max(), '\n');   // buang semua sampai '\n'
+getline(cin, nama);
+```
+
+### Solusi 2: `cin >> ws`
+
+`ws` (_whitespace_) adalah manipulator yang membuang **semua whitespace di depan**, termasuk `\n`:
+
+```cpp
+cin >> umur;
+getline(cin >> ws, nama);  // lewati whitespace dulu, baru baca satu baris
+```
+
+Cara ini ringkas. Kekurangannya, spasi di awal baris yang memang sengaja diketik juga ikut terbuang. Untuk kebanyakan kasus, seperti membaca nama atau alamat, hal itu justru diinginkan.
+
+<Callout title="Aturan praktis">
+  Setiap kali `getline` dipakai **setelah** `cin >>`, pasang `cin.ignore(...)` atau gunakan `getline(cin >> ws, ...)`. Jika `getline` dipakai setelah `getline` lain, tidak perlu apa-apa karena `getline` sudah membuang `\n` miliknya sendiri.
+</Callout>
+
+## Python tidak punya masalah ini
+
+`input()` di Python selalu membaca satu baris penuh dan membuang `\n` di ujungnya. Mencampur input angka dan teks aman-aman saja:
+
+```python
+umur = int(input("Umur: "))
+nama = input("Nama: ")      # tetap menunggu, tidak terlewati
+print(f"[{nama}] berumur {umur}")
+```
+
+## `cin >>` vs `getline`
+
+| | `cin >> s` | `getline(cin, s)` |
+| --- | --- | --- |
+| Membaca | Satu kata | Satu baris penuh |
+| Whitespace di depan | Dilewati | Ikut terbaca |
+| Berhenti di | Whitespace pertama | `\n` (atau pemisah yang ditentukan) |
+| Karakter `\n` | **Tertinggal** di buffer | Diambil lalu dibuang |
+| Tipe variabel | Apa saja (`int`, `double`, `string`, …) | Hanya `string` |
+
+<BackToLesson href="/docs/cpp/input-dengan-cin" label="Input dengan cin" />

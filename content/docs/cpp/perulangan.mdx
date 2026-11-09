@@ -1,0 +1,396 @@
+---
+title: Perulangan
+description: Mengulang langkah dengan while, for, dan do-while, menghentikannya dengan break dan continue, serta pola akumulator untuk mengolah banyak data.
+sumber:
+  - ref: cppreference
+    judul: for loop
+    url: https://en.cppreference.com/w/cpp/language/for
+  - ref: cppreference
+    judul: while loop
+    url: https://en.cppreference.com/w/cpp/language/while
+  - ref: cppreference
+    judul: do-while loop
+    url: https://en.cppreference.com/w/cpp/language/do
+  - ref: python-docs
+    judul: Tutorial, for Statements dan range()
+    url: https://docs.python.org/3/tutorial/controlflow.html#for-statements
+  - ref: busbee
+---
+
+## Kenapa perlu perulangan?
+
+Bagaimana cara menampilkan angka 1 sampai 5? Tanpa perulangan, kita menulis perintah yang sama berulang kali:
+
+```cpp
+cout << 1 << endl;
+cout << 2 << endl;
+cout << 3 << endl;
+cout << 4 << endl;
+cout << 5 << endl;
+```
+
+Cara ini tidak mungkin dipakai untuk 1 sampai 1.000, apalagi jika batasnya baru diketahui dari input pengguna. **Perulangan** (_loop_) menyuruh komputer mengulang sekumpulan langkah selama sebuah kondisi masih benar.
+
+## `while`
+
+`while` mengulang bloknya **selama** kondisinya `true`. Kondisi diperiksa **sebelum** setiap putaran.
+
+<Flowchart
+  caption="while: menampilkan 1 sampai 5"
+  nodes={[
+    { type: 'terminal', label: 'Mulai' },
+    { type: 'process', label: 'i = 1' },
+    {
+      type: 'loop',
+      label: 'i <= 5 ?',
+      body: [
+        { type: 'io', label: 'Output i' },
+        { type: 'process', label: 'i = i + 1' },
+      ],
+    },
+    { type: 'terminal', label: 'Selesai' },
+  ]}
+/>
+
+```cpp tab="C++"
+int i = 1;
+
+while (i <= 5) {
+    cout << i << endl;
+    i++;
+}
+```
+
+```python tab="Python"
+i = 1
+
+while i <= 5:
+    print(i)
+    i += 1
+```
+
+Setiap perulangan punya tiga bagian penting:
+
+1. **Inisialisasi**: nilai awal pencacah, `i = 1`.
+2. **Kondisi**: kapan perulangan berlanjut, `i <= 5`.
+3. **Pembaruan**: langkah yang mendekatkan ke akhir, `i++`.
+
+### Menelusuri dengan tabel trace
+
+Cara terbaik memahami perulangan adalah mencatat nilai variabel di setiap putaran dalam sebuah **tabel trace**. Contoh untuk batas 3:
+
+| Putaran | `i` | `i <= 3` | Output |
+| --- | --- | --- | --- |
+| 1 | 1 | `true` | `1` |
+| 2 | 2 | `true` | `2` |
+| 3 | 3 | `true` | `3` |
+| — | 4 | `false` | perulangan berhenti |
+
+Perhatikan bahwa setelah perulangan selesai, `i` bernilai **4**, bukan 3. Kebiasaan menulis tabel trace akan sangat membantu saat mencari kesalahan, dan dibahas lagi di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging#tabel-trace).
+
+<Callout type="error" title="Perulangan tanpa akhir">
+  Jika `i++` lupa ditulis, `i` selamanya bernilai 1 dan kondisi `i <= 5` selalu benar. Program terus mencetak `1` dan tidak pernah berhenti (_infinite loop_). Hentikan program dengan menekan <kbd>Ctrl</kbd> <kbd>C</kbd> di terminal.
+</Callout>
+
+## `for`
+
+Karena pola "inisialisasi, kondisi, pembaruan" sangat sering dipakai, C++ menyediakan `for` yang menuliskan ketiganya dalam satu baris:
+
+```cpp
+for (int i = 1; i <= 5; i++) {
+    cout << i << endl;
+}
+```
+
+| Bagian | Kode | Kapan dijalankan |
+| --- | --- | --- |
+| Inisialisasi | `int i = 1` | Sekali, di awal |
+| Kondisi | `i <= 5` | Sebelum setiap putaran |
+| Pembaruan | `i++` | Setelah setiap putaran |
+
+Hasilnya sama persis dengan contoh `while` di atas. Bedanya, variabel `i` yang dibuat di dalam `for` hanya bisa dipakai di dalam perulangan itu.
+
+### `for` di Python dan `range()`
+
+`for` di Python bekerja sedikit berbeda: ia mengambil nilai **satu per satu dari sebuah deret**. Deret angka dibuat dengan `range()`:
+
+```python
+for i in range(1, 6):
+    print(i)        # 1, 2, 3, 4, 5
+```
+
+<Callout type="warning" title="Batas akhir range() tidak ikut">
+  `range(1, 6)` menghasilkan 1 sampai **5**. Angka 6 adalah batas yang tidak ikut dihasilkan.
+</Callout>
+
+| Python | Menghasilkan | Padanan `for` di C++ |
+| --- | --- | --- |
+| `range(5)` | 0, 1, 2, 3, 4 | `for (int i = 0; i < 5; i++)` |
+| `range(1, 6)` | 1, 2, 3, 4, 5 | `for (int i = 1; i <= 5; i++)` |
+| `range(0, 10, 2)` | 0, 2, 4, 6, 8 | `for (int i = 0; i < 10; i += 2)` |
+| `range(5, 0, -1)` | 5, 4, 3, 2, 1 | `for (int i = 5; i > 0; i--)` |
+
+## `do-while`
+
+`do-while` memeriksa kondisinya **setelah** badan perulangan, sehingga badannya **pasti dijalankan minimal sekali**. Bentuk ini cocok untuk meminta input sampai valid:
+
+```cpp tab="C++"
+int angka;
+
+do {
+    cout << "Masukkan angka 1-10: ";
+    cin >> angka;
+} while (angka < 1 || angka > 10);
+
+cout << "Terima kasih, angkamu " << angka << endl;
+```
+
+```python tab="Python"
+# Python tidak punya do-while. Polanya: ulangi terus, keluar dengan break.
+while True:
+    angka = int(input("Masukkan angka 1-10: "))
+    if 1 <= angka <= 10:
+        break
+
+print("Terima kasih, angkamu", angka)
+```
+
+```txt title="Contoh jalannya program"
+Masukkan angka 1-10: 15
+Masukkan angka 1-10: 0
+Masukkan angka 1-10: 7
+Terima kasih, angkamu 7
+```
+
+<Callout type="warning" title="Bagaimana jika pengguna mengetik huruf?">
+  Pada versi C++, `cin` akan masuk ke [mode gagal](/docs/cpp/pendalaman/buffer#saat-input-gagal): `angka` berisi 0 dan setiap `cin >>` berikutnya langsung dilewati. Akibatnya perulangan ini **tidak pernah berhenti**. Versi Python berhenti dengan `ValueError`. Program yang benar-benar tahan banting perlu memulihkan `cin`, tetapi untuk latihan, cukup ketahui risikonya.
+</Callout>
+
+## `break` dan `continue`
+
+- `break` **menghentikan** perulangan saat itu juga.
+- `continue` **melewati sisa badan** perulangan dan langsung lanjut ke putaran berikutnya.
+
+```cpp tab="C++"
+// break: cari kelipatan 7 pertama antara 50 dan 100
+for (int i = 50; i <= 100; i++) {
+    if (i % 7 == 0) {
+        cout << "Kelipatan 7 pertama: " << i << endl;   // 56
+        break;
+    }
+}
+
+// continue: tampilkan bilangan ganjil 1 sampai 10
+for (int i = 1; i <= 10; i++) {
+    if (i % 2 == 0) {
+        continue;
+    }
+    cout << i << " ";                                    // 1 3 5 7 9
+}
+```
+
+```python tab="Python"
+# break: cari kelipatan 7 pertama antara 50 dan 100
+for i in range(50, 101):
+    if i % 7 == 0:
+        print("Kelipatan 7 pertama:", i)   # 56
+        break
+
+# continue: tampilkan bilangan ganjil 1 sampai 10
+for i in range(1, 11):
+    if i % 2 == 0:
+        continue
+    print(i, end=" ")                      # 1 3 5 7 9
+```
+
+## Pola akumulator
+
+Sebagian besar program yang mengolah banyak data memakai pola yang sama: siapkan sebuah variabel **sebelum** perulangan, lalu perbarui nilainya **di setiap putaran**.
+
+| Pola | Nilai awal | Di setiap putaran |
+| --- | --- | --- |
+| Menjumlahkan (total) | `total = 0` | `total += nilai` |
+| Menghitung (counter) | `jumlah = 0` | `if (syarat) jumlah++` |
+| Mencari terbesar | nilai pertama, atau nilai yang pasti lebih kecil dari semua data | `if (nilai > terbesar) terbesar = nilai` |
+
+Contoh: membaca nilai `n` mahasiswa, lalu menghitung rata-rata, jumlah yang lulus, dan nilai tertinggi.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int n;
+    cout << "Jumlah mahasiswa: ";
+    cin >> n;
+
+    double total = 0;
+    int lulus = 0;
+    int tertinggi = -1;    // nilai pasti >= 0, jadi -1 aman sebagai nilai awal
+
+    for (int i = 1; i <= n; i++) {
+        int nilai;
+        cout << "Nilai ke-" << i << ": ";
+        cin >> nilai;
+
+        total += nilai;
+        if (nilai >= 60) {
+            lulus++;
+        }
+        if (nilai > tertinggi) {
+            tertinggi = nilai;
+        }
+    }
+
+    if (n > 0) {
+        cout << "Rata-rata : " << total / n << endl;
+        cout << "Lulus     : " << lulus << " orang" << endl;
+        cout << "Tertinggi : " << tertinggi << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input("Jumlah mahasiswa: "))
+
+total = 0
+lulus = 0
+tertinggi = -1    # nilai pasti >= 0, jadi -1 aman sebagai nilai awal
+
+for i in range(1, n + 1):
+    nilai = int(input(f"Nilai ke-{i}: "))
+
+    total += nilai
+    if nilai >= 60:
+        lulus += 1
+    if nilai > tertinggi:
+        tertinggi = nilai
+
+if n > 0:
+    print("Rata-rata :", total / n)
+    print("Lulus     :", lulus, "orang")
+    print("Tertinggi :", tertinggi)
+```
+
+```txt title="Contoh jalannya program (C++)"
+Jumlah mahasiswa: 3
+Nilai ke-1: 80
+Nilai ke-2: 55
+Nilai ke-3: 92
+Rata-rata : 75.6667
+Lulus     : 2 orang
+Tertinggi : 92
+```
+
+Dua detail kecil yang penting:
+
+- `total` bertipe `double` agar `total / n` tidak menjadi [pembagian bilangan bulat](/docs/cpp/operator-aritmatika#pembagian-bilangan-bulat).
+- `if (n > 0)` mencegah pembagian dengan nol jika tidak ada data.
+
+## Kesalahan "kurang satu" (off-by-one)
+
+Kesalahan paling umum pada perulangan adalah jumlah putaran yang **lebih atau kurang satu**:
+
+```cpp
+for (int i = 0; i <= 5; i++)   // 6 putaran: 0, 1, 2, 3, 4, 5
+for (int i = 0; i < 5; i++)    // 5 putaran: 0, 1, 2, 3, 4
+for (int i = 1; i <= 5; i++)   // 5 putaran: 1, 2, 3, 4, 5
+```
+
+Pegangan praktis: **`for (int i = 0; i < n; i++)` berjalan tepat `n` kali**, sama seperti `range(n)` di Python. Pola ini akan sering dipakai bersama [array](/docs/cpp/array-dan-vector), yang indeksnya dimulai dari 0.
+
+## Memilih jenis perulangan
+
+| Situasi | Pilihan |
+| --- | --- |
+| Jumlah putaran sudah diketahui (1 sampai n, setiap elemen data) | `for` |
+| Berhenti saat sebuah kondisi tercapai, jumlah putaran tidak pasti | `while` |
+| Badan perulangan harus dijalankan minimal sekali | `do-while` (Python: `while True` + `break`) |
+
+## Rangkuman
+
+- Perulangan mengulang langkah selama kondisi `true`. Bagian pentingnya: inisialisasi, kondisi, dan pembaruan.
+- `while` memeriksa kondisi sebelum setiap putaran. `do-while` memeriksanya setelah putaran.
+- `for` di C++ menuliskan inisialisasi, kondisi, dan pembaruan dalam satu baris. Di Python, `for` mengambil nilai dari `range()`, yang batas akhirnya tidak ikut.
+- `break` menghentikan perulangan, `continue` melompat ke putaran berikutnya.
+- Pola akumulator (total, counter, terbesar) adalah dasar pengolahan banyak data.
+- Waspadai _infinite loop_ dan kesalahan _off-by-one_. Tabel trace membantu menemukannya.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Tampilkan tabel perkalian sebuah angka n dari 1 sampai 10.">
+    ```cpp tab="C++"
+    int n;
+    cin >> n;
+
+    for (int i = 1; i <= 10; i++) {
+        cout << n << " x " << i << " = " << n * i << endl;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    for i in range(1, 11):
+        print(f"{n} x {i} = {n * i}")
+    ```
+  </Accordion>
+  <Accordion title="2. Hitung faktorial n (n! = 1 × 2 × … × n). Tipe data apa yang tepat?">
+    Faktorial tumbuh sangat cepat: `13!` sudah melewati batas `int`. Gunakan `long long`, yang cukup sampai `20!` (2.432.902.008.176.640.000).
+
+    ```cpp tab="C++"
+    int n;
+    cin >> n;
+
+    long long hasil = 1;      // akumulator perkalian dimulai dari 1, bukan 0
+    for (int i = 2; i <= n; i++) {
+        hasil *= i;
+    }
+    cout << hasil << endl;
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    hasil = 1
+    for i in range(2, n + 1):
+        hasil *= i
+    print(hasil)              # int Python tidak punya batas
+    ```
+  </Accordion>
+  <Accordion title="3. Jumlahkan semua digit sebuah bilangan positif, berapa pun panjangnya (misal 9472 → 22).">
+    Jumlah putarannya tidak pasti, jadi pakai `while`. Ambil digit terakhir dengan `% 10`, lalu buang dengan `/ 10`, sampai bilangannya habis.
+
+    ```cpp tab="C++"
+    int n;
+    cin >> n;
+
+    int jumlah = 0;
+    while (n > 0) {
+        jumlah += n % 10;
+        n /= 10;
+    }
+    cout << jumlah << endl;
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    jumlah = 0
+    while n > 0:
+        jumlah += n % 10
+        n //= 10
+    print(jumlah)
+    ```
+
+    | Putaran | `n` | `n % 10` | `jumlah` |
+    | --- | --- | --- | --- |
+    | 1 | 9472 | 2 | 2 |
+    | 2 | 947 | 7 | 9 |
+    | 3 | 94 | 4 | 13 |
+    | 4 | 9 | 9 | 22 |
+    | — | 0 | | berhenti |
+  </Accordion>
+</Accordions>

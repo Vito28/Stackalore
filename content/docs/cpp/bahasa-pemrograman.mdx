@@ -1,0 +1,180 @@
+---
+title: Apa itu Bahasa Pemrograman?
+description: Memahami mengapa bahasa pemrograman ada, tingkatannya, dan bagaimana kode yang kita tulis akhirnya dijalankan komputer.
+sumber:
+  - ref: busbee
+  - ref: gcc-docs
+    judul: "Overall Options"
+    url: https://gcc.gnu.org/onlinedocs/gcc/Overall-Options.html
+  - ref: python-docs
+    judul: "Using the Python Interpreter"
+    url: https://docs.python.org/3/tutorial/interpreter.html
+---
+
+## Komputer hanya mengerti angka
+
+Di dalam komputer, semua hal (teks, gambar, musik, bahkan program) disimpan sebagai deretan **bit**, yaitu angka `0` dan `1`. Prosesor (CPU) hanya bisa menjalankan instruksi dalam bentuk bit ini. Bentuk inilah yang disebut **bahasa mesin**.
+
+Contohnya, instruksi "tambahkan dua angka" di prosesor tertentu bisa terlihat seperti ini:
+
+```txt title="Bahasa mesin (contoh)"
+10110000 01100001
+00000100 00000010
+```
+
+Manusia tentu sangat sulit membaca, menulis, dan memperbaiki instruksi seperti itu. Karena itulah dibuat **bahasa pemrograman**.
+
+<Callout title="Definisi">
+  **Bahasa pemrograman** adalah bahasa buatan yang memiliki aturan penulisan (**sintaks**) dan aturan makna (**semantik**) untuk menuliskan instruksi yang nantinya diterjemahkan dan dijalankan oleh komputer.
+</Callout>
+
+Bahasa pemrograman menjadi **jembatan**: manusia menulis instruksi dalam bentuk yang mudah dibaca, lalu sebuah program penerjemah mengubahnya menjadi bahasa mesin.
+
+## Tingkatan bahasa pemrograman
+
+Semakin dekat sebuah bahasa ke bahasa mesin, semakin **rendah** tingkatannya. Semakin dekat ke bahasa manusia, semakin **tinggi** tingkatannya.
+
+| Tingkatan | Contoh | Ciri |
+| --- | --- | --- |
+| Bahasa mesin | `10110000 01100001` | Langsung dijalankan CPU, tetapi hampir mustahil dibaca manusia. |
+| Bahasa tingkat rendah | Assembly: `MOV AL, 61h` | Setiap baris mewakili satu instruksi CPU. Cepat, tetapi panjang dan bergantung pada jenis prosesor. |
+| Bahasa tingkat tinggi | C++, Python, Java | Mirip bahasa manusia dan matematika. Satu baris bisa mewakili banyak instruksi mesin. |
+
+C++ dan Python sama-sama bahasa **tingkat tinggi**. Namun C++ masih memberi kendali yang cukup dekat ke perangkat keras, misalnya pengaturan memori. Karena itu C++ sering dipakai untuk program yang membutuhkan kecepatan, seperti game, sistem operasi, dan _competitive programming_.
+
+## Dari kode menjadi program
+
+Kode yang kita tulis disebut **kode sumber** (_source code_). Komputer tidak bisa menjalankannya secara langsung, jadi kode sumber harus diterjemahkan dulu. Ada dua cara utama menerjemahkannya.
+
+### Compiler: diterjemahkan sekaligus
+
+**Compiler** menerjemahkan **seluruh** kode sumber menjadi satu file program (_executable_) sebelum program dijalankan. Setelah dikompilasi, program bisa dijalankan berkali-kali tanpa diterjemahkan ulang. C++ memakai cara ini.
+
+<Pipeline
+  steps={[
+    { label: 'halo.cpp', note: 'Kode sumber yang kamu tulis' },
+    { label: 'Compiler (g++)', note: 'Menerjemahkan seluruh kode', tool: true },
+    { label: 'halo.exe', note: 'Program dalam bahasa mesin' },
+    { label: 'Dijalankan', note: 'Muncul output di layar' },
+  ]}
+/>
+
+Jika ada satu saja kesalahan penulisan, compiler akan **menolak** membuat program dan menampilkan pesan error. Kesalahan ketahuan sebelum program berjalan.
+
+### Interpreter: diterjemahkan sambil jalan
+
+**Interpreter** membaca kode sumber dan menjalankannya **baris demi baris** saat program berjalan. Tidak ada file program terpisah yang dihasilkan. Python memakai cara ini.
+
+<Pipeline
+  steps={[
+    { label: 'halo.py', note: 'Kode sumber yang kamu tulis' },
+    { label: 'Interpreter (python)', note: 'Menerjemahkan dan langsung menjalankan', tool: true },
+    { label: 'Dijalankan', note: 'Muncul output di layar' },
+  ]}
+/>
+
+Jika baris ke-10 salah, baris 1 sampai 9 tetap sempat dijalankan. Kesalahan baru ketahuan saat baris tersebut dicapai.
+
+| | Compiler (C++) | Interpreter (Python) |
+| --- | --- | --- |
+| Kapan diterjemahkan | Sekali, sebelum dijalankan | Setiap kali dijalankan, baris demi baris |
+| Hasil | File program (`.exe`) | Tidak ada file program |
+| Kecepatan program | Umumnya lebih cepat | Umumnya lebih lambat |
+| Kesalahan penulisan | Ketahuan sebelum program jalan | Ketahuan saat baris itu dijalankan |
+
+<Callout type="info" title="Sedikit lebih detail">
+  Python sebenarnya juga menerjemahkan kode ke bentuk perantara bernama _bytecode_ sebelum menjalankannya. Untuk tahap belajar ini, cukup pahami bahwa Python dijalankan oleh interpreter, sedangkan C++ dikompilasi menjadi program.
+</Callout>
+
+## Sintaks dan semantik
+
+Setiap bahasa pemrograman punya dua jenis aturan:
+
+- **Sintaks**: aturan _penulisan_. Mirip tata bahasa. Di C++, setiap pernyataan harus diakhiri titik koma `;`.
+- **Semantik**: aturan _makna_. Kode yang sintaksnya benar belum tentu melakukan hal yang kita maksud.
+
+Kesalahan sintaks disebut **syntax error**. Program tidak bisa dikompilasi atau dijalankan sama sekali:
+
+```cpp tab="C++"
+cout << "Halo"   // ✗ lupa titik koma, compiler menolak
+```
+
+```python tab="Python"
+print("Halo"     # ✗ lupa tanda kurung tutup, interpreter menolak
+```
+
+Kesalahan makna disebut **logic error**. Program tetap berjalan, tetapi hasilnya salah. Kesalahan jenis ini lebih sulit ditemukan karena tidak ada pesan error:
+
+```cpp tab="C++"
+int panjang = 5, lebar = 3;
+int luas = panjang + lebar;   // ✗ seharusnya dikali, bukan ditambah
+cout << luas;                 // mencetak 8, bukan 15
+```
+
+```python tab="Python"
+panjang, lebar = 5, 3
+luas = panjang + lebar   # ✗ seharusnya dikali, bukan ditambah
+print(luas)              # mencetak 8, bukan 15
+```
+
+## Program pertamamu
+
+Tradisi belajar pemrograman dimulai dengan program yang menampilkan tulisan **Halo, dunia!**. Perhatikan perbedaan panjang kodenya:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Halo, dunia!" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+print("Halo, dunia!")
+```
+
+```txt title="Output"
+Halo, dunia!
+```
+
+Program C++ terlihat lebih panjang karena ada beberapa baris wajib, seperti `#include`, `using namespace std;`, dan `int main()`. Untuk sekarang, anggap saja baris-baris itu sebagai "kerangka" yang selalu ada. Fungsinya dibahas di materi [Program Pertama](/docs/cpp/program-pertama).
+
+<DeepDive href="/docs/cpp/pendalaman/baris-ajaib" kind="konsep" title="Baris “ajaib” di program C++">
+  Penasaran kenapa harus ada `#include <iostream>`, `using namespace std;`, dan `return 0;`? Halaman ini membedahnya satu per satu, termasuk `#include <bits/stdc++.h>` yang sering kamu lihat di internet.
+</DeepDive>
+
+## C++ atau Python?
+
+Keduanya bagus dan konsep dasarnya **sama**. Yang berbeda adalah cara penulisan dan tujuan pemakaiannya.
+
+| | C++ | Python |
+| --- | --- | --- |
+| Gaya penulisan | Lebih panjang dan ketat | Ringkas, mirip bahasa Inggris |
+| Tipe data | Harus ditulis jelas (`int`, `double`) | Ditentukan otomatis |
+| Kecepatan | Sangat cepat | Lebih lambat |
+| Banyak dipakai untuk | Game, sistem, embedded, _competitive programming_ | Data science, machine learning, otomasi, web |
+
+Belajar C++ lebih dulu membuat kamu memahami apa yang terjadi "di balik layar". Pemahaman itu memudahkan saat nanti mempelajari bahasa apa pun, termasuk Python.
+
+## Rangkuman
+
+- Komputer hanya menjalankan **bahasa mesin** (bit `0` dan `1`).
+- **Bahasa pemrograman** adalah jembatan antara manusia dan komputer, dengan aturan **sintaks** dan **semantik**.
+- C++ diterjemahkan oleh **compiler** menjadi program. Python dijalankan oleh **interpreter** baris demi baris.
+- **Syntax error** membuat program gagal dijalankan. **Logic error** membuat program berjalan tetapi hasilnya salah.
+
+## Uji pemahaman
+
+<Accordions>
+  <Accordion title="1. Mengapa kita tidak menulis program langsung dalam bahasa mesin?">
+    Karena bahasa mesin berupa deretan bit yang sangat sulit dibaca, ditulis, dan diperbaiki manusia. Selain itu bahasa mesin berbeda untuk setiap jenis prosesor. Bahasa tingkat tinggi jauh lebih mudah dipahami dan bisa diterjemahkan ke berbagai jenis prosesor.
+  </Accordion>
+  <Accordion title="2. Sebuah program C++ lupa satu titik koma di baris terakhir. Apakah baris-baris sebelumnya tetap dijalankan?">
+    Tidak. C++ memakai compiler, jadi seluruh kode diperiksa sebelum program dibuat. Satu syntax error saja membuat compiler menolak membuat program, sehingga tidak ada baris yang dijalankan.
+  </Accordion>
+  <Accordion title="3. Program menghitung rata-rata dua nilai dengan rumus a + b / 2. Error jenis apa ini?">
+    **Logic error.** Program tetap berjalan, tetapi karena pembagian dikerjakan lebih dulu daripada penjumlahan, hasilnya salah. Rumus yang benar adalah `(a + b) / 2`. Urutan operasi dibahas di [Operator Aritmatika](/docs/cpp/operator-aritmatika#urutan-operasi).
+  </Accordion>
+</Accordions>

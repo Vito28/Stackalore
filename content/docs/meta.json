@@ -1,10 +1,4 @@
 {
   "title": "Stacklore",
-  "pages": [
-    "index",
-    "data-structures",
-    "machine-learning",
-    "deep-learning",
-    "cryptography"
-  ]
+  "pages": ["cpp", "kriptografi", "machine-learning", "deep-learning"]
 }

@@ -1,0 +1,236 @@
+---
+title: Algoritma & Flowchart
+description: Menyusun langkah penyelesaian masalah secara runtut, lalu menggambarkannya dengan flowchart sebelum menulis kode.
+sumber:
+  - ref: busbee
+---
+
+## Apa itu algoritma?
+
+Sebelum menulis kode, seorang programmer harus tahu **langkah-langkah** untuk menyelesaikan masalahnya. Rangkaian langkah inilah yang disebut algoritma.
+
+<Callout title="Definisi">
+  **Algoritma** adalah urutan langkah yang logis, sistematis, dan terbatas untuk menyelesaikan suatu masalah.
+</Callout>
+
+Tanpa sadar, kamu memakai algoritma setiap hari. Contohnya saat memasak mie instan:
+
+1. Rebus air hingga mendidih.
+2. Masukkan mie, tunggu 3 menit.
+3. Tuang bumbu ke piring.
+4. Tiriskan mie, lalu campur dengan bumbu.
+5. Sajikan.
+
+Urutannya penting. Jika langkah 4 dikerjakan sebelum langkah 1, hasilnya tidak masuk akal. Komputer bahkan lebih "kaku" daripada manusia: ia hanya mengerjakan **persis** apa yang diperintahkan, sesuai urutan.
+
+## Ciri algoritma yang baik
+
+Menurut Donald E. Knuth, algoritma yang baik memiliki lima ciri:
+
+| Ciri | Artinya | Contoh pelanggaran |
+| --- | --- | --- |
+| **Finite** (berhingga) | Harus berhenti setelah sejumlah langkah. | "Ulangi terus selamanya." |
+| **Definite** (jelas) | Setiap langkah tidak boleh ambigu. | "Tambahkan garam secukupnya." Berapa itu secukupnya? |
+| **Input** | Memiliki nol atau lebih data masukan. | — |
+| **Output** | Menghasilkan minimal satu keluaran. | Algoritma yang tidak menghasilkan apa pun. |
+| **Effective** (efektif) | Setiap langkah bisa benar-benar dikerjakan. | "Tuliskan semua bilangan prima." Jumlahnya tak terhingga. |
+
+## Tiga cara menuliskan algoritma
+
+Algoritma yang sama bisa ditulis dengan tiga cara. Kita pakai satu masalah sederhana: **menghitung luas persegi panjang**.
+
+### 1. Bahasa alami (deskriptif)
+
+Ditulis dengan kalimat biasa. Mudah dipahami siapa saja, tetapi bisa bertele-tele dan ambigu.
+
+```txt title="Bahasa alami"
+1. Mulai.
+2. Minta pengguna memasukkan panjang dan lebar.
+3. Kalikan panjang dengan lebar, simpan hasilnya sebagai luas.
+4. Tampilkan luas ke layar.
+5. Selesai.
+```
+
+### 2. Pseudocode
+
+_Pseudo_ berarti "semu". Pseudocode adalah tulisan yang **mirip kode** tetapi tidak terikat aturan bahasa pemrograman tertentu. Bentuk ini paling dekat ke kode asli.
+
+```txt title="Pseudocode"
+ALGORITMA LuasPersegiPanjang
+DEKLARASI
+    panjang, lebar, luas : integer
+DESKRIPSI
+    READ(panjang, lebar)
+    luas ← panjang * lebar
+    WRITE(luas)
+```
+
+Tanda `←` dibaca "diisi dengan". Artinya nilai di sebelah kanan disimpan ke variabel di sebelah kiri.
+
+### 3. Flowchart
+
+**Flowchart** (diagram alir) menggambarkan algoritma dengan **simbol-simbol** yang dihubungkan anak panah. Alur program jadi mudah dilihat sekilas, terutama saat ada percabangan.
+
+<Flowchart
+  caption="Flowchart menghitung luas persegi panjang"
+  nodes={[
+    { type: 'terminal', label: 'Mulai' },
+    { type: 'io', label: 'Input panjang, lebar' },
+    { type: 'process', label: 'luas = panjang × lebar' },
+    { type: 'io', label: 'Output luas' },
+    { type: 'terminal', label: 'Selesai' },
+  ]}
+/>
+
+## Simbol-simbol flowchart
+
+Setiap bentuk punya arti yang sudah disepakati. Gunakan simbol yang tepat agar flowchart bisa dibaca orang lain.
+
+<FlowchartSymbols />
+
+<Callout type="warning" title="Kesalahan yang sering terjadi">
+  Membaca input dan menampilkan output sama-sama memakai **jajar genjang**, bukan persegi panjang. Persegi panjang khusus untuk proses seperti perhitungan atau pengisian nilai.
+</Callout>
+
+## Contoh: percabangan
+
+Flowchart paling berguna saat algoritma harus **memilih**. Misalnya, menentukan apakah sebuah bilangan **genap** atau **ganjil**.
+
+Idenya: bilangan genap habis dibagi 2, artinya sisa baginya 0. Di pemrograman, sisa bagi dihitung dengan operator modulus `%`. Contohnya `7 % 2` menghasilkan `1`. Operator ini dibahas lengkap di [Operator Aritmatika](/docs/cpp/operator-aritmatika#modulus-sisa-bagi).
+
+<Flowchart
+  caption="Flowchart menentukan bilangan genap atau ganjil"
+  nodes={[
+    { type: 'terminal', label: 'Mulai' },
+    { type: 'io', label: 'Input n' },
+    {
+      type: 'decision',
+      label: 'n % 2 == 0 ?',
+      yes: [{ type: 'io', label: 'Output "Genap"' }],
+      no: [{ type: 'io', label: 'Output "Ganjil"' }],
+    },
+    { type: 'terminal', label: 'Selesai' },
+  ]}
+/>
+
+Simbol **keputusan** (belah ketupat) selalu berisi pertanyaan yang jawabannya hanya **Ya** atau **Tidak**. Dari simbol ini keluar dua jalur, dan keduanya bertemu lagi sebelum algoritma selesai.
+
+## Dari flowchart ke kode
+
+Setiap simbol flowchart punya padanan langsung di kode. Tabel ini akan sering kamu pakai di materi-materi berikutnya.
+
+| Simbol | Arti | C++ | Python |
+| --- | --- | --- | --- |
+| Terminal | Mulai / selesai | `int main() {` … `}` | awal / akhir file |
+| Input | Membaca data | `cin >> n;` | `n = int(input())` |
+| Proses | Menghitung, mengisi nilai | `luas = p * l;` | `luas = p * l` |
+| Output | Menampilkan data | `cout << luas;` | `print(luas)` |
+| Keputusan | Memilih jalur | `if (...) { } else { }` | `if ...: else:` |
+
+Berikut kode dari dua flowchart di atas. Kamu belum perlu paham setiap baris. Coba cocokkan setiap baris dengan simbolnya.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {                         // Terminal: Mulai
+    int panjang, lebar, luas;
+
+    cin >> panjang >> lebar;         // Input
+    luas = panjang * lebar;          // Proses
+    cout << luas << endl;            // Output
+
+    return 0;
+}                                    // Terminal: Selesai
+```
+
+```python tab="Python"
+# Terminal: Mulai
+panjang = int(input())   # Input
+lebar = int(input())     # Input
+luas = panjang * lebar   # Proses
+print(luas)              # Output
+# Terminal: Selesai
+```
+
+Dan untuk menentukan genap atau ganjil:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;                        // Input n
+
+    if (n % 2 == 0) {                // Keputusan: n % 2 == 0 ?
+        cout << "Genap" << endl;     //   Ya
+    } else {
+        cout << "Ganjil" << endl;    //   Tidak
+    }
+
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())          # Input n
+
+if n % 2 == 0:            # Keputusan: n % 2 == 0 ?
+    print("Genap")        #   Ya
+else:
+    print("Ganjil")       #   Tidak
+```
+
+<Callout type="info" title="Tentang input">
+  Perintah `cin >>` (C++) dan `input()` (Python) dijelaskan lengkap di materi [Input dengan cin](/docs/cpp/input-dengan-cin). Di sana kamu juga akan melihat mengapa `cin >> panjang >> lebar` bisa membaca dua angka yang dipisah spasi maupun Enter.
+</Callout>
+
+## Tips membuat flowchart
+
+- Mulai dan akhiri dengan **satu** simbol terminal.
+- Alur dibaca dari **atas ke bawah**, atau kiri ke kanan.
+- Usahakan garis alir **tidak saling bersilangan**.
+- Tulis isi simbol dengan singkat dan jelas, misalnya `luas = p × l`, bukan kalimat panjang.
+- Setiap simbol keputusan harus punya tepat **dua** jalur keluar: Ya dan Tidak.
+
+## Rangkuman
+
+- **Algoritma** adalah urutan langkah logis untuk menyelesaikan masalah. Algoritma yang baik bersifat _finite_, _definite_, punya _input_ dan _output_, serta _effective_.
+- Algoritma bisa ditulis dengan **bahasa alami**, **pseudocode**, atau **flowchart**.
+- Flowchart memakai simbol baku: terminal (oval), input/output (jajar genjang), proses (persegi panjang), dan keputusan (belah ketupat).
+- Setiap simbol punya padanan langsung di kode C++ maupun Python.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Buat flowchart untuk mengubah suhu Celsius menjadi Fahrenheit (F = C × 9/5 + 32).">
+    <Flowchart
+      nodes={[
+        { type: 'terminal', label: 'Mulai' },
+        { type: 'io', label: 'Input C' },
+        { type: 'process', label: 'F = C × 9 / 5 + 32' },
+        { type: 'io', label: 'Output F' },
+        { type: 'terminal', label: 'Selesai' },
+      ]}
+    />
+  </Accordion>
+  <Accordion title="2. Buat flowchart untuk menampilkan bilangan terbesar dari dua bilangan a dan b.">
+    <Flowchart
+      nodes={[
+        { type: 'terminal', label: 'Mulai' },
+        { type: 'io', label: 'Input a, b' },
+        {
+          type: 'decision',
+          label: 'a > b ?',
+          yes: [{ type: 'io', label: 'Output a' }],
+          no: [{ type: 'io', label: 'Output b' }],
+        },
+        { type: 'terminal', label: 'Selesai' },
+      ]}
+    />
+  </Accordion>
+  <Accordion title="3. Langkah “aduk sampai rata” ada di sebuah resep. Ciri algoritma mana yang dilanggar?">
+    Ciri **definite** (jelas). "Sampai rata" bisa diartikan berbeda oleh setiap orang. Versi yang lebih jelas misalnya "aduk selama 2 menit".
+  </Accordion>
+</Accordions>

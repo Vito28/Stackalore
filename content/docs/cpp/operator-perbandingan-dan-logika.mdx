@@ -1,0 +1,245 @@
+---
+title: Operator Perbandingan & Logika
+description: Membandingkan nilai, menggabungkan beberapa kondisi dengan AND, OR, NOT, dan menghindari jebakan = versus ==.
+sumber:
+  - ref: cppreference
+    judul: "Comparison operators"
+    url: https://en.cppreference.com/w/cpp/language/operator_comparison
+  - ref: cppreference
+    judul: "Logical operators"
+    url: https://en.cppreference.com/w/cpp/language/operator_logical
+  - ref: python-docs
+    judul: "Boolean Operations"
+    url: https://docs.python.org/3/library/stdtypes.html#boolean-operations-and-or-not
+---
+
+## Hasilnya selalu benar atau salah
+
+Operator aritmatika menghasilkan **angka**. Operator perbandingan dan logika menghasilkan **nilai kebenaran**: `true` (benar) atau `false` (salah). Nilai inilah yang nanti dipakai program untuk **mengambil keputusan**, seperti simbol belah ketupat pada [flowchart](/docs/cpp/algoritma-dan-flowchart#contoh-percabangan).
+
+## Operator perbandingan
+
+| Operator | Arti | Contoh | Hasil |
+| --- | --- | --- | --- |
+| `==` | sama dengan | `5 == 5` | `true` |
+| `!=` | tidak sama dengan | `5 != 3` | `true` |
+| `>` | lebih besar dari | `5 > 3` | `true` |
+| `<` | lebih kecil dari | `5 < 3` | `false` |
+| `>=` | lebih besar atau sama dengan | `5 >= 5` | `true` |
+| `<=` | lebih kecil atau sama dengan | `4 <= 3` | `false` |
+
+Operatornya sama persis di C++ dan Python. Yang berbeda adalah cara hasilnya ditampilkan:
+
+```cpp tab="C++"
+int nilai = 75;
+
+cout << (nilai >= 60) << endl;               // 1
+cout << (nilai == 100) << endl;              // 0
+cout << boolalpha << (nilai >= 60) << endl;  // true
+```
+
+```python tab="Python"
+nilai = 75
+
+print(nilai >= 60)    # True
+print(nilai == 100)   # False
+```
+
+- C++ menampilkan `true` sebagai `1` dan `false` sebagai `0`. Tambahkan `boolalpha` jika ingin tulisan `true`/`false`.
+- Perbandingan di dalam `cout` **wajib diberi kurung**. Tanpa kurung, `cout << nilai >= 60` dibaca compiler sebagai `(cout << nilai) >= 60` dan menghasilkan error.
+
+### Jebakan: `=` bukan `==` [#jebakan-sama-dengan]
+
+<Callout type="error" title="Kesalahan paling klasik">
+  `=` adalah **penugasan** (mengisi nilai). `==` adalah **perbandingan** (mengecek kesamaan). Keduanya mudah tertukar.
+</Callout>
+
+```cpp
+int x = 3;
+
+if (x = 5) {        // ✗ x DIISI 5, lalu 5 dianggap true. Blok ini selalu dijalankan!
+    cout << "x adalah 5";
+}
+
+if (x == 5) {       // ✓ membandingkan x dengan 5
+    cout << "x adalah 5";
+}
+```
+
+C++ menerima `if (x = 5)` tanpa error, jadi program tetap berjalan tetapi logikanya salah. Python lebih aman karena `if x = 5:` langsung ditolak sebagai `SyntaxError`.
+
+## Operator logika
+
+Operator logika **menggabungkan** beberapa kondisi menjadi satu.
+
+| Arti | C++ | Python | Bernilai `true` jika… |
+| --- | --- | --- | --- |
+| DAN | `&&` | `and` | **kedua** kondisi benar |
+| ATAU | `\|\|` | `or` | **minimal satu** kondisi benar |
+| BUKAN | `!` | `not` | kondisinya **salah** (membalik nilai) |
+
+### Tabel kebenaran
+
+Tabel berikut berlaku untuk semua bahasa pemrograman. Anggap `A` dan `B` sebagai dua kondisi.
+
+<TruthTable />
+
+Contoh dalam kehidupan sehari-hari:
+
+- **AND**: "Boleh ikut ujian jika kehadiran ≥ 75% **dan** sudah membayar UKT." Kedua syarat harus terpenuhi.
+- **OR**: "Gratis ongkir jika belanja ≥ Rp100.000 **atau** member premium." Cukup salah satu.
+- **NOT**: "Tampilkan peringatan jika **tidak** lulus."
+
+```cpp tab="C++"
+int kehadiran = 80;
+bool sudahBayar = true;
+int belanja = 50000;
+bool premium = true;
+
+bool bolehUjian = kehadiran >= 75 && sudahBayar;   // true
+bool gratisOngkir = belanja >= 100000 || premium;  // true
+bool belumBayar = !sudahBayar;                     // false
+```
+
+```python tab="Python"
+kehadiran = 80
+sudah_bayar = True
+belanja = 50000
+premium = True
+
+boleh_ujian = kehadiran >= 75 and sudah_bayar      # True
+gratis_ongkir = belanja >= 100000 or premium       # True
+belum_bayar = not sudah_bayar                      # False
+```
+
+## Mengecek rentang nilai
+
+Bagaimana cara mengecek apakah nilai berada di antara 0 dan 100?
+
+```cpp tab="C++"
+int nilai = 150;
+
+bool valid = nilai >= 0 && nilai <= 100;   // ✓ false
+bool salah = 0 <= nilai <= 100;            // ✗ selalu true!
+```
+
+```python tab="Python"
+nilai = 150
+
+valid = nilai >= 0 and nilai <= 100   # ✓ False
+valid = 0 <= nilai <= 100             # ✓ False, Python mengizinkan bentuk ini
+```
+
+<Callout type="warning" title="0 <= nilai <= 100 di C++">
+  C++ mengerjakannya dari kiri: `(0 <= nilai)` menghasilkan `true` (`1`) atau `false` (`0`), lalu `1 <= 100` atau `0 <= 100` **selalu** benar. Di C++, rentang harus ditulis dengan `&&`. Python adalah pengecualian karena memang mendukung perbandingan berantai.
+</Callout>
+
+## Evaluasi short-circuit
+
+`&&` dan `||` bersifat **malas** (_short-circuit_). Mereka berhenti mengecek segera setelah hasil akhirnya pasti.
+
+- Pada `A && B`, jika `A` sudah `false`, hasilnya pasti `false`, jadi `B` **tidak dicek sama sekali**.
+- Pada `A || B`, jika `A` sudah `true`, hasilnya pasti `true`, jadi `B` **tidak dicek**.
+
+Sifat ini bisa dimanfaatkan untuk mencegah error, misalnya pembagian dengan nol:
+
+```cpp tab="C++"
+int a = 10, b = 0;
+
+if (b != 0 && a / b > 2) {   // aman: karena b != 0 false, a / b tidak pernah dihitung
+    cout << "Lebih dari 2";
+}
+```
+
+```python tab="Python"
+a, b = 10, 0
+
+if b != 0 and a / b > 2:      # aman: a / b tidak pernah dihitung
+    print("Lebih dari 2")
+```
+
+Jika urutannya dibalik menjadi `a / b > 2 && b != 0`, pembagian dengan nol dikerjakan lebih dulu. Program C++ biasanya langsung **crash**. Python akan berhenti dengan `ZeroDivisionError`.
+
+## Urutan operasi lengkap
+
+Gabungan semua operator yang sudah dipelajari, dari yang dikerjakan **paling dulu**:
+
+| Prioritas | C++ | Python |
+| --- | --- | --- |
+| 1 | `( )` | `( )` |
+| 2 | `!` | `**` |
+| 3 | `*` `/` `%` | `*` `/` `//` `%` |
+| 4 | `+` `-` | `+` `-` |
+| 5 | `<` `<=` `>` `>=` | `<` `<=` `>` `>=` `==` `!=` |
+| 6 | `==` `!=` | `not` |
+| 7 | `&&` | `and` |
+| 8 | `\|\|` | `or` |
+
+Artinya, `nilai + 5 >= 60 && hadir` dikerjakan sebagai `((nilai + 5) >= 60) && hadir`. Aritmatika dihitung dulu, lalu perbandingan, baru logika. Jika ekspresinya mulai panjang, **tambahkan kurung** agar mudah dibaca.
+
+## Contoh: tahun kabisat
+
+Sebuah tahun adalah **tahun kabisat** jika:
+
+- habis dibagi 4 **dan tidak** habis dibagi 100, **atau**
+- habis dibagi 400.
+
+Aturan ini langsung bisa diterjemahkan dengan operator modulus, perbandingan, dan logika:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int tahun;
+    cout << "Tahun: ";
+    cin >> tahun;
+
+    bool kabisat = (tahun % 4 == 0 && tahun % 100 != 0) || (tahun % 400 == 0);
+
+    cout << boolalpha << kabisat << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+tahun = int(input("Tahun: "))
+
+kabisat = (tahun % 4 == 0 and tahun % 100 != 0) or (tahun % 400 == 0)
+
+print(kabisat)
+```
+
+| Input | Hasil | Alasan |
+| --- | --- | --- |
+| `2024` | `true` | Habis dibagi 4, tidak habis dibagi 100 |
+| `1900` | `false` | Habis dibagi 100, tetapi tidak habis dibagi 400 |
+| `2000` | `true` | Habis dibagi 400 |
+| `2023` | `false` | Tidak habis dibagi 4 |
+
+Nilai `kabisat` ini nantinya dipakai untuk **memilih** apa yang dilakukan program, misalnya menampilkan "29 hari" atau "28 hari" untuk bulan Februari. Itulah yang dipelajari di materi berikutnya, [Percabangan](/docs/cpp/percabangan).
+
+## Rangkuman
+
+- Operator perbandingan (`==`, `!=`, `>`, `<`, `>=`, `<=`) menghasilkan `true` atau `false`.
+- C++ menampilkan `bool` sebagai `1`/`0`, kecuali memakai `boolalpha`.
+- **`=` mengisi nilai, `==` membandingkan.** Jangan tertukar.
+- Operator logika: `&&`/`and`, `||`/`or`, `!`/`not`.
+- Di C++, rentang ditulis `x >= a && x <= b`, bukan `a <= x <= b`.
+- `&&` dan `||` bersifat _short-circuit_ sehingga bisa dipakai untuk mencegah error.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Jika a = 5, b = 10, c = 5, tentukan hasil dari: a == c && b > a, a > b || c != a, dan !(a < b).">
+    - `a == c && b > a` → `true && true` → **true**
+    - `a > b || c != a` → `false || false` → **false**
+    - `!(a < b)` → `!true` → **false**
+  </Accordion>
+  <Accordion title="2. Tulis kondisi C++ untuk: “nilai bukan antara 40 sampai 60 (inklusif)”.">
+    `nilai < 40 || nilai > 60`, atau dengan NOT: `!(nilai >= 40 && nilai <= 60)`. Di Python: `not (40 <= nilai <= 60)`.
+  </Accordion>
+  <Accordion title="3. Kenapa if (x = 0) di C++ tidak pernah menjalankan bloknya?">
+    `x = 0` **mengisi** `x` dengan 0, lalu nilai ekspresi itu (`0`) dianggap `false`. Akibatnya blok tidak pernah dijalankan, dan nilai `x` ikut berubah menjadi 0. Maksud sebenarnya adalah `if (x == 0)`.
+  </Accordion>
+</Accordions>

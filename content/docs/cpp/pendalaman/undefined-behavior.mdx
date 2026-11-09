@@ -1,0 +1,107 @@
+---
+title: Undefined Behavior
+description: Kesalahan C++ yang tidak menghasilkan error, mengapa hasilnya tidak bisa ditebak, dan cara menangkapnya sebelum terlambat.
+sumber:
+  - ref: cppreference
+    judul: Undefined behavior
+    url: https://en.cppreference.com/w/cpp/language/ub
+  - ref: gcc-docs
+    judul: Program Instrumentation Options
+    url: https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
+---
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & vector" />
+
+## Apa itu undefined behavior?
+
+Standar C++ mengatur apa yang harus terjadi untuk setiap kode yang benar. Namun untuk beberapa kesalahan tertentu, standar sengaja **tidak menetapkan apa pun**. Kesalahan seperti ini disebut **undefined behavior** (UB), artinya "perilaku yang tidak didefinisikan".
+
+Begitu program mengandung UB, **apa pun boleh terjadi**:
+
+- program menghasilkan angka acak,
+- program crash,
+- atau, yang paling berbahaya, program **terlihat benar** di komputermu tetapi salah di komputer lain, dengan compiler lain, atau saat kodenya sedikit diubah.
+
+Mengapa C++ membiarkan hal ini? Demi kecepatan. Memeriksa setiap akses array atau setiap penjumlahan membutuhkan waktu. C++ memilih **memercayai programmer**, sedangkan Python memilih memeriksa semuanya lalu berhenti dengan pesan error yang jelas.
+
+## Undefined behavior yang sudah kamu temui
+
+Beberapa materi sebelumnya sudah menyinggung UB. Ini daftar lengkapnya:
+
+| Kesalahan | Contoh C++ | Yang terjadi di Python |
+| --- | --- | --- |
+| Memakai variabel yang belum diisi | `int x; cout << x;` ([Variabel](/docs/cpp/variabel-dan-tipe-data#membuat-variabel)) | Tidak mungkin: variabel tercipta saat diisi. Jika belum, `NameError` |
+| Overflow bilangan bertanda | `int besar = 2147483647; besar + 1;` ([Overflow](/docs/cpp/variabel-dan-tipe-data#batas-tipe-data-overflow)) | `int` Python tidak punya batas |
+| Indeks di luar batas | `data[5]` pada array berukuran 5 ([Array](/docs/cpp/array-dan-vector#indeks-di-luar-batas)) | `IndexError` |
+| Pembagian bilangan bulat dengan nol | `int a = 10 / 0;` | `ZeroDivisionError` |
+| Menggabung teks literal dengan angka | `"Umur: " + 19` ([String](/docs/cpp/string#jebakan-menggabung-angka)) | `TypeError` |
+
+## Contoh: pemeriksaan yang "dihapus" compiler
+
+Fungsi berikut mencoba mendeteksi overflow: jika `x + 1` ternyata lebih kecil dari `x`, berarti nilainya "berputar" menjadi negatif.
+
+```cpp
+#include <iostream>
+#include <climits>
+using namespace std;
+
+bool akanOverflow(int x) {
+    return x + 1 < x;
+}
+
+int main() {
+    cout << boolalpha << akanOverflow(INT_MAX) << endl;
+    return 0;
+}
+```
+
+```txt title="Output (g++ 13)"
+false
+```
+
+Padahal `INT_MAX + 1` jelas melewati batas. Mengapa hasilnya `false`? Karena overflow pada `int` adalah UB, compiler **boleh berasumsi overflow tidak pernah terjadi**. Dengan asumsi itu, `x + 1` selalu lebih besar dari `x`, sehingga seluruh pemeriksaan disederhanakan menjadi `return false;`. Logika yang tampak masuk akal ini tidak pernah benar-benar dijalankan.
+
+Pelajarannya: **kita tidak bisa menguji UB dengan "mencoba dan melihat hasilnya"**. Satu-satunya cara aman adalah tidak menulisnya, misalnya dengan memeriksa sebelum menghitung: `if (x == INT_MAX)`.
+
+## Cara menangkap undefined behavior
+
+### 1. Peringatan compiler
+
+Kompilasi dengan `-Wall -Wextra`. Banyak UB yang sederhana, seperti variabel yang belum diisi, sudah bisa terdeteksi. Lihat [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging#peringatan-compiler).
+
+### 2. Sanitizer
+
+Sanitizer menambahkan pemeriksaan ke dalam program sehingga UB dilaporkan saat terjadi, lengkap dengan nomor barisnya:
+
+```bash
+g++ -g -fsanitize=address,undefined program.cpp -o program
+```
+
+- `address` menangkap akses memori yang tidak sah, seperti indeks di luar batas.
+- `undefined` menangkap UB lain, seperti overflow `int` dan pembagian dengan nol.
+
+### 3. Akses yang diperiksa: `.at()`
+
+`vector` dan `string` menyediakan `.at(i)` sebagai pengganti `[i]`. Bedanya, `.at()` **memeriksa batas** dan menghentikan program dengan pesan yang jelas:
+
+```cpp
+vector<int> nilai = {80, 75, 90, 60};
+cout << nilai.at(10) << endl;
+```
+
+```txt title="Output"
+terminate called after throwing an instance of 'std::out_of_range'
+  what():  vector::_M_range_check: __n (which is 10) >= this->size() (which is 4)
+```
+
+Pemeriksaan ini membuat program sedikit lebih lambat, tetapi saat belajar, pesan error yang jelas jauh lebih berharga.
+
+## Rangkuman
+
+- **Undefined behavior** adalah kesalahan yang hasilnya tidak ditetapkan standar C++: bisa acak, crash, atau tampak benar.
+- Contoh utamanya: variabel belum diisi, overflow `int`, indeks di luar batas, pembagian bilangan bulat dengan nol, dan `"teks" + angka`.
+- Compiler boleh berasumsi UB tidak pernah terjadi, sehingga kode pemeriksaan pun bisa "hilang".
+- Tangkap dengan `-Wall -Wextra`, sanitizer (`-fsanitize=address,undefined`), dan `.at()`.
+- Python memeriksa semua kesalahan ini dan berhenti dengan exception yang jelas.
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & vector" />

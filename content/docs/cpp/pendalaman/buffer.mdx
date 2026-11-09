@@ -1,0 +1,217 @@
+---
+title: Buffer Input & Output
+description: Mengapa cin kadang tidak menunggu input, mengapa karakter Enter bisa tertinggal, dan apa beda endl dengan "\n".
+sumber:
+  - ref: cppreference
+    judul: "std::endl"
+    url: https://en.cppreference.com/w/cpp/io/manip/endl
+  - ref: cppreference
+    judul: "std::basic_istream::ignore"
+    url: https://en.cppreference.com/w/cpp/io/basic_istream/ignore
+  - ref: cppreference
+    judul: "std::cin"
+    url: https://en.cppreference.com/w/cpp/io/cin
+  - ref: python-docs
+    judul: "print()"
+    url: https://docs.python.org/3/library/functions.html#print
+---
+
+<BackToLesson href="/docs/cpp/input-dengan-cin" label="Input dengan cin" />
+
+## Apa itu buffer?
+
+**Buffer** adalah area memori sementara untuk **menampung data** sebelum data itu diproses.
+
+Bayangkan sebuah **antrean di loket**. Orang-orang (data) datang dan berbaris di antrean (buffer). Petugas loket (program) melayani mereka satu per satu, dari yang paling depan. Orang yang belum dilayani tetap menunggu di antrean, tidak hilang.
+
+Buffer dipakai karena perangkat input/output seperti keyboard, layar, dan disk jauh lebih lambat daripada prosesor. Mengumpulkan data dulu lalu memprosesnya sekaligus jauh lebih efisien daripada memproses setiap karakter satu per satu.
+
+Ada dua buffer yang perlu kamu kenal:
+
+| | Buffer input | Buffer output |
+| --- | --- | --- |
+| Dipakai oleh | `cin` | `cout` |
+| Isinya | Karakter yang diketik pengguna | Teks yang akan ditampilkan ke layar |
+| Konsekuensi | Data yang belum terbaca **tertinggal** dan dipakai `cin` berikutnya | Teks **tidak selalu langsung muncul** di layar |
+
+## Buffer input
+
+Saat pengguna mengetik, karakter-karakternya **tidak langsung** dibaca program. Semuanya, termasuk spasi dan karakter **`\n`** dari tombol Enter, ditampung di buffer input. Baru setelah Enter ditekan, `cin` mulai mengambil data dari buffer.
+
+Aturan kerja `cin >>` sangat sederhana:
+
+1. Jika buffer **kosong**, program **berhenti dan menunggu** pengguna mengetik lalu menekan Enter.
+2. **Lewati** semua whitespace (spasi, tab, `\n`) di depan.
+3. **Ambil** karakter selama masih cocok dengan tipe variabel.
+4. **Berhenti** di karakter pertama yang tidak cocok, misalnya spasi atau `\n`. Karakter itu **tidak diambil**, jadi tetap tertinggal di buffer.
+
+### Lihat langkah demi langkah
+
+Program di bawah meminta dua angka secara terpisah. Namun di pertanyaan pertama, pengguna langsung mengetik `10 20` lalu menekan Enter. Tekan **Berikutnya** untuk melihat apa yang terjadi di buffer.
+
+<BufferStepper
+  code={`int a, b;
+cout << "Masukkan a: ";
+cin >> a;
+cout << "Masukkan b: ";
+cin >> b;`}
+  steps={[
+    {
+      line: 2,
+      buffer: '',
+      consumed: 0,
+      vars: { a: '?', b: '?' },
+      terminal: 'Masukkan a: ',
+      waiting: true,
+      note: '`cin >> a` ingin membaca angka, tetapi buffer masih kosong. Program berhenti dan menunggu pengguna mengetik.',
+    },
+    {
+      line: 2,
+      buffer: '10 20\n',
+      consumed: 0,
+      vars: { a: '?', b: '?' },
+      terminal: 'Masukkan a: 10 20\n',
+      note: 'Pengguna mengetik `10 20` lalu menekan Enter. Semua karakter, termasuk spasi dan `\\n` dari tombol Enter, masuk ke buffer.',
+    },
+    {
+      line: 2,
+      buffer: '10 20\n',
+      consumed: 2,
+      read: [0, 2],
+      vars: { a: '10', b: '?' },
+      terminal: 'Masukkan a: 10 20\n',
+      note: '`cin >> a` mengambil `1` dan `0`, lalu berhenti saat bertemu spasi. Nilai `10` disimpan ke `a`. Spasi, `20`, dan `\\n` masih tertinggal di buffer.',
+    },
+    {
+      line: 4,
+      buffer: '10 20\n',
+      consumed: 2,
+      vars: { a: '10', b: '?' },
+      terminal: 'Masukkan a: 10 20\nMasukkan b: ',
+      note: 'Pertanyaan kedua tampil, lalu `cin >> b` memeriksa buffer. Ternyata buffer belum kosong, jadi program **tidak menunggu** ketikan baru.',
+    },
+    {
+      line: 4,
+      buffer: '10 20\n',
+      consumed: 5,
+      skipped: [2, 3],
+      read: [3, 5],
+      vars: { a: '10', b: '20' },
+      terminal: 'Masukkan a: 10 20\nMasukkan b: ',
+      note: 'Spasi di depan dilewati, lalu `20` diambil dan disimpan ke `b`. Pengguna bahkan tidak sempat mengetik apa pun untuk pertanyaan kedua.',
+    },
+    {
+      line: 4,
+      buffer: '10 20\n',
+      consumed: 5,
+      leftover: [5, 6],
+      vars: { a: '10', b: '20' },
+      terminal: 'Masukkan a: 10 20\nMasukkan b: ',
+      note: 'Karakter `\\n` masih tertinggal. `cin >>` berikutnya akan melewatinya tanpa masalah, tetapi `getline` justru langsung berhenti karena karakter ini.',
+    },
+  ]}
+/>
+
+### Karakter `\n` yang tertinggal [#newline-tertinggal]
+
+Langkah terakhir di atas menunjukkan hal penting: **setelah `cin >>` membaca, karakter `\n` dari tombol Enter selalu tertinggal di buffer.**
+
+Bagi `cin >>`, sisa `\n` ini tidak masalah karena whitespace di depan selalu dilewati (aturan nomor 2). Masalah baru muncul jika setelah `cin >>` kita memakai fungsi yang **tidak** melewati whitespace, terutama `getline`. Fungsi itu membaca sampai bertemu `\n`. Karena `\n` sudah menunggu di depan, `getline` langsung berhenti dan menghasilkan teks kosong.
+
+<DeepDive href="/docs/cpp/pustaka/getline#jebakan-cin-dan-getline" kind="pustaka" title="Jebakan cin >> lalu getline">
+  Simulasi langkah demi langkah saat `getline` "terlewati", beserta dua cara mengatasinya: `cin.ignore()` dan `cin >> ws`.
+</DeepDive>
+
+## Saat input gagal [#saat-input-gagal]
+
+Bagaimana jika `cin >>` diminta membaca `int`, tetapi isi buffer adalah `abc`?
+
+1. `cin` tidak bisa mengambil satu karakter pun karena `a` bukan bagian dari angka.
+2. Variabel diisi `0`, lalu `cin` masuk ke **mode gagal** (_fail state_).
+3. Teks `abc` **tetap tertinggal** di buffer.
+4. Selama mode gagal, semua `cin >>` berikutnya **langsung dilewati** tanpa membaca apa pun.
+
+Untuk memulihkan `cin`, ada dua langkah: hapus status gagal dengan `cin.clear()`, lalu buang isi buffer yang bermasalah dengan `cin.ignore()`.
+
+```cpp
+#include <iostream>
+#include <limits>
+using namespace std;
+
+int main() {
+    int umur;
+    cout << "Umur: ";
+    cin >> umur;                    // diketik: abc
+
+    if (cin.fail()) {
+        cin.clear();                // 1. hapus status gagal
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');  // 2. buang sisa baris
+        cout << "Input harus angka. Umur: ";
+        cin >> umur;                // sekarang cin bisa membaca lagi
+    }
+
+    cout << "Umur kamu " << umur << endl;
+    return 0;
+}
+```
+
+`cin.ignore(numeric_limits<streamsize>::max(), '\n')` artinya: "buang karakter dari buffer sebanyak apa pun, sampai dan termasuk `\n` berikutnya". Dengan kata lain, buang sisa baris yang salah itu.
+
+<Callout type="info" title="Belum perlu dihafal">
+  Bagian `if` dan validasi input akan terasa lebih alami setelah mempelajari percabangan dan perulangan. Untuk sekarang, cukup pahami **mengapa** `cin` bisa "macet": statusnya gagal dan data yang salah masih ada di buffer.
+</Callout>
+
+## Buffer output
+
+`cout` juga memakai buffer. Teks yang kamu kirim ke `cout` **tidak selalu langsung** muncul di layar. Teks itu dikumpulkan dulu di buffer output, lalu dikirim ke layar sekaligus. Proses mengirim isi buffer ke layar ini disebut **flush**.
+
+Buffer output di-flush ketika:
+
+- buffer **penuh**,
+- program memakai `endl` atau `flush`,
+- program akan **membaca input** dengan `cin`, karena `cin` "terikat" (_tied_) ke `cout`, sehingga pertanyaan seperti `"Umur: "` dijamin tampil sebelum program menunggu,
+- program **selesai dengan normal**.
+
+Dalam program sederhana kamu hampir tidak pernah menyadarinya, karena flush terjadi otomatis di saat-saat yang tepat.
+
+## `endl` vs `"\n"` [#endl-vs-n]
+
+Keduanya sama-sama memindahkan kursor ke baris baru. Bedanya:
+
+| | `"\n"` | `endl` |
+| --- | --- | --- |
+| Pindah baris | ✓ | ✓ |
+| Flush buffer output | ✗ | ✓ setiap kali dipanggil |
+| Kecepatan | Cepat | Lebih lambat jika dipanggil berkali-kali |
+
+Satu kali flush memang tidak terasa. Namun jika program mencetak **puluhan ribu baris** dengan `endl`, buffer dipaksa dikosongkan sebanyak itu pula, dan program bisa menjadi beberapa kali lebih lambat. Masalah ini sering muncul di _competitive programming_.
+
+```cpp
+// Lambat: flush 100.000 kali
+for (int i = 0; i < 100000; i++) cout << i << endl;
+
+// Cepat: flush dilakukan otomatis saat buffer penuh
+for (int i = 0; i < 100000; i++) cout << i << "\n";
+```
+
+<Callout title="Rekomendasi">
+  Gunakan `"\n"` untuk pindah baris sehari-hari. Pakai `endl` hanya jika kamu memang ingin teks **langsung** tampil saat itu juga, misalnya pesan progres sebelum proses yang lama.
+</Callout>
+
+## Bagaimana dengan Python?
+
+Python juga memakai buffer, tetapi kamu jarang tersandung olehnya:
+
+- **`input()` selalu membaca satu baris penuh** dan membuang `\n` di ujungnya. Tidak ada `\n` yang tertinggal, jadi masalah seperti `cin >>` lalu `getline` tidak terjadi.
+- Input yang salah tipe tidak membuat apa pun "macet". Error baru muncul saat teks diubah dengan `int()` atau `float()`.
+- `print()` juga memakai buffer output. Untuk memaksa teks langsung tampil, gunakan `print("...", flush=True)`.
+
+## Rangkuman
+
+- **Buffer** adalah penampung data sementara antara program dan perangkat input/output.
+- Semua ketikan, termasuk spasi dan `\n`, masuk ke **buffer input**. `cin >>` mengambilnya sedikit demi sedikit dan hanya menunggu jika buffer kosong.
+- Setelah `cin >>`, karakter **`\n` selalu tertinggal** di buffer.
+- Input yang salah tipe membuat `cin` masuk **mode gagal**. Pulihkan dengan `cin.clear()` dan `cin.ignore()`.
+- `endl` = pindah baris + **flush**. `"\n"` hanya pindah baris dan lebih cepat.
+
+<BackToLesson href="/docs/cpp/input-dengan-cin" label="Input dengan cin" />

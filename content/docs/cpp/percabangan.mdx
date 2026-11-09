@@ -1,0 +1,443 @@
+---
+title: Percabangan
+description: Membuat program yang memilih jalur dengan if, else if, else, dan switch, beserta jebakan yang sering muncul.
+sumber:
+  - ref: cppreference
+    judul: if statement
+    url: https://en.cppreference.com/w/cpp/language/if
+  - ref: cppreference
+    judul: switch statement
+    url: https://en.cppreference.com/w/cpp/language/switch
+  - ref: python-docs
+    judul: Tutorial, More Control Flow Tools
+    url: https://docs.python.org/3/tutorial/controlflow.html
+  - ref: busbee
+---
+
+## Program yang bisa memilih
+
+Sampai materi sebelumnya, setiap baris program dijalankan **berurutan dari atas ke bawah**. Padahal program sering harus **memilih**: jika nilai ≥ 60 tampilkan "Lulus", selain itu tampilkan "Tidak lulus".
+
+Kamu sudah melihat pilihan seperti ini dalam bentuk simbol belah ketupat di [flowchart](/docs/cpp/algoritma-dan-flowchart#contoh-percabangan), dan sudah bisa menghasilkan nilai `true`/`false` dengan [operator perbandingan](/docs/cpp/operator-perbandingan-dan-logika). Percabangan menggabungkan keduanya: **jalankan blok kode tertentu hanya jika kondisinya `true`**.
+
+## `if`
+
+Bentuk paling sederhana: jalankan blok jika kondisi benar, lewati jika salah.
+
+```cpp tab="C++"
+int nilai;
+cin >> nilai;
+
+if (nilai >= 60) {
+    cout << "Lulus" << endl;
+}
+cout << "Program selesai" << endl;
+```
+
+```python tab="Python"
+nilai = int(input())
+
+if nilai >= 60:
+    print("Lulus")
+print("Program selesai")
+```
+
+| | C++ | Python |
+| --- | --- | --- |
+| Kondisi | Wajib di dalam kurung: `if (nilai >= 60)` | Tanpa kurung, diakhiri titik dua: `if nilai >= 60:` |
+| Blok | Diapit kurung kurawal `{ }` | Ditandai **indentasi** (umumnya 4 spasi) |
+
+Jika `nilai` bernilai 75, output-nya "Lulus" lalu "Program selesai". Jika 40, hanya "Program selesai".
+
+## `if` dan `else`
+
+`else` menangani jalur sebaliknya, yaitu saat kondisi bernilai `false`. Tepat **satu** dari dua blok pasti dijalankan.
+
+<Flowchart
+  caption="if-else: menentukan kelulusan"
+  nodes={[
+    { type: 'terminal', label: 'Mulai' },
+    { type: 'io', label: 'Input nilai' },
+    {
+      type: 'decision',
+      label: 'nilai >= 60 ?',
+      yes: [{ type: 'io', label: 'Output "Lulus"' }],
+      no: [{ type: 'io', label: 'Output "Tidak lulus"' }],
+    },
+    { type: 'terminal', label: 'Selesai' },
+  ]}
+/>
+
+```cpp tab="C++"
+if (nilai >= 60) {
+    cout << "Lulus" << endl;
+} else {
+    cout << "Tidak lulus" << endl;
+}
+```
+
+```python tab="Python"
+if nilai >= 60:
+    print("Lulus")
+else:
+    print("Tidak lulus")
+```
+
+## Banyak pilihan: `else if`
+
+Untuk lebih dari dua kemungkinan, sambungkan beberapa kondisi. C++ menulisnya `else if`, Python menyingkatnya menjadi `elif`. Contohnya mengubah nilai angka menjadi huruf mutu (skala ini hanya contoh):
+
+| Nilai | Huruf mutu |
+| --- | --- |
+| 85 – 100 | A |
+| 70 – 84 | B |
+| 55 – 69 | C |
+| 40 – 54 | D |
+| di bawah 40 | E |
+
+```cpp tab="C++"
+char mutu;
+
+if (nilai >= 85) {
+    mutu = 'A';
+} else if (nilai >= 70) {
+    mutu = 'B';
+} else if (nilai >= 55) {
+    mutu = 'C';
+} else if (nilai >= 40) {
+    mutu = 'D';
+} else {
+    mutu = 'E';
+}
+
+cout << "Mutu: " << mutu << endl;
+```
+
+```python tab="Python"
+if nilai >= 85:
+    mutu = "A"
+elif nilai >= 70:
+    mutu = "B"
+elif nilai >= 55:
+    mutu = "C"
+elif nilai >= 40:
+    mutu = "D"
+else:
+    mutu = "E"
+
+print("Mutu:", mutu)
+```
+
+Kondisi diperiksa **dari atas ke bawah**, dan berhenti pada kondisi pertama yang benar. Karena itu kita tidak perlu menulis `nilai >= 70 && nilai < 85`: jika program sampai ke `else if (nilai >= 70)`, sudah pasti `nilai` kurang dari 85.
+
+<Callout type="warning" title="Urutan kondisi penting">
+  Jika urutannya dibalik, misalnya `if (nilai >= 40)` diperiksa paling awal, nilai 95 pun langsung mendapat D karena kondisi pertama yang benar adalah `nilai >= 40`. Mulailah dari kondisi yang paling sempit.
+</Callout>
+
+## Percabangan bersarang
+
+Sebuah `if` boleh berada di dalam `if` lain. Contohnya, mahasiswa lulus jika nilainya ≥ 60 **dan** kehadirannya ≥ 75%, tetapi kita ingin pesan yang berbeda untuk setiap penyebab gagal:
+
+```cpp tab="C++"
+if (nilai >= 60) {
+    if (kehadiran >= 75) {
+        cout << "Lulus" << endl;
+    } else {
+        cout << "Tidak lulus: kehadiran kurang" << endl;
+    }
+} else {
+    cout << "Tidak lulus: nilai kurang" << endl;
+}
+```
+
+```python tab="Python"
+if nilai >= 60:
+    if kehadiran >= 75:
+        print("Lulus")
+    else:
+        print("Tidak lulus: kehadiran kurang")
+else:
+    print("Tidak lulus: nilai kurang")
+```
+
+Jika cukup satu pesan "Lulus"/"Tidak lulus", gabungkan saja kondisinya dengan `&&` (`and`): `if (nilai >= 60 && kehadiran >= 75)`. Percabangan bersarang yang terlalu dalam membuat kode sulit dibaca.
+
+## `switch`: memilih berdasarkan nilai yang pasti
+
+Jika pilihannya berupa **nilai-nilai tertentu** (bukan rentang), C++ menyediakan `switch`. Cocok untuk menu:
+
+```cpp tab="C++"
+int pilihan;
+cout << "1. Tambah  2. Hapus  3. Keluar\nPilih: ";
+cin >> pilihan;
+
+switch (pilihan) {
+    case 1:
+        cout << "Menambah data" << endl;
+        break;
+    case 2:
+        cout << "Menghapus data" << endl;
+        break;
+    case 3:
+        cout << "Sampai jumpa" << endl;
+        break;
+    default:
+        cout << "Pilihan tidak tersedia" << endl;
+}
+```
+
+```python tab="Python"
+pilihan = int(input("1. Tambah  2. Hapus  3. Keluar\nPilih: "))
+
+match pilihan:          # match tersedia sejak Python 3.10
+    case 1:
+        print("Menambah data")
+    case 2:
+        print("Menghapus data")
+    case 3:
+        print("Sampai jumpa")
+    case _:
+        print("Pilihan tidak tersedia")
+```
+
+- `case` menandai setiap nilai yang mungkin. `default` (Python: `case _`) menangani nilai lainnya.
+- `switch` di C++ hanya bisa memeriksa **bilangan bulat** dan **`char`**. Untuk `string`, `double`, atau rentang seperti `nilai >= 85`, gunakan `if`.
+
+### Jangan lupa `break`
+
+Di C++, setelah sebuah `case` cocok, program akan **terus menjalankan `case` di bawahnya** sampai bertemu `break`. Perilaku ini disebut _fall-through_:
+
+```cpp
+int hari = 1;
+
+switch (hari) {
+    case 1:
+        cout << "Senin" << endl;   // ✗ lupa break
+    case 2:
+        cout << "Selasa" << endl;
+        break;
+}
+```
+
+```txt title="Output"
+Senin
+Selasa
+```
+
+Python tidak memiliki _fall-through_: setiap `case` berhenti dengan sendirinya.
+
+## Jebakan yang sering terjadi
+
+### Lupa kurung kurawal
+
+Tanpa `{ }`, `if` di C++ hanya menguasai **satu** pernyataan tepat di bawahnya. Indentasi tidak berpengaruh apa pun bagi compiler:
+
+```cpp
+int nilai = 40;
+
+if (nilai >= 60)
+    cout << "Lulus" << endl;
+    cout << "Selamat!" << endl;    // ✗ di luar if, SELALU dijalankan
+```
+
+```txt title="Output"
+Selamat!
+```
+
+Biasakan **selalu** memakai kurung kurawal, bahkan untuk satu baris. Di Python masalah ini tidak terjadi karena indentasi memang menentukan blok.
+
+### Titik koma setelah kondisi
+
+```cpp
+if (nilai >= 60);           // ✗ titik koma mengakhiri if di sini
+{
+    cout << "Lulus" << endl;  // blok ini berdiri sendiri, selalu dijalankan
+}
+```
+
+### `=` bukan `==`
+
+`if (x = 5)` mengisi `x` dengan 5 lalu selalu dianggap benar. Jebakan ini sudah dibahas di [Operator Perbandingan](/docs/cpp/operator-perbandingan-dan-logika#jebakan-sama-dengan).
+
+<Callout title="Biarkan compiler membantu">
+  Ketiga jebakan di atas bisa dideteksi otomatis jika program dikompilasi dengan opsi peringatan `-Wall -Wextra`. Caranya dibahas di materi [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging#peringatan-compiler).
+</Callout>
+
+## Operator ternary
+
+Untuk memilih antara **dua nilai** secara singkat, ada operator ternary:
+
+```cpp tab="C++"
+string status = (nilai >= 60) ? "Lulus" : "Tidak lulus";
+```
+
+```python tab="Python"
+status = "Lulus" if nilai >= 60 else "Tidak lulus"
+```
+
+Dibaca: "jika `nilai >= 60`, pakai `"Lulus"`; jika tidak, pakai `"Tidak lulus"`". Gunakan hanya untuk pilihan sederhana. Untuk logika yang lebih panjang, `if`-`else` lebih mudah dibaca.
+
+## Contoh lengkap: kalkulator sederhana
+
+Program membaca ekspresi seperti `8 / 2`, lalu menghitung sesuai operatornya. Perhatikan pengecekan pembagian dengan nol di dalam `case '/'`.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    double a, b;
+    char op;
+
+    cout << "Ekspresi (contoh 8 / 2): ";
+    cin >> a >> op >> b;
+
+    switch (op) {
+        case '+':
+            cout << a + b << endl;
+            break;
+        case '-':
+            cout << a - b << endl;
+            break;
+        case '*':
+            cout << a * b << endl;
+            break;
+        case '/':
+            if (b == 0) {
+                cout << "Tidak bisa membagi dengan nol" << endl;
+            } else {
+                cout << a / b << endl;
+            }
+            break;
+        default:
+            cout << "Operator tidak dikenal" << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+a, op, b = input("Ekspresi (contoh 8 / 2): ").split()
+a, b = float(a), float(b)
+
+match op:
+    case "+":
+        print(a + b)
+    case "-":
+        print(a - b)
+    case "*":
+        print(a * b)
+    case "/":
+        if b == 0:
+            print("Tidak bisa membagi dengan nol")
+        else:
+            print(a / b)
+    case _:
+        print("Operator tidak dikenal")
+```
+
+```txt title="Contoh jalannya program (C++)"
+Ekspresi (contoh 8 / 2): 7 * 6
+42
+```
+
+`cin >> a >> op >> b` bekerja karena `op` bertipe `char`, sehingga `cin` mengambil tepat satu karakter, yaitu operatornya. Versi Python memakai `split()`, jadi pengguna harus memisahkan angka dan operator dengan spasi.
+
+## Rangkuman
+
+- `if` menjalankan blok hanya jika kondisinya `true`. `else` menangani kebalikannya.
+- `else if` (Python: `elif`) memeriksa kondisi dari atas ke bawah dan berhenti di kondisi pertama yang benar. **Urutan penting.**
+- `switch` (Python: `match`) cocok untuk memilih berdasarkan nilai pasti. Di C++, setiap `case` perlu `break`.
+- Selalu pakai kurung kurawal, jangan beri titik koma setelah `if (...)`, dan bedakan `=` dengan `==`.
+- Operator ternary memilih antara dua nilai secara ringkas.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Baca sebuah bilangan bulat, lalu tampilkan apakah bilangan itu positif, negatif, atau nol.">
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        if (n > 0) {
+            cout << "Positif" << endl;
+        } else if (n < 0) {
+            cout << "Negatif" << endl;
+        } else {
+            cout << "Nol" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    if n > 0:
+        print("Positif")
+    elif n < 0:
+        print("Negatif")
+    else:
+        print("Nol")
+    ```
+  </Accordion>
+  <Accordion title="2. Baca tiga bilangan, lalu tampilkan yang terbesar.">
+    Simpan kandidat terbesar di sebuah variabel, lalu bandingkan satu per satu:
+
+    ```cpp tab="C++"
+    int a, b, c;
+    cin >> a >> b >> c;
+
+    int terbesar = a;
+    if (b > terbesar) {
+        terbesar = b;
+    }
+    if (c > terbesar) {
+        terbesar = c;
+    }
+    cout << terbesar << endl;
+    ```
+
+    ```python tab="Python"
+    a, b, c = map(int, input().split())
+
+    terbesar = a
+    if b > terbesar:
+        terbesar = b
+    if c > terbesar:
+        terbesar = c
+    print(terbesar)
+    ```
+
+    Pola "simpan kandidat lalu perbarui" ini akan sangat berguna saat mencari nilai terbesar dari banyak data dengan perulangan.
+  </Accordion>
+  <Accordion title="3. Lanjutkan contoh tahun kabisat dari materi 07: tampilkan jumlah hari di bulan Februari (28 atau 29).">
+    ```cpp tab="C++"
+    int tahun;
+    cin >> tahun;
+
+    bool kabisat = (tahun % 4 == 0 && tahun % 100 != 0) || (tahun % 400 == 0);
+
+    if (kabisat) {
+        cout << "Februari " << tahun << ": 29 hari" << endl;
+    } else {
+        cout << "Februari " << tahun << ": 28 hari" << endl;
+    }
+    ```
+
+    ```python tab="Python"
+    tahun = int(input())
+
+    kabisat = (tahun % 4 == 0 and tahun % 100 != 0) or (tahun % 400 == 0)
+
+    hari = 29 if kabisat else 28
+    print(f"Februari {tahun}: {hari} hari")
+    ```
+
+    Perhatikan bahwa `if (kabisat)` sudah cukup, tidak perlu `if (kabisat == true)`.
+  </Accordion>
+</Accordions>

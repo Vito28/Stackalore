@@ -1,0 +1,286 @@
+---
+title: Input dengan cin
+description: Membuat program interaktif yang membaca data dari keyboard dengan cin di C++ dan input() di Python.
+sumber:
+  - ref: cppreference
+    judul: "std::cin"
+    url: https://en.cppreference.com/w/cpp/io/cin
+  - ref: python-docs
+    judul: "input()"
+    url: https://docs.python.org/3/library/functions.html#input
+---
+
+## Program yang bisa "mendengar"
+
+Sejauh ini, semua nilai kita tulis langsung di dalam kode. Program seperti itu selalu menghasilkan output yang sama. Agar program bisa dipakai untuk data apa pun, program harus bisa **membaca input** dari pengguna.
+
+Di C++, input dibaca dengan `cin` (dibaca _see-in_, singkatan dari _character input_). `cin` berasal dari pustaka `<iostream>`, sama seperti `cout`.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int umur;
+
+    cout << "Masukkan umur: ";
+    cin >> umur;
+
+    cout << "Tahun depan kamu berumur " << umur + 1 << " tahun" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+umur = int(input("Masukkan umur: "))
+
+print("Tahun depan kamu berumur", umur + 1, "tahun")
+```
+
+```txt title="Contoh jalannya program"
+Masukkan umur: 19
+Tahun depan kamu berumur 20 tahun
+```
+
+Saat baris `cin >> umur;` dicapai, program **berhenti dan menunggu** pengguna mengetik lalu menekan **Enter**. Angka yang diketik kemudian disimpan ke variabel `umur`.
+
+## Arah panah: `<<` dan `>>`
+
+Operator `>>` disebut **operator ekstraksi** (_extraction operator_). Cara mudah mengingatnya: lihat arah panahnya.
+
+| Perintah | Arah data | Artinya |
+| --- | --- | --- |
+| `cout << x` | dari `x` **ke** layar | Keluarkan nilai `x` |
+| `cin >> x` | dari keyboard **ke** `x` | Masukkan data ke dalam `x` |
+
+`cin` otomatis menyesuaikan dengan tipe variabelnya. Jika variabelnya `int`, ketikan dibaca sebagai bilangan bulat. Jika `double`, dibaca sebagai pecahan. Jika `string`, dibaca sebagai teks.
+
+## Python: `input()` selalu menghasilkan teks
+
+Di Python, `input()` **selalu** mengembalikan nilai bertipe `str` (teks), apa pun yang diketik pengguna. Untuk mendapatkan angka, ubah dulu dengan `int()` atau `float()`.
+
+```python
+umur = input("Umur: ")         # misalnya diketik 19
+print(umur + 1)                # ✗ TypeError: "19" adalah teks, tidak bisa ditambah 1
+
+umur = int(input("Umur: "))    # ✓ ubah teks "19" menjadi angka 19
+print(umur + 1)                # 20
+```
+
+Di C++, konversi ini tidak perlu karena `cin` sudah tahu tipe tujuannya dari tipe variabel.
+
+## Membaca beberapa input sekaligus
+
+Operator `>>` bisa disambung untuk membaca beberapa nilai:
+
+```cpp tab="C++"
+int panjang, lebar;
+cin >> panjang >> lebar;
+cout << "Luas: " << panjang * lebar << endl;
+```
+
+```python tab="Python"
+panjang, lebar = map(int, input().split())
+print("Luas:", panjang * lebar)
+```
+
+Yang menarik, semua cara mengetik di bawah ini sama-sama berhasil untuk `cin >> panjang >> lebar`:
+
+```txt title="Dipisah spasi"
+5 3
+```
+
+```txt title="Dipisah Enter"
+5
+3
+```
+
+```txt title="Spasi berlebih pun tidak masalah"
+   5      3
+```
+
+Alasannya, `>>` **melewati semua whitespace** (spasi, tab, Enter) sebelum membaca, lalu **berhenti** saat menemukan whitespace berikutnya.
+
+<Callout type="warning" title="Python berbeda">
+  Di Python, `input().split()` hanya membaca **satu baris**. Jika pengguna memisahkan dua angka dengan Enter, kode di atas gagal. Untuk membaca dari dua baris, panggil `input()` dua kali.
+</Callout>
+
+## Apa yang sebenarnya terjadi?
+
+Ketikan pengguna **tidak** langsung masuk ke variabel. Semua karakter yang diketik, termasuk spasi dan Enter (`\n`), ditampung dulu di sebuah area memori sementara bernama **<Term href="/docs/cpp/pendalaman/buffer">buffer input</Term>**. `cin >>` kemudian mengambil data dari buffer itu sedikit demi sedikit.
+
+Konsekuensinya cukup mengejutkan. Coba program berikut, lalu pada pertanyaan pertama ketik `10 20` dan tekan Enter:
+
+```cpp
+int a, b;
+cout << "Masukkan a: ";
+cin >> a;
+cout << "Masukkan b: ";
+cin >> b;
+cout << "a = " << a << ", b = " << b << endl;
+```
+
+```txt title="Output"
+Masukkan a: 10 20
+Masukkan b: a = 10, b = 20
+```
+
+Program **tidak menunggu** saat meminta `b`! Penyebabnya: `cin >> a` hanya mengambil `10`, sedangkan ` 20` dan `\n` masih tersisa di buffer. Saat `cin >> b` dijalankan, data sudah tersedia, jadi `cin` langsung membacanya tanpa menunggu ketikan baru.
+
+<DeepDive href="/docs/cpp/pendalaman/buffer" kind="konsep" title="Buffer input & output">
+  Lihat langkah demi langkah bagaimana `cin` membaca isi buffer, mengapa karakter `\n` bisa "tertinggal", dan apa yang terjadi saat input tidak sesuai tipe.
+</DeepDive>
+
+## Membaca teks
+
+`cin >>` juga bisa membaca teks ke variabel `string`. Namun karena `>>` berhenti di whitespace, **hanya satu kata** yang terbaca:
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string nama;
+    cout << "Nama: ";
+    cin >> nama;                 // diketik: Budi Santoso
+    cout << "Halo, " << nama << "!" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+nama = input("Nama: ")           # diketik: Budi Santoso
+print(f"Halo, {nama}!")
+```
+
+```txt title="Output C++"
+Nama: Budi Santoso
+Halo, Budi!
+```
+
+```txt title="Output Python"
+Nama: Budi Santoso
+Halo, Budi Santoso!
+```
+
+Python membaca satu baris penuh, sedangkan `cin >>` hanya mengambil `Budi`. Kata `Santoso` masih tertinggal di buffer.
+
+Untuk membaca **satu baris utuh** (termasuk spasi), C++ menyediakan fungsi `getline`. Di seri ini kita **fokus memakai `cin`** terlebih dahulu. Selama input berupa angka atau satu kata, `cin` sudah cukup.
+
+<DeepDive href="/docs/cpp/pustaka/getline" kind="pustaka" title="getline: membaca satu baris penuh">
+  Cara membaca nama lengkap atau kalimat, serta jebakan klasik saat `cin >>` dan `getline` dipakai bersamaan, dan cara mengatasinya.
+</DeepDive>
+
+## Jika input tidak sesuai tipe
+
+Apa yang terjadi jika program meminta angka, tetapi pengguna mengetik huruf?
+
+```cpp tab="C++"
+int umur;
+cin >> umur;          // diketik: abc
+cout << umur;         // 0, dan cin masuk ke "mode gagal"
+```
+
+```python tab="Python"
+umur = int(input())   # diketik: abc
+# ValueError: invalid literal for int() with base 10: 'abc'
+```
+
+- **C++** tidak menghentikan program. `umur` diisi `0`, lalu `cin` masuk ke **mode gagal** (_fail state_). Selama mode gagal, semua `cin >>` berikutnya **diabaikan** sampai statusnya dipulihkan.
+- **Python** langsung menghentikan program dengan `ValueError`.
+
+Cara memulihkan `cin` dari mode gagal dibahas di [Buffer: saat input gagal](/docs/cpp/pendalaman/buffer#saat-input-gagal). Untuk sekarang, cukup ketahui bahwa input yang salah tipe membuat `cin` "macet".
+
+## Contoh lengkap
+
+Mari wujudkan flowchart luas persegi panjang dari materi [Algoritma & Flowchart](/docs/cpp/algoritma-dan-flowchart) menjadi program interaktif:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    double panjang, lebar;
+
+    cout << "=== Luas Persegi Panjang ===" << endl;
+    cout << "Panjang : ";
+    cin >> panjang;
+    cout << "Lebar   : ";
+    cin >> lebar;
+
+    double luas = panjang * lebar;
+    double keliling = 2 * (panjang + lebar);
+
+    cout << "Luas     = " << luas << endl;
+    cout << "Keliling = " << keliling << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+print("=== Luas Persegi Panjang ===")
+panjang = float(input("Panjang : "))
+lebar = float(input("Lebar   : "))
+
+luas = panjang * lebar
+keliling = 2 * (panjang + lebar)
+
+print("Luas     =", luas)
+print("Keliling =", keliling)
+```
+
+```txt title="Contoh jalannya program (C++)"
+=== Luas Persegi Panjang ===
+Panjang : 7.5
+Lebar   : 4
+Luas     = 30
+Keliling = 23
+```
+
+<Callout type="info" title="Selalu tampilkan petunjuk">
+  Sebelum `cin`, tampilkan pesan seperti `"Panjang : "` agar pengguna tahu apa yang harus diketik. Tanpa petunjuk, program terlihat seperti "macet" padahal sedang menunggu input.
+</Callout>
+
+## Rangkuman
+
+- `cin >> variabel` membaca input dari keyboard. Tipe yang dibaca mengikuti tipe variabel.
+- Python memakai `input()`, yang **selalu** menghasilkan `str`. Ubah dengan `int()` atau `float()`.
+- `>>` melewati whitespace di depan dan berhenti di whitespace berikutnya. Karena itu `cin >> a >> b` bisa dipisah spasi maupun Enter.
+- Ketikan ditampung dulu di **buffer input**. Data yang belum terbaca akan dipakai oleh `cin` berikutnya.
+- `cin >> string` hanya membaca **satu kata**. Untuk satu baris penuh, gunakan `getline`.
+- Input yang salah tipe membuat `cin` masuk ke **mode gagal**.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Buat program yang membaca tiga nilai ujian, lalu menampilkan rata-ratanya.">
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        double n1, n2, n3;
+        cout << "Masukkan 3 nilai: ";
+        cin >> n1 >> n2 >> n3;
+
+        double rata = (n1 + n2 + n3) / 3;
+        cout << "Rata-rata: " << rata << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n1, n2, n3 = map(float, input("Masukkan 3 nilai: ").split())
+
+    rata = (n1 + n2 + n3) / 3
+    print("Rata-rata:", rata)
+    ```
+  </Accordion>
+  <Accordion title="2. Pengguna mengetik 7 8 9 untuk program cin >> a >> b; saja. Ke mana angka 9?">
+    Angka `9` (dan `\n` setelahnya) **tetap tertinggal di buffer input**. Jika program punya `cin >> c;` setelahnya, `c` langsung berisi `9` tanpa menunggu ketikan baru. Jika tidak ada, data itu dibuang saat program selesai.
+  </Accordion>
+  <Accordion title="3. Kenapa int(input()) di Python error jika pengguna mengetik 3.5?">
+    Karena `int()` hanya bisa mengubah teks yang berbentuk bilangan bulat. Teks `"3.5"` harus diubah dengan `float()` terlebih dahulu: `int(float("3.5"))` menghasilkan `3`.
+  </Accordion>
+</Accordions>

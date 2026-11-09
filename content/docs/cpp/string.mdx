@@ -1,0 +1,335 @@
+---
+title: String
+description: Mengolah teks sebagai deretan karakter, menggabungkan, membandingkan, memotong, dan mencari di dalam string.
+sumber:
+  - ref: cppreference
+    judul: std::basic_string
+    url: https://en.cppreference.com/w/cpp/string/basic_string
+  - ref: python-docs
+    judul: Text Sequence Type (str)
+    url: https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str
+  - ref: py4e
+---
+
+## String adalah deretan karakter
+
+Kamu sudah memakai `string` sejak materi [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data). Sekarang kita lihat isinya: sebuah string adalah **deretan karakter** yang tersusun seperti [array](/docs/cpp/array-dan-vector), sehingga setiap karakternya bisa diakses lewat indeks yang dimulai dari 0.
+
+<MemoryBoxes
+  caption={'string kota = "Medan"; setiap karakter menempati satu posisi dengan indeksnya sendiri.'}
+  items={[
+    { name: 'kota[0]', type: 'char', value: "'M'" },
+    { name: 'kota[1]', type: 'char', value: "'e'" },
+    { name: 'kota[2]', type: 'char', value: "'d'" },
+    { name: 'kota[3]', type: 'char', value: "'a'" },
+    { name: 'kota[4]', type: 'char', value: "'n'" },
+  ]}
+/>
+
+```cpp tab="C++"
+#include <string>
+
+string kota = "Medan";
+
+cout << kota[0] << endl;          // M
+cout << kota.length() << endl;    // 5 (kota.size() juga boleh)
+```
+
+```python tab="Python"
+kota = "Medan"
+
+print(kota[0])      # M
+print(len(kota))    # 5
+```
+
+Di C++, satu karakter bertipe `char` (kutip tunggal `'M'`), sedangkan teks bertipe `string` (kutip ganda `"Medan"`). Python tidak membedakan keduanya: `kota[0]` pun bertipe `str`.
+
+## Menggabungkan string
+
+Operator `+` menyambung dua string, dan `+=` menambahkan di akhir:
+
+```cpp tab="C++"
+string depan = "Budi";
+string belakang = "Santoso";
+
+string lengkap = depan + " " + belakang;   // "Budi Santoso"
+lengkap += "!";                            // "Budi Santoso!"
+```
+
+```python tab="Python"
+depan = "Budi"
+belakang = "Santoso"
+
+lengkap = depan + " " + belakang   # "Budi Santoso"
+lengkap += "!"                     # "Budi Santoso!"
+```
+
+### Jebakan: menggabung angka
+
+```cpp tab="C++"
+int umur = 19;
+
+string a = "Umur: " + to_string(umur);   // ✓ "Umur: 19"
+string b = "Umur: " + umur;              // ✗ BUKAN "Umur: 19"!
+```
+
+```python tab="Python"
+umur = 19
+
+a = "Umur: " + str(umur)   # ✓ "Umur: 19"
+b = "Umur: " + umur        # ✗ TypeError: can only concatenate str (not "int") to str
+```
+
+Python langsung menolak dengan `TypeError`. C++ justru **menerima** `"Umur: " + umur` tanpa error, tetapi hasilnya bukan teks yang diharapkan. Teks literal `"Umur: "` diperlakukan sebagai alamat memori, sehingga `+ 19` menggeser alamat itu sejauh 19 karakter, melewati ujung teks. Ini termasuk [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior). Selalu ubah angka menjadi string dengan `to_string()`.
+
+## Membandingkan string
+
+Operator perbandingan bisa dipakai langsung pada string:
+
+```cpp tab="C++"
+string jawaban = "ya";
+
+if (jawaban == "ya") {
+    cout << "Lanjut" << endl;
+}
+
+cout << boolalpha << (string("apel") < "jeruk") << endl;   // true, urut abjad
+```
+
+```python tab="Python"
+jawaban = "ya"
+
+if jawaban == "ya":
+    print("Lanjut")
+
+print("apel" < "jeruk")    # True, urut abjad
+```
+
+Perbandingan bersifat **case-sensitive**: `"Ya"` tidak sama dengan `"ya"`. Urutannya mengikuti kode karakter, dan semua huruf kapital berada **sebelum** huruf kecil, sehingga `"Zebra" < "apel"` bernilai `true`.
+
+## Menelusuri setiap karakter
+
+Karena string adalah deretan karakter, ia bisa diolah dengan perulangan. Contoh: menghitung huruf vokal dalam satu kalimat.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <cctype>
+using namespace std;
+
+int main() {
+    string kalimat;
+    getline(cin, kalimat);
+
+    int vokal = 0;
+    for (char c : kalimat) {
+        char k = tolower(c);     // ubah ke huruf kecil agar 'A' dan 'a' sama
+        if (k == 'a' || k == 'i' || k == 'u' || k == 'e' || k == 'o') {
+            vokal++;
+        }
+    }
+    cout << "Jumlah vokal: " << vokal << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+kalimat = input()
+
+vokal = 0
+for c in kalimat.lower():
+    if c in "aiueo":
+        vokal += 1
+print("Jumlah vokal:", vokal)
+```
+
+```txt title="Contoh jalannya program"
+Belajar Pemrograman Itu Seru
+Jumlah vokal: 11
+```
+
+Kalimat dibaca dengan [`getline`](/docs/cpp/pustaka/getline) karena berisi spasi. `cin >> kalimat` hanya akan membaca kata pertama.
+
+## Operasi yang sering dipakai
+
+| Operasi | C++ | Python |
+| --- | --- | --- |
+| Panjang | `s.length()` | `len(s)` |
+| Kosong? | `s.empty()` | `s == ""` atau `not s` |
+| Potong sebagian | `s.substr(posisi, panjang)` | `s[awal:akhir]` |
+| Cari posisi teks | `s.find("x")` | `s.find("x")` |
+| Jika tidak ditemukan | `string::npos` | `-1` |
+| Huruf besar | `toupper(c)` per karakter (`<cctype>`) | `s.upper()` |
+| Angka → string | `to_string(19)` | `str(19)` |
+| String → angka | `stoi("42")`, `stod("3.5")` | `int("42")`, `float("3.5")` |
+
+Contoh memecah alamat email menjadi nama pengguna dan domain:
+
+```cpp tab="C++"
+string email = "budi@kampus.ac.id";
+
+size_t at = email.find('@');               // 4
+string pengguna = email.substr(0, at);     // "budi"
+string domain = email.substr(at + 1);      // "kampus.ac.id"
+
+if (email.find('#') == string::npos) {
+    cout << "Tidak ada karakter #" << endl;
+}
+```
+
+```python tab="Python"
+email = "budi@kampus.ac.id"
+
+at = email.find("@")            # 4
+pengguna = email[:at]           # "budi"
+domain = email[at + 1:]         # "kampus.ac.id"
+
+if email.find("#") == -1:
+    print("Tidak ada karakter #")
+```
+
+Perhatikan perbedaannya: `substr(posisi, panjang)` di C++ menerima **panjang** potongan, sedangkan `s[awal:akhir]` di Python menerima **indeks akhir** (yang tidak ikut terambil).
+
+## Mengubah isi string
+
+String C++ bisa diubah karakter per karakter. String Python **tidak bisa diubah** (_immutable_). Kita harus membuat string baru.
+
+```cpp tab="C++"
+string kata = "Batu";
+kata[0] = 'R';               // "Ratu"
+```
+
+```python tab="Python"
+kata = "Batu"
+kata[0] = "R"                # ✗ TypeError: 'str' object does not support item assignment
+kata = "R" + kata[1:]        # ✓ buat string baru: "Ratu"
+```
+
+## Karakter adalah angka
+
+Di balik layar, setiap karakter disimpan sebagai angka menurut tabel **ASCII**. Contohnya `'A'` = 65, `'B'` = 66, dan `'a'` = 97. Karena itu karakter bisa dihitung:
+
+```cpp tab="C++"
+char c = 'A';
+cout << (int)c << endl;        // 65
+cout << (char)(c + 2) << endl; // C
+
+char digit = '7';
+int angka = digit - '0';       // 7, trik mengubah karakter digit menjadi angka
+```
+
+```python tab="Python"
+c = "A"
+print(ord(c))             # 65
+print(chr(ord(c) + 2))    # C
+
+digit = "7"
+angka = int(digit)        # 7
+```
+
+Sifat ini menjadi dasar banyak teknik, termasuk sandi sederhana di dunia kriptografi (lihat latihan nomor 3).
+
+## Rangkuman
+
+- String adalah deretan karakter. Setiap karakter diakses lewat indeks mulai 0. Panjangnya `s.length()` (Python: `len(s)`).
+- `+` menyambung string. Di C++, ubah angka dengan `to_string()` dulu, karena `"teks" + angka` tidak menghasilkan teks gabungan.
+- Perbandingan string bersifat case-sensitive dan mengikuti urutan kode karakter.
+- `substr`/`find` di C++ setara dengan _slicing_/`find` di Python. `find` mengembalikan `string::npos` (Python: `-1`) jika tidak ditemukan.
+- String C++ bisa diubah per karakter. String Python _immutable_.
+- Karakter adalah angka (ASCII), sehingga bisa dihitung dan dibandingkan.
+
+## Latihan
+
+<Accordions>
+  <Accordion title="1. Baca satu kata, lalu tentukan apakah kata itu palindrom (dibaca sama dari depan dan belakang, misal “katak”).">
+    Bandingkan karakter pertama dengan terakhir, kedua dengan kedua dari belakang, dan seterusnya sampai tengah:
+
+    ```cpp tab="C++"
+    string kata;
+    cin >> kata;
+
+    int n = kata.length();
+    bool palindrom = true;
+    for (int i = 0; i < n / 2; i++) {
+        if (kata[i] != kata[n - 1 - i]) {
+            palindrom = false;
+            break;
+        }
+    }
+    cout << (palindrom ? "Palindrom" : "Bukan palindrom") << endl;
+    ```
+
+    ```python tab="Python"
+    kata = input()
+
+    palindrom = True
+    n = len(kata)
+    for i in range(n // 2):
+        if kata[i] != kata[n - 1 - i]:
+            palindrom = False
+            break
+    print("Palindrom" if palindrom else "Bukan palindrom")
+
+    # Versi singkat Python: kata == kata[::-1]
+    ```
+  </Accordion>
+  <Accordion title="2. Hitung jumlah huruf kapital, huruf kecil, dan digit dalam sebuah kalimat.">
+    Pustaka `<cctype>` menyediakan `isupper`, `islower`, dan `isdigit`. Python punya method dengan nama yang mirip.
+
+    ```cpp tab="C++"
+    string s;
+    getline(cin, s);
+
+    int besar = 0, kecil = 0, digit = 0;
+    for (char c : s) {
+        if (isupper(c)) besar++;
+        else if (islower(c)) kecil++;
+        else if (isdigit(c)) digit++;
+    }
+    cout << besar << " " << kecil << " " << digit << endl;
+    ```
+
+    ```python tab="Python"
+    s = input()
+
+    besar = kecil = digit = 0
+    for c in s:
+        if c.isupper():
+            besar += 1
+        elif c.islower():
+            kecil += 1
+        elif c.isdigit():
+            digit += 1
+    print(besar, kecil, digit)
+    ```
+  </Accordion>
+  <Accordion title="3. Caesar cipher: geser setiap huruf kecil 3 posisi (a→d, x→a). Huruf lain dibiarkan.">
+    Ubah huruf menjadi urutan 0–25, geser, lalu pakai `% 26` agar `x`, `y`, `z` berputar kembali ke awal abjad. Sandi kuno ini adalah contoh paling sederhana dari kriptografi.
+
+    ```cpp tab="C++"
+    string teks;
+    getline(cin, teks);
+
+    for (int i = 0; i < (int)teks.length(); i++) {
+        if (teks[i] >= 'a' && teks[i] <= 'z') {
+            teks[i] = 'a' + (teks[i] - 'a' + 3) % 26;
+        }
+    }
+    cout << teks << endl;      // "halo dunia xyz" -> "kdor gxqld abc"
+    ```
+
+    ```python tab="Python"
+    teks = input()
+
+    hasil = ""
+    for c in teks:
+        if "a" <= c <= "z":
+            hasil += chr(ord("a") + (ord(c) - ord("a") + 3) % 26)
+        else:
+            hasil += c
+    print(hasil)               # "halo dunia xyz" -> "kdor gxqld abc"
+    ```
+
+    `(int)teks.length()` dipakai karena `length()` bertipe bilangan tak bertanda. Alasannya dibahas di [Pustaka vector](/docs/cpp/pustaka/vector#jebakan-size-unsigned).
+  </Accordion>
+</Accordions>

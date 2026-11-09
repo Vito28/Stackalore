@@ -1,0 +1,329 @@
+---
+title: Membaca Error & Debugging
+description: Memahami pesan error C++ dan Python, menemukan kesalahan dengan tabel trace dan peringatan compiler, serta memeriksa kode sebelum dipakai, termasuk kode buatan AI.
+sumber:
+  - ref: gcc-docs
+    judul: Options to Request or Suppress Warnings
+    url: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+  - ref: gcc-docs
+    judul: Program Instrumentation Options
+    url: https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
+  - ref: python-docs
+    judul: Tutorial, Errors and Exceptions
+    url: https://docs.python.org/3/tutorial/errors.html
+  - ref: py4e
+---
+
+## Kenapa materi ini penting sebelum vibe coding
+
+Alat AI bisa menulis program dalam hitungan detik. Masalahnya, kode yang **berjalan** belum tentu **benar**. Kode dari AI bisa lolos kompilasi tetapi salah menghitung rata-rata, membaca indeks di luar batas array, atau gagal saat input kosong. Siapa pun yang menulis kodenya, **kamu** yang bertanggung jawab atas hasilnya.
+
+Materi 01 sampai 13 memberimu "kosakata" untuk membaca kode. Materi ini melatih keterampilan yang membedakan programmer dari penyalin kode: **membaca pesan error, menemukan penyebab kesalahan, dan memastikan program benar**.
+
+## Tiga jenis kesalahan
+
+Di [materi pertama](/docs/cpp/bahasa-pemrograman#sintaks-dan-semantik) kamu sudah mengenal _syntax error_ dan _logic error_. Ada satu jenis lagi di antara keduanya:
+
+| Jenis | Kapan ketahuan | Contoh | Petunjuk yang didapat |
+| --- | --- | --- | --- |
+| **Compile error** / syntax error | Saat dikompilasi (C++) atau sebelum dijalankan (Python) | Lupa `;`, salah ketik nama variabel | Pesan error lengkap dengan nomor baris |
+| **Runtime error** | Saat program berjalan | Pembagian dengan nol, indeks di luar batas | Program berhenti mendadak, kadang tanpa keterangan |
+| **Logic error** | Tidak pernah ketahuan sendiri | Rumus salah, `<` seharusnya `<=` | **Tidak ada**, hasilnya hanya salah |
+
+Semakin ke bawah, semakin sulit ditemukan. Compile error justru yang paling "ramah", karena compiler memberi tahu letaknya.
+
+## Membaca pesan error C++
+
+Program berikut lupa titik koma di baris 5:
+
+```cpp title="umur.cpp"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int umur = 19
+    cout << umur << endl;
+    return 0;
+}
+```
+
+```txt title="Output g++"
+umur.cpp: In function ‘int main()’:
+umur.cpp:6:5: error: expected ‘,’ or ‘;’ before ‘cout’
+    6 |     cout << umur << endl;
+      |     ^~~~
+```
+
+Bagian terpenting ada di baris kedua, `umur.cpp:6:5: error: ...`:
+
+| Bagian | Arti |
+| --- | --- |
+| `umur.cpp` | Nama file |
+| `6` | Nomor **baris** |
+| `5` | Nomor **kolom** (posisi karakter) |
+| `error` | Jenisnya: `error` (wajib diperbaiki), `warning` (peringatan), atau `note` (keterangan tambahan) |
+| `expected ‘,’ or ‘;’ before ‘cout’` | Penjelasan masalahnya |
+
+Perhatikan: error menunjuk **baris 6**, padahal kesalahannya ada di **baris 5**. Compiler baru sadar ada yang kurang ketika bertemu `cout` di baris berikutnya. Karena itu, **periksa baris yang ditunjuk dan baris sebelumnya**.
+
+Compiler juga sering memberi saran. Jika nama variabel salah ketik:
+
+```txt title="Output g++"
+nilai.cpp:6:13: error: ‘umr’ was not declared in this scope; did you mean ‘umur’?
+    6 |     cout << umr << endl;
+      |             ^~~
+      |             umur
+```
+
+<Callout title="Perbaiki error pertama dulu">
+  Satu kesalahan bisa memicu belasan error susulan. Jangan panik melihat daftar error yang panjang: baca dan perbaiki **error paling atas**, lalu kompilasi ulang. Sering kali error lainnya ikut hilang.
+</Callout>
+
+### Pesan error yang sering muncul
+
+| Pesan (g++) | Penyebab yang paling mungkin |
+| --- | --- |
+| `expected ‘;’ before ...` | Lupa titik koma di **baris sebelumnya** |
+| `‘x’ was not declared in this scope` | Salah ketik nama, variabel belum dibuat, lupa `#include`, atau variabel berada di [scope](/docs/cpp/fungsi#ruang-lingkup-variabel-scope) lain |
+| `invalid conversion from ‘const char*’ to ‘int’` | Tipe tidak cocok, misalnya teks disimpan ke variabel `int` |
+| `no match for ‘operator<<’ (operand types are ‘std::istream’ ...)` | Arah panah terbalik: `cin << x` seharusnya `cin >> x` |
+| `expected ‘}’ at end of input` | Ada kurung kurawal `{` yang belum ditutup |
+
+Format pesan bisa sedikit berbeda antar-compiler dan versinya (misalnya tanda kutip), tetapi strukturnya sama.
+
+## Membaca pesan error Python
+
+Python menampilkan **traceback**: jejak pemanggilan fungsi sampai titik terjadinya error. Cara membacanya: **mulai dari baris paling bawah**.
+
+```python title="rata.py"
+def rata_rata(data):
+    total = 0
+    for x in data:
+        total += x
+    return total / len(data)
+
+
+nilai = []
+print(rata_rata(nilai))
+```
+
+```txt title="Output"
+Traceback (most recent call last):
+  File "rata.py", line 9, in <module>
+    print(rata_rata(nilai))
+          ^^^^^^^^^^^^^^^^
+  File "rata.py", line 5, in rata_rata
+    return total / len(data)
+           ~~~~~~^~~~~~~~~~~
+ZeroDivisionError: division by zero
+```
+
+1. **Baris terakhir**: jenis error dan pesannya, yaitu `ZeroDivisionError: division by zero`.
+2. **Di atasnya**: lokasi terjadinya, yaitu baris 5 di dalam fungsi `rata_rata`. Tanda `~~~^~~~` menunjuk operasi yang gagal.
+3. **Lebih ke atas**: siapa yang memanggil fungsi itu, yaitu baris 9. Dari sini terlihat penyebabnya: fungsi dipanggil dengan list kosong.
+
+| Error Python | Penyebab yang paling mungkin |
+| --- | --- |
+| `SyntaxError: expected ':'` | Lupa titik dua setelah `if`, `for`, `while`, atau `def` |
+| `IndentationError` | Indentasi tidak konsisten atau blok kosong |
+| `NameError: name 'x' is not defined` | Salah ketik nama atau variabel di luar scope |
+| `TypeError: can only concatenate str (not "int") to str` | Menggabung teks dengan angka. Biasanya lupa `int(input())` |
+| `ValueError: invalid literal for int()` | `int()` menerima teks yang bukan angka |
+| `IndexError: list index out of range` | Indeks melewati batas list |
+| `ZeroDivisionError: division by zero` | Membagi dengan nol |
+
+## Runtime error di C++
+
+Python selalu menunjukkan baris penyebab runtime error. C++ tidak semurah hati itu:
+
+- **Pembagian bilangan bulat dengan nol** biasanya membuat program langsung berhenti dengan pesan singkat seperti `Floating point exception (core dumped)`, **tanpa nomor baris**.
+- **Indeks di luar batas** sering tidak menimbulkan pesan apa pun. Program berikut seharusnya hanya menjumlahkan 3 elemen, tetapi perulangannya berjalan 4 kali:
+
+```cpp title="total.cpp"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> data = {80, 75, 90};
+    int total = 0;
+    for (int i = 0; i <= 3; i++) {     // ✗ seharusnya i < 3
+        total += data[i];
+    }
+    cout << total << endl;
+    return 0;
+}
+```
+
+Saat dicoba, program ini bisa saja mencetak `245` (80 + 75 + 90 + angka acak yang kebetulan 0) dan **terlihat benar**. Di komputer lain atau di lain waktu, hasilnya bisa berbeda. Kesalahan seperti ini termasuk [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior), dan cara menangkapnya ada di bagian berikut.
+
+## Biarkan compiler membantu [#peringatan-compiler]
+
+### Peringatan dengan `-Wall -Wextra`
+
+Secara bawaan, `g++` diam saja untuk banyak kode yang mencurigakan. Tambahkan opsi `-Wall -Wextra` saat kompilasi agar compiler memberi **peringatan**:
+
+```bash
+g++ -Wall -Wextra program.cpp -o program
+```
+
+Program ini berisi tiga kesalahan yang sudah kita bahas di materi sebelumnya:
+
+```cpp title="cek.cpp"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int nilai;
+    cin >> nilai;
+    int bonus;                        // lupa diberi nilai awal
+    if (nilai = 100) {                // = seharusnya ==
+        cout << "Sempurna" << endl;
+    }
+    if (nilai >= 60)
+        cout << "Lulus" << endl;
+        cout << "Selamat!" << endl;   // di luar if, padahal terlihat di dalam
+    cout << nilai + bonus << endl;
+    return 0;
+}
+```
+
+Tanpa opsi tambahan, kode ini dikompilasi tanpa keluhan. Dengan `-Wall -Wextra`, ketiganya tertangkap (dipersingkat):
+
+```txt title="Output g++ -Wall -Wextra"
+cek.cpp:8:15: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+cek.cpp:11:5: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+cek.cpp:14:21: warning: ‘bonus’ may be used uninitialized [-Wmaybe-uninitialized]
+```
+
+**Anggap setiap peringatan sebagai error** dan perbaiki sampai tidak ada peringatan yang tersisa. Di IDE atau compiler online, opsi ini biasanya bisa ditambahkan di pengaturan compiler (_compiler flags_).
+
+### Sanitizer: menangkap kesalahan saat program berjalan
+
+Untuk kesalahan yang baru terjadi saat program berjalan, seperti indeks di luar batas, `g++` dan `clang++` menyediakan **sanitizer**:
+
+```bash
+g++ -g -fsanitize=address,undefined total.cpp -o total
+```
+
+Program `total.cpp` di atas yang tadinya "terlihat benar" kini berhenti dan menunjuk baris penyebabnya:
+
+```txt title="Output (dipersingkat)"
+==45817==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50200000001c
+READ of size 4 at 0x50200000001c thread T0
+    #0 in main total.cpp:9
+```
+
+Sanitizer membuat program lebih lambat, jadi pakai saat menguji saja. Fitur ini belum tentu tersedia di semua compiler, misalnya `g++` dari MinGW di Windows.
+
+## Teknik debugging
+
+**Debugging** adalah proses menemukan dan memperbaiki penyebab kesalahan. Berikut teknik yang bisa dipakai tanpa alat khusus.
+
+### 1. Tabel trace [#tabel-trace]
+
+Jalankan program "di kepala" dan catat nilai setiap variabel di setiap langkah, seperti di materi [Perulangan](/docs/cpp/perulangan#menelusuri-dengan-tabel-trace). Contoh: kode untuk menjumlahkan 1 sampai `n` ini menghasilkan 6, padahal untuk `n = 4` seharusnya 10.
+
+```cpp
+int n = 4, total = 0;
+for (int i = 1; i < n; i++) {
+    total += i;
+}
+cout << total << endl;      // 6, seharusnya 10
+```
+
+| Putaran | `i` | `i < n` | `total` |
+| --- | --- | --- | --- |
+| 1 | 1 | `true` | 1 |
+| 2 | 2 | `true` | 3 |
+| 3 | 3 | `true` | 6 |
+| — | 4 | `false` | berhenti, `4` tidak pernah dijumlahkan |
+
+Tabel menunjukkan masalahnya dengan jelas: perulangan berhenti sebelum `i = 4`. Kondisinya harus `i <= n`.
+
+### 2. Cetak isi variabel
+
+Jika program terlalu panjang untuk ditelusuri manual, minta program mencetak isi variabel di titik-titik penting:
+
+```cpp tab="C++"
+for (int i = 1; i < n; i++) {
+    total += i;
+    cerr << "[debug] i=" << i << " total=" << total << endl;
+}
+```
+
+```python tab="Python"
+for i in range(1, n):
+    total += i
+    print(f"[debug] {i=} {total=}")    # mencetak: [debug] i=1 total=1
+```
+
+```txt title="Output"
+[debug] i=1 total=1
+[debug] i=2 total=3
+[debug] i=3 total=6
+6
+```
+
+`cerr` adalah aliran output khusus untuk pesan error dan debug. Berbeda dengan `cout`, `cerr` tidak memakai [buffer](/docs/cpp/pendalaman/buffer#buffer-output), jadi pesannya langsung muncul walaupun program crash sesaat kemudian. **Hapus baris debug** setelah masalahnya ditemukan.
+
+### 3. Uji dengan kasus batas
+
+Kebanyakan bug bersembunyi di nilai-nilai ekstrem. Setiap kali program selesai ditulis, coba input berikut:
+
+| Kasus | Yang diperiksa |
+| --- | --- |
+| `0`, `1` | Perulangan yang tidak berjalan sama sekali, pembagian dengan nol |
+| Bilangan negatif | Rumus yang diam-diam mengandaikan nilai positif |
+| Data kosong (`n = 0`, string kosong) | Rata-rata dari nol data, akses elemen pertama |
+| Bilangan sangat besar | [Overflow](/docs/cpp/variabel-dan-tipe-data#batas-tipe-data-overflow) pada `int` |
+| Huruf saat diminta angka | [`cin` dalam mode gagal](/docs/cpp/pendalaman/buffer#saat-input-gagal) |
+
+### 4. Uji setiap fungsi secara terpisah
+
+Fungsi kecil mudah diuji dengan contoh yang jawabannya sudah pasti. Misalnya untuk `isPrima` dari materi [Fungsi](/docs/cpp/fungsi): `isPrima(1)` harus `false`, `isPrima(2)` harus `true`, dan `isPrima(9)` harus `false`. Jika satu saja salah, kamu tahu persis fungsi mana yang perlu diperiksa.
+
+### 5. Jelaskan kodenya baris demi baris
+
+Jelaskan program kepada teman, atau bahkan kepada benda mati, baris demi baris. Teknik yang terkenal dengan nama _rubber duck debugging_ ini ampuh karena memaksa kita membaca **apa yang benar-benar ditulis**, bukan apa yang kita kira sudah ditulis.
+
+## Sebelum memakai kode dari AI
+
+Gunakan daftar periksa berikut setiap kali menerima kode dari AI, forum, atau internet:
+
+1. **Bisakah kamu menjelaskan setiap baris?** Jika ada bagian yang belum dipahami, misalnya `#include <bits/stdc++.h>`, `auto`, atau `&` pada parameter, cari tahu dulu. Beberapa di antaranya dibahas di [Baris "Ajaib"](/docs/cpp/pendalaman/baris-ajaib).
+2. **Kompilasi dengan `-Wall -Wextra`.** Jangan abaikan peringatan.
+3. **Uji dengan contoh yang jawabannya sudah kamu ketahui**, lalu dengan kasus batas.
+4. **Telusuri bagian yang paling rawan**, yaitu perulangan, percabangan, dan pembagian, dengan tabel trace.
+5. **Cocokkan format input dan output** dengan permintaan soal: spasi, baris baru, dan jumlah angka di belakang koma.
+6. **Minta penjelasan, bukan hanya kode.** Minta AI menjelaskan alasannya, atau minta versi yang lebih sederhana memakai materi yang sudah kamu pelajari.
+
+<Callout type="warning" title="Etika dan keamanan">
+  Ikuti aturan dosen dan kampus tentang penggunaan AI untuk tugas yang dinilai. Jangan menempelkan data pribadi, kata sandi, atau kunci API ke layanan AI.
+</Callout>
+
+## Rangkuman
+
+- Ada tiga jenis kesalahan: **compile error**, **runtime error**, dan **logic error**. Yang terakhir paling sulit ditemukan.
+- Pesan error C++ berformat `file:baris:kolom: error: pesan`. Periksa juga baris sebelum yang ditunjuk, dan perbaiki error paling atas dulu.
+- Traceback Python dibaca dari bawah: jenis error, lokasi, lalu pemanggilnya.
+- Kompilasi C++ dengan `-Wall -Wextra`. Gunakan `-fsanitize=address,undefined` untuk menangkap kesalahan saat program berjalan.
+- Teknik debugging: tabel trace, mencetak isi variabel, kasus batas, menguji fungsi terpisah, dan menjelaskan kode baris demi baris.
+- Kode dari AI tetap tanggung jawabmu: pahami, uji, dan telusuri sebelum dipakai.
+
+## Latihan: temukan bug-nya
+
+<Accordions>
+  <Accordion title="1. Rata-rata dari total 250 dan n = 3 selalu tampil 83: int total = 250, n = 3; double rata = total / n;">
+    `total / n` adalah [pembagian bilangan bulat](/docs/cpp/operator-aritmatika#pembagian-bilangan-bulat): hasilnya `83` sebelum disimpan ke `double`. Perbaikan: `double rata = static_cast<double>(total) / n;`.
+  </Accordion>
+  <Accordion title="2. Program selalu mencetak “Sempurna” untuk nilai berapa pun: if (nilai = 100) { ... }">
+    `=` mengisi `nilai` dengan 100, lalu 100 dianggap `true`. Seharusnya `if (nilai == 100)`. Peringatan `-Wparentheses` dari `-Wall` menangkap kesalahan ini.
+  </Accordion>
+  <Accordion title="3. Total nilai salah dan kadang berbeda-beda: for (int i = 1; i <= n; i++) total += data[i];">
+    Ada **dua** kesalahan sekaligus: elemen `data[0]` tidak pernah dijumlahkan, dan `data[n]` berada di luar batas array (_undefined behavior_). Perbaikan: `for (int i = 0; i < n; i++)`.
+  </Accordion>
+  <Accordion title="4. Fungsi Python ini seharusnya menjumlahkan 1 sampai n, tetapi hasilnya kurang: for i in range(1, n): total += i">
+    `range(1, n)` berhenti di `n - 1` karena [batas akhirnya tidak ikut](/docs/cpp/perulangan#for-di-python-dan-range). Perbaikan: `range(1, n + 1)`.
+  </Accordion>
+</Accordions>

@@ -1,0 +1,163 @@
+---
+title: Baris “Ajaib” di Program C++
+description: Membedah #include, using namespace std, int main, dan return 0, serta baris-baris yang sering disalin dari internet tanpa dipahami.
+sumber:
+  - ref: cppreference
+    judul: "Source file inclusion"
+    url: https://en.cppreference.com/w/cpp/preprocessor/include
+  - ref: cppreference
+    judul: "Namespaces"
+    url: https://en.cppreference.com/w/cpp/language/namespace
+  - ref: cppreference
+    judul: "Main function"
+    url: https://en.cppreference.com/w/cpp/language/main_function
+  - ref: cppreference
+    judul: "std::ios_base::sync_with_stdio"
+    url: https://en.cppreference.com/w/cpp/io/ios_base/sync_with_stdio
+  - ref: python-docs
+    judul: "__main__"
+    url: https://docs.python.org/3/library/__main__.html
+---
+
+<BackToLesson href="/docs/cpp/program-pertama" label="Program Pertama & Output" />
+
+Di awal belajar, beberapa baris ini selalu ditulis tanpa benar-benar dipahami. Rasanya seperti mantra:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    // kode kamu di sini
+    return 0;
+}
+```
+
+Halaman ini membedah setiap barisnya. Kamu **tidak wajib** memahami semuanya sekarang. Kembalilah ke sini kapan pun kamu penasaran.
+
+## `#include <iostream>`
+
+Baris yang diawali `#` adalah perintah untuk **preprocessor**, yaitu tahap yang dijalankan **sebelum** kode dikompilasi. `#include` berarti: "salin seluruh isi file ini ke sini".
+
+File yang disalin disebut **header**. Header `<iostream>` (_input-output stream_) berisi definisi `cin`, `cout`, dan `endl`. Tanpa baris ini, compiler tidak mengenal `cout`:
+
+```txt title="Error tanpa #include <iostream>"
+error: 'cout' was not declared in this scope
+```
+
+Setiap fitur pustaka standar punya header masing-masing. Yang akan sering kamu pakai:
+
+| Header | Isinya |
+| --- | --- |
+| `<iostream>` | `cin`, `cout`, `endl` |
+| `<string>` | tipe `string` dan fungsi [`getline`](/docs/cpp/pustaka/getline) |
+| `<cmath>` | fungsi matematika seperti [`pow` dan `sqrt`](/docs/cpp/pustaka/cmath) |
+| `<iomanip>` | pengatur format output seperti [`setprecision`](/docs/cpp/pustaka/iomanip) |
+| `<vector>` | array yang ukurannya bisa berubah, [`vector`](/docs/cpp/pustaka/vector) |
+
+Di Python, padanannya adalah `import`, misalnya `import math`. Bedanya, fungsi dasar seperti `print()` dan `input()` di Python sudah tersedia tanpa perlu di-_import_.
+
+## `using namespace std;`
+
+Semua isi pustaka standar C++ disimpan dalam sebuah **namespace** bernama `std`. Namespace mirip **nama keluarga**: bisa saja ada dua orang bernama "Budi", tetapi "Budi Santoso" dan "Budi Hartono" jelas berbeda.
+
+Nama lengkap `cout` sebenarnya adalah `std::cout`. Tanda `::` dibaca "milik". Tanpa `using namespace std;`, kode harus ditulis seperti ini:
+
+```cpp
+#include <iostream>
+
+int main() {
+    std::cout << "Halo" << std::endl;
+    return 0;
+}
+```
+
+`using namespace std;` memberi tahu compiler: "jika aku menulis `cout`, maksudnya `std::cout`". Kode jadi lebih pendek.
+
+<Callout type="info" title="Kenapa programmer profesional sering menghindarinya?">
+  Di proyek besar, nama dari `std` bisa **bentrok** dengan nama buatan sendiri. Misalnya, kamu membuat fungsi bernama `count` padahal `std` juga punya `count`. Karena itu, banyak proyek besar memilih menulis `std::` secara eksplisit. Untuk belajar dan program kecil, `using namespace std;` tidak masalah.
+</Callout>
+
+## `int main()`
+
+`main` adalah **fungsi utama**. Setiap program C++ wajib punya tepat satu `main`, dan program **selalu mulai dijalankan dari baris pertama di dalam `main`**, di mana pun posisinya di dalam file.
+
+- `int` di depan `main` berarti fungsi ini akan **mengembalikan** sebuah bilangan bulat ke sistem operasi.
+- `()` adalah tempat parameter. Untuk sekarang dibiarkan kosong.
+- `{ }` membungkus isi fungsi.
+
+## `return 0;`
+
+`return 0;` mengakhiri `main` dan mengirim angka `0` ke sistem operasi. Angka ini disebut **exit code**:
+
+- `0` berarti program **selesai dengan sukses**.
+- Selain `0` berarti terjadi **kesalahan**.
+
+Exit code jarang terlihat oleh pengguna biasa, tetapi dipakai oleh program lain, misalnya sistem penilai otomatis di _online judge_, untuk tahu apakah programmu berjalan normal.
+
+Khusus untuk `main`, jika `return 0;` tidak ditulis, compiler otomatis menganggap programmu mengembalikan `0`. Meskipun begitu, menuliskannya tetap kebiasaan yang baik.
+
+## Baris yang sering kamu temukan di internet
+
+### `#include <bits/stdc++.h>`
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+```
+
+Baris ini menyalin **hampir seluruh** pustaka standar sekaligus, jadi kamu tidak perlu menulis `#include` satu per satu. Baris ini sangat populer di _competitive programming_.
+
+<Callout type="warning" title="Kekurangannya">
+  - **Bukan bagian dari standar C++.** Baris ini hanya ada di compiler GCC (`g++`). Di compiler lain, seperti MSVC milik Visual Studio atau Clang di macOS, kode bisa gagal dikompilasi.
+  - **Memperlambat kompilasi** karena ribuan baris yang tidak dipakai ikut disalin.
+  - **Menyembunyikan pengetahuan.** Kamu jadi tidak tahu fitur mana berasal dari header mana.
+
+  Untuk belajar, tulis header yang benar-benar dibutuhkan.
+</Callout>
+
+### `ios::sync_with_stdio(false); cin.tie(nullptr);`
+
+```cpp
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    // ...
+}
+```
+
+Dua baris ini juga populer di _competitive programming_ untuk **mempercepat** `cin` dan `cout` saat membaca atau menulis data dalam jumlah sangat besar.
+
+- `ios::sync_with_stdio(false)` memutus sinkronisasi `cin`/`cout` dengan fungsi input-output bahasa C (`scanf`, `printf`). Setelah itu, `cin`/`cout` boleh memakai buffer sendiri yang lebih cepat.
+- `cin.tie(nullptr)` memutus "ikatan" antara `cin` dan `cout`. Biasanya `cout` di-flush setiap kali `cin` akan membaca. Ikatan ini dijelaskan di [Buffer output](/docs/cpp/pendalaman/buffer#buffer-output).
+
+<Callout type="warning" title="Efek samping">
+  Setelah `sync_with_stdio(false)`, **jangan mencampur** `cin`/`cout` dengan `scanf`/`printf`, karena urutan output bisa kacau. Setelah `cin.tie(nullptr)`, pertanyaan seperti `"Umur: "` mungkin belum tampil saat program menunggu input. Untuk program interaktif biasa, kamu tidak membutuhkan kedua baris ini.
+</Callout>
+
+## Padanan di Python: `if __name__ == "__main__":`
+
+Python juga punya baris "ajaib" yang sering disalin:
+
+```python
+def main():
+    print("Halo")
+
+if __name__ == "__main__":
+    main()
+```
+
+`__name__` bernilai `"__main__"` hanya jika file tersebut **dijalankan langsung**, bukan di-_import_ oleh file lain. Pola ini dipakai agar kode di dalam `main()` tidak ikut berjalan saat file di-_import_. Untuk program satu file yang sederhana, baris ini tidak wajib.
+
+## Rangkuman
+
+| Baris | Fungsi |
+| --- | --- |
+| `#include <iostream>` | Menyalin header yang berisi `cin` dan `cout` |
+| `using namespace std;` | Agar bisa menulis `cout`, bukan `std::cout` |
+| `int main() { }` | Titik awal program dijalankan |
+| `return 0;` | Memberi tahu sistem operasi bahwa program sukses |
+| `#include <bits/stdc++.h>` | Menyalin semua header. Khusus GCC, hindari saat belajar |
+| `ios::sync_with_stdio(false)` | Mempercepat I/O untuk data besar. Tidak perlu untuk program biasa |
+
+<BackToLesson href="/docs/cpp/program-pertama" label="Program Pertama & Output" />
