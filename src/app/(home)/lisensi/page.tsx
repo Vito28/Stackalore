@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Code2, FileText } from 'lucide-react';
+import { Code2, FileText, Globe } from 'lucide-react';
 import { SiteFooter } from '@/components/site/site-footer';
 import { SiteHeader } from '@/components/site/site-header';
 import { licenses, references, type ReferenceKey } from '@/lib/references';
+import { repoFileUrl, repoUrl } from '@/lib/shared';
 import { source } from '@/lib/source';
 
 export const metadata: Metadata = {
@@ -34,18 +35,19 @@ function collectUsage() {
   return usage;
 }
 
-const mitText = `Hak cipta (c) 2026 Kontributor Stacklore
+const mit0Text = `Hak cipta (c) 2026 Kontributor Stacklore
 
 Izin diberikan secara cuma-cuma kepada siapa pun yang memperoleh salinan kode
 contoh ini untuk menggunakan, menyalin, mengubah, menggabungkan, menerbitkan,
-mendistribusikan, mensublisensikan, dan/atau menjual salinannya, dengan syarat
-pemberitahuan hak cipta dan izin ini disertakan dalam semua salinan atau bagian
-penting dari kode tersebut.
+mendistribusikan, mensublisensikan, dan/atau menjual salinannya, tanpa batasan
+dan tanpa syarat apa pun.
 
-KODE DISEDIAKAN "SEBAGAIMANA ADANYA", TANPA JAMINAN APA PUN.
+KODE DISEDIAKAN "SEBAGAIMANA ADANYA", TANPA JAMINAN APA PUN. PENULIS ATAU
+PEMEGANG HAK CIPTA TIDAK BERTANGGUNG JAWAB ATAS KLAIM, KERUSAKAN, ATAU
+KEWAJIBAN LAIN YANG TIMBUL DARI PENGGUNAAN KODE INI.
 
-(Terjemahan ringkas dari MIT License. Teks resmi berbahasa Inggris berlaku:
-https://opensource.org/license/mit)`;
+(Terjemahan tidak resmi dari MIT No Attribution. Yang berlaku secara hukum
+adalah teks resmi berbahasa Inggris.)`;
 
 export default function LicensePage() {
   const usage = collectUsage();
@@ -68,29 +70,48 @@ export default function LicensePage() {
             </p>
           </header>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
             <SummaryCard
               icon={<FileText className="size-4" aria-hidden="true" />}
               title="Teks & ilustrasi"
               license="CC BY-SA 4.0"
-              href={licenses['CC BY-SA 4.0'].url}
+              href="#lisensi-konten"
               description="Boleh disalin dan diadaptasi, dengan atribusi dan lisensi yang sama."
             />
             <SummaryCard
               icon={<Code2 className="size-4" aria-hidden="true" />}
               title="Contoh kode"
+              license="MIT-0"
+              href="#lisensi-kode"
+              description="Boleh dipakai di tugas atau proyek apa pun, tanpa atribusi."
+            />
+            <SummaryCard
+              icon={<Globe className="size-4" aria-hidden="true" />}
+              title="Kode situs"
               license="MIT"
-              href={licenses.MIT.url}
-              description="Boleh dipakai di tugas, proyek, atau produk apa pun."
+              href="#lisensi-situs"
+              description="Kode sumber Stacklore yang ada di GitHub."
             />
           </div>
 
           <div className="prose docs-prose mt-10 max-w-none">
+            <p>
+              Hak cipta © 2026 <strong>Kontributor Stacklore</strong>, yaitu semua orang yang tercatat dalam{' '}
+              <a href={`${repoUrl}/graphs/contributors`} target="_blank" rel="noopener noreferrer">
+                riwayat kontribusi repositori Stacklore
+              </a>
+              .
+            </p>
+
             <h2 id="lisensi-konten">Lisensi teks dan ilustrasi</h2>
             <p>
               Kecuali disebutkan lain, seluruh teks, diagram, dan ilustrasi di Stacklore dilisensikan di bawah{' '}
               <a href={licenses['CC BY-SA 4.0'].url} target="_blank" rel="noopener noreferrer license">
                 Creative Commons Atribusi-BerbagiSerupa 4.0 Internasional (CC BY-SA 4.0)
+              </a>
+              . Teks hukum lengkapnya ada di berkas{' '}
+              <a href={repoFileUrl('LICENSE-CONTENT')} target="_blank" rel="noopener noreferrer">
+                <code>LICENSE-CONTENT</code>
               </a>
               . Artinya kamu boleh:
             </p>
@@ -122,16 +143,49 @@ export default function LicensePage() {
 
             <h2 id="lisensi-kode">Lisensi contoh kode</h2>
             <p>
-              Agar mudah dipakai di tugas kuliah maupun proyek, semua potongan kode C++ dan Python di dalam materi juga
-              dilisensikan di bawah <strong>MIT License</strong>. Kamu boleh menyalinnya tanpa harus mengikuti syarat
-              BerbagiSerupa.
+              Kecuali ditandai lain, semua contoh kode C++ dan Python di dalam materi dilisensikan di bawah{' '}
+              <a href={licenses['MIT-0'].url} target="_blank" rel="noopener noreferrer license">
+                MIT No Attribution (MIT-0)
+              </a>
+              . Kamu boleh menyalin, mengubah, dan memakainya di tugas kuliah, proyek pribadi, maupun produk komersial{' '}
+              <strong>tanpa wajib mencantumkan sumber</strong> dan tanpa syarat BerbagiSerupa. Pendekatan ini sama
+              dengan contoh kode di dokumentasi Python, yang memakai lisensi Zero-Clause BSD.
+            </p>
+            <p>
+              Meski tidak wajib, menyebut Stacklore tetap kami hargai. Jika tugasmu punya aturan sendiri tentang kode
+              dari internet, ikuti aturan tersebut.
             </p>
             <details>
-              <summary>Teks MIT License (terjemahan ringkas)</summary>
+              <summary>Teks MIT-0 (terjemahan tidak resmi)</summary>
               <div className="not-prose mt-3 rounded-lg border bg-fd-card px-4 py-3 font-mono text-xs leading-6 break-words whitespace-pre-wrap text-fd-muted-foreground">
-                {mitText}
+                {mit0Text}
               </div>
+              <p>
+                Teks resmi berbahasa Inggris:{' '}
+                <a href={repoFileUrl('LICENSE-EXAMPLES')} target="_blank" rel="noopener noreferrer">
+                  <code>LICENSE-EXAMPLES</code>
+                </a>
+                .
+              </p>
             </details>
+
+            <h2 id="lisensi-situs">Lisensi kode situs</h2>
+            <p>
+              Kode sumber situs Stacklore (komponen, tata letak, dan konfigurasi) tersedia di{' '}
+              <a href={repoUrl} target="_blank" rel="noopener noreferrer">
+                GitHub
+              </a>{' '}
+              dan dilisensikan di bawah{' '}
+              <a href={repoFileUrl('LICENSE')} target="_blank" rel="noopener noreferrer license">
+                MIT License
+              </a>
+              . Situs ini dibangun dengan Next.js dan Fumadocs. Karya pihak ketiga yang dipakai, beserta lisensinya,
+              tercantum di{' '}
+              <a href={repoFileUrl('THIRD-PARTY-NOTICES.md')} target="_blank" rel="noopener noreferrer">
+                <code>THIRD-PARTY-NOTICES.md</code>
+              </a>
+              .
+            </p>
 
             <h2 id="kebijakan-sumber">Kebijakan penggunaan sumber</h2>
             <p>
@@ -229,11 +283,22 @@ export default function LicensePage() {
               sumber-sumber yang dirujuk.
             </p>
 
+            <h2 id="kontribusi">Kontribusi</h2>
+            <p>
+              Dengan mengirim kontribusi (misalnya pull request), kamu setuju kontribusimu dilisensikan dengan ketentuan
+              yang sama sesuai bagiannya: teks materi di bawah CC BY-SA 4.0, contoh kode di bawah MIT-0, dan kode situs
+              di bawah MIT. Pastikan kamu berhak atas apa yang kamu kirim, dan jangan menyalin teks dari sumber yang
+              lisensinya tidak kompatibel.
+            </p>
+
             <h2 id="koreksi">Koreksi dan keberatan</h2>
             <p>
               Jika kamu pemegang hak cipta dan merasa materimu dipakai tidak sesuai lisensinya, atau menemukan
-              atribusi yang keliru, sampaikan kepada tim pengelola Stacklore. Kami akan memperbaiki atribusi atau
-              menghapus bagian tersebut.
+              atribusi yang keliru, buka{' '}
+              <a href={`${repoUrl}/issues`} target="_blank" rel="noopener noreferrer">
+                issue di repositori GitHub Stacklore
+              </a>
+              . Kami akan memperbaiki atribusi atau menghapus bagian tersebut.
             </p>
 
             <h2 id="penafian">Penafian</h2>
@@ -269,12 +334,7 @@ function SummaryCard({
         {icon}
         {title}
       </div>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer license"
-        className="mt-2 block text-xl font-semibold text-fd-foreground hover:underline"
-      >
+      <a href={href} className="mt-2 block text-xl font-semibold text-fd-foreground hover:underline">
         {license}
       </a>
       <p className="mt-1 text-sm leading-6 text-fd-muted-foreground">{description}</p>

@@ -3,9 +3,15 @@ export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 
-// fill this with your actual GitHub info, for example:
 export const gitConfig = {
-  user: 'vito28',
-  repo: 'dinomarket',
+  user: 'Vito28',
+  repo: 'Stackalore',
   branch: 'main',
 };
+
+export const repoUrl = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
+
+/** Link to a file in the repository on GitHub, e.g. `repoFileUrl('LICENSE')`. */
+export function repoFileUrl(path: string): string {
+  return `${repoUrl}/blob/${gitConfig.branch}/${path}`;
+}

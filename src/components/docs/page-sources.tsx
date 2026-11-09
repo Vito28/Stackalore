@@ -95,7 +95,16 @@ export function PageSources({ entries }: { entries?: PageSourceEntry[] }) {
           >
             CC BY-SA 4.0
           </a>
-          , contoh kodenya berlisensi MIT.{' '}
+. Contoh kodenya berlisensi{' '}
+          <a
+            href={licenses['MIT-0'].url}
+            target="_blank"
+            rel="noopener noreferrer license"
+            className="underline underline-offset-2 hover:text-fd-foreground"
+          >
+            MIT-0
+          </a>{' '}
+          dan boleh langsung dipakai tanpa mencantumkan sumber.{' '}
           <Link href="/lisensi" className="underline underline-offset-2 hover:text-fd-foreground">
             Selengkapnya tentang lisensi
           </Link>

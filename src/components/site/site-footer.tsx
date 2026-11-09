@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { appName } from '@/lib/shared';
+import { appName, repoUrl } from '@/lib/shared';
 import { subjectHref, subjects } from '@/lib/subjects';
 
 export function SiteFooter() {
@@ -24,6 +24,14 @@ export function SiteFooter() {
           <Link href="/lisensi" className="transition-colors hover:text-fd-foreground">
             Lisensi
           </Link>
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-fd-foreground"
+          >
+            GitHub
+          </a>
         </nav>
       </div>
     </footer>

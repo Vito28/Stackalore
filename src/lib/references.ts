@@ -18,6 +18,7 @@ export const licenses = {
   'PSF License 2.0': { url: 'https://docs.python.org/3/license.html', adaptable: true },
   'GFDL 1.3': { url: 'https://www.gnu.org/licenses/fdl-1.3.html', adaptable: false },
   MIT: { url: 'https://opensource.org/license/mit', adaptable: true },
+  'MIT-0': { url: 'https://opensource.org/license/mit-0', adaptable: true },
 } as const;
 
 export type LicenseName = keyof typeof licenses;

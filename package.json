@@ -2,6 +2,7 @@
   "name": "stacklore",
   "version": "0.0.6",
   "private": true,
+  "license": "MIT AND MIT-0 AND CC-BY-SA-4.0",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
