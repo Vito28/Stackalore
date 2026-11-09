@@ -29,6 +29,7 @@ Fitur **Tanya AI** membutuhkan `OPENROUTER_API_KEY` di berkas `.env.local`. Mode
 | Lokasi | Isi |
 | --- | --- |
 | `content/docs/cpp/` | Materi C++ dalam MDX. Urutan sidebar diatur oleh `meta.json`. |
+| `content/docs/cpp/(dasar)/`, `(alur-program)/`, … | Modul materi. Nama folder dalam kurung tidak ikut masuk URL, jadi alamatnya tetap `/docs/cpp/program-pertama`. Judul dan ikon modul ada di `meta.json` folder tersebut. |
 | `content/docs/cpp/pendalaman/` | Penjelasan lanjutan yang ditautkan dari materi utama, misalnya buffer dan undefined behavior |
 | `content/docs/cpp/pustaka/` | Referensi pustaka standar, misalnya `getline`, `<cmath>`, dan `<vector>` |
 | `src/components/mdx/` | Komponen khusus materi: flowchart, diagram memori, `DeepDive`, dan lainnya |

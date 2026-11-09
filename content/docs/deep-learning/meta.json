@@ -1,5 +1,9 @@
 {
   "title": "Deep Learning",
+  "description": "Segera hadir",
   "icon": "BrainCircuit",
-  "pages": ["index"]
+  "root": true,
+  "pages": [
+    "index"
+  ]
 }

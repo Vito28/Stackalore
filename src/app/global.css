@@ -148,6 +148,8 @@ kbd,
 
 /* ------------------------------------------------------------------------ */
 /* Article typography                                                       */
+/* These rules are unlayered, so they would beat Tailwind utilities; the    */
+/* :not() keeps them away from components marked `not-prose`.               */
 /* ------------------------------------------------------------------------ */
 
 .docs-prose {
@@ -155,7 +157,7 @@ kbd,
   line-height: 1.8;
 }
 
-.docs-prose :where(h2) {
+.docs-prose :where(h2):not(:where(.not-prose, .not-prose *)) {
   margin-top: 3rem;
   padding-top: 0.25rem;
   font-size: 1.5rem;
@@ -163,25 +165,25 @@ kbd,
   letter-spacing: -0.02em;
 }
 
-.docs-prose :where(h3) {
+.docs-prose :where(h3):not(:where(.not-prose, .not-prose *)) {
   margin-top: 2rem;
   font-size: 1.2rem;
   font-weight: 600;
 }
 
-.docs-prose :where(h2, h3, h4)[id] {
+.docs-prose :where(h2, h3, h4)[id]:not(:where(.not-prose, .not-prose *)) {
   scroll-margin-top: 5rem;
 }
 
-.docs-prose :where(strong) {
+.docs-prose :where(strong):not(:where(.not-prose, .not-prose *)) {
   font-weight: 600;
 }
 
-.docs-prose :where(table) {
+.docs-prose :where(table):not(:where(.not-prose, .not-prose *)) {
   font-size: 0.9rem;
 }
 
-.docs-prose :where(kbd) {
+.docs-prose :where(kbd):not(:where(.not-prose, .not-prose *)) {
   font-size: 0.8em;
 }
 
@@ -258,13 +260,4 @@ kbd,
   fill: var(--color-fd-muted-foreground);
   font-size: 11.5px;
   font-weight: 600;
-}
-
-/* ------------------------------------------------------------------------ */
-/* Sidebar                                                                  */
-/* ------------------------------------------------------------------------ */
-
-.sidebar-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-fd-border) transparent;
 }

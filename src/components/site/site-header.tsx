@@ -1,9 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PanelRightOpen } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { getSubjectSlug } from '@/lib/docs-tree';
 import { subjectHref, subjects } from '@/lib/subjects';
@@ -11,14 +9,7 @@ import { Logo } from './logo';
 import { SearchIconButton, SearchTrigger } from './search-trigger';
 import { ThemeToggle } from './theme-toggle';
 
-interface SiteHeaderProps {
-  /** Extra buttons placed before the theme switch. */
-  actions?: ReactNode;
-  /** Shows the "Materi" button that opens the lesson drawer on small screens. */
-  onOpenSidebar?: () => void;
-}
-
-export function SiteHeader({ actions, onOpenSidebar }: SiteHeaderProps) {
+export function SiteHeader() {
   const pathname = usePathname();
   const activeSlug = getSubjectSlug(pathname);
 
@@ -58,18 +49,7 @@ export function SiteHeader({ actions, onOpenSidebar }: SiteHeaderProps) {
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <SearchTrigger className="hidden w-56 sm:inline-flex lg:w-64" />
           <SearchIconButton className="sm:hidden" />
-          {actions}
           <ThemeToggle />
-          {onOpenSidebar ? (
-            <button
-              type="button"
-              onClick={onOpenSidebar}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium text-fd-foreground outline-none transition-colors hover:bg-fd-muted focus-visible:ring-2 focus-visible:ring-fd-ring lg:hidden"
-            >
-              <PanelRightOpen className="size-4" aria-hidden="true" />
-              Materi
-            </button>
-          ) : null}
         </div>
       </div>
     </header>

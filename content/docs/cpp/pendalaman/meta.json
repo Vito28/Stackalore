@@ -1,6 +1,10 @@
 {
   "title": "Pendalaman",
   "icon": "Layers",
-  "defaultOpen": true,
-  "pages": ["buffer", "baris-ajaib", "pass-by-value-dan-reference", "undefined-behavior"]
+  "pages": [
+    "buffer",
+    "baris-ajaib",
+    "pass-by-value-dan-reference",
+    "undefined-behavior"
+  ]
 }

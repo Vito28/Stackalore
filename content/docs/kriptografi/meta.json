@@ -1,5 +1,9 @@
 {
   "title": "Kriptografi",
+  "description": "Segera hadir",
   "icon": "LockKeyhole",
-  "pages": ["index"]
+  "root": true,
+  "pages": [
+    "index"
+  ]
 }

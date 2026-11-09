@@ -1,5 +1,9 @@
 {
   "title": "Machine Learning",
+  "description": "Segera hadir",
   "icon": "ChartScatter",
-  "pages": ["index"]
+  "root": true,
+  "pages": [
+    "index"
+  ]
 }

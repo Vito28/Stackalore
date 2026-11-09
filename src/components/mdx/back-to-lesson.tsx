@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTreeContext } from 'fumadocs-ui/contexts/tree';
 import { CornerUpLeft } from 'lucide-react';
-import { useDocsContext, useReadingHistory } from '@/components/docs/docs-context';
+import { useReadingHistory } from '@/components/docs/reading-history';
 import { findSubjectFolder, getSubjectEntries, getSubjectSlug, nodeText } from '@/lib/docs-tree';
 
 interface BackToLessonProps {
@@ -17,7 +18,7 @@ interface BackToLessonProps {
  * reader to the lesson they actually came from, falling back to `href`.
  */
 export function BackToLesson({ href, label }: BackToLessonProps) {
-  const { tree } = useDocsContext();
+  const { full: tree } = useTreeContext();
   const pathname = usePathname();
   const history = useReadingHistory();
 

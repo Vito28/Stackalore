@@ -2,13 +2,13 @@ import type * as PageTree from 'fumadocs-core/page-tree';
 import type { ReactNode } from 'react';
 
 /**
- * Helpers shared by the server page and the client sidebar so both agree on
- * lesson numbering, sections, and previous/next order.
+ * Helpers that agree on lesson numbering, modules, and previous/next order.
  *
  * Inside a subject folder:
  * - the folder index page is the introduction (no number),
- * - pages placed directly in the folder are numbered lessons,
- * - pages inside sub-folders (Pendalaman, Pustaka) are optional references.
+ * - lessons live in module folders whose names are wrapped in parentheses,
+ *   e.g. `(dasar)`, so they keep short URLs like `/docs/cpp/program-pertama`,
+ * - pages with a deeper URL (`/docs/cpp/pendalaman/...`) are optional references.
  */
 
 export type EntryKind = 'intro' | 'lesson' | 'reference';
@@ -17,7 +17,7 @@ export interface SubjectEntry {
   url: string;
   name: ReactNode;
   kind: EntryKind;
-  /** Separator name for lessons, folder name for references. */
+  /** Module (folder) name the page belongs to. */
   section?: ReactNode;
   /** 1-based lesson number, only for `lesson` entries. */
   number?: number;
@@ -71,32 +71,28 @@ export function getSubjectEntries(folder: PageTree.Folder): SubjectEntry[] {
 
   if (folder.index) add({ url: folder.index.url, name: folder.index.name, kind: 'intro' });
 
-  let section: ReactNode | undefined;
+  let separator: ReactNode | undefined;
   let lessonNumber = 0;
+  const addPage = (page: PageTree.Item, section: ReactNode | undefined) => {
+    if (seen.has(page.url)) return;
+    const depth = urlDepth(page.url);
+    // The subject index can also be listed as a regular page in meta.json.
+    if (depth === 2) add({ url: page.url, name: page.name, kind: 'intro' });
+    else if (depth === 3) add({ url: page.url, name: page.name, kind: 'lesson', section, number: ++lessonNumber });
+    else add({ url: page.url, name: page.name, kind: 'reference', section });
+  };
 
   for (const child of folder.children) {
-    if (child.type === 'separator') {
-      section = child.name;
-    } else if (child.type === 'page') {
-      if (seen.has(child.url)) continue;
-      // The subject index can also be listed as a regular page in meta.json.
-      if (entries.length === 0 && !folder.index && isIndexUrl(child.url)) {
-        add({ url: child.url, name: child.name, kind: 'intro' });
-        continue;
-      }
-      add({ url: child.url, name: child.name, kind: 'lesson', section, number: ++lessonNumber });
-    } else {
-      for (const page of collectPages(child)) {
-        add({ url: page.url, name: page.name, kind: 'reference', section: child.name });
-      }
-    }
+    if (child.type === 'separator') separator = child.name;
+    else if (child.type === 'page') addPage(child, separator);
+    else for (const page of collectPages(child)) addPage(page, child.name);
   }
 
   return entries;
 }
 
-function isIndexUrl(url: string) {
-  return url.split('/').filter(Boolean).length === 2;
+function urlDepth(url: string) {
+  return url.split('/').filter(Boolean).length;
 }
 
 /**

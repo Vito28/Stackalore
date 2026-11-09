@@ -17,7 +17,7 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-function LogoMark() {
+export function LogoMark() {
   return (
     <span
       aria-hidden="true"
