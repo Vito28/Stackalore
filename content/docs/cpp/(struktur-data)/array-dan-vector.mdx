@@ -253,6 +253,8 @@ else:
 # Versi singkat Python: if dicari in data: data.index(dicari)
 ```
 
+Pencarian linear memeriksa elemen satu per satu, jadi makin banyak data makin lama. Jika datanya sudah terurut, ada cara yang jauh lebih cepat, yaitu pencarian biner, yang dibahas di materi [Algoritma Pencarian](/docs/cpp/algoritma-pencarian).
+
 ## Mengirim vector ke fungsi
 
 Pencarian linear di atas lebih praktis jika dibungkus menjadi [fungsi](/docs/cpp/fungsi). Ingat bahwa parameter biasa menerima **salinan**. Menyalin `vector` berisi ribuan elemen setiap kali fungsi dipanggil itu boros, jadi tulislah parameternya sebagai `const vector<int>&`. Tanda `&` membuat fungsi membaca vector aslinya tanpa menyalin, dan `const` menjamin fungsi tidak mengubahnya.
@@ -329,6 +331,8 @@ for i in range(2):
 1 2 3 
 4 5 6 
 ```
+
+Cara membaca matriks dari input, operasi seperti transpose dan perkalian, serta peta berbentuk grid dibahas lengkap di materi [Matriks](/docs/cpp/matriks).
 
 ## Rangkuman
 
@@ -954,7 +958,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
     print(*hasil)
     ```
 
-    Fungsi `bacaData` dipakai dua kali karena format kedua kelompok sama. Fungsi boleh mengembalikan sebuah `vector`. Teknik dua penunjuk ini adalah inti dari _merge sort_, salah satu cara mengurutkan yang paling cepat.
+    Fungsi `bacaData` dipakai dua kali karena format kedua kelompok sama. Fungsi boleh mengembalikan sebuah `vector`. Teknik dua penunjuk ini adalah inti dari _merge sort_, salah satu cara mengurutkan yang paling cepat, yang nanti dibahas di materi [Divide & Conquer](/docs/cpp/divide-and-conquer).
   </Pembahasan>
 </Soal>
 

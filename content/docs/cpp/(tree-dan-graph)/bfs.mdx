@@ -1,0 +1,1935 @@
+---
+title: BFS (Breadth-First Search)
+description: Menelusuri graph lapis demi lapis dengan queue untuk mencari jarak dan rute terpendek, termasuk BFS pada labirin grid, BFS dari banyak sumber, dan perbandingannya dengan DFS.
+sumber:
+  - ref: cppreference
+    judul: std::queue
+    url: https://en.cppreference.com/w/cpp/container/queue
+  - ref: cppreference
+    judul: std::reverse
+    url: https://en.cppreference.com/w/cpp/algorithm/reverse
+  - ref: python-docs
+    judul: collections.deque
+    url: https://docs.python.org/3/library/collections.html#collections.deque
+  - ref: python-docs
+    judul: Tutorial, Tuples and Sequences
+    url: https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences
+---
+
+## Masalah: rute dengan perjalanan paling sedikit
+
+Kamu sudah bisa menyimpan [graph](/docs/cpp/graph) sebagai adjacency list dan menjelajahinya dengan [DFS](/docs/cpp/dfs). DFS menjawab pertanyaan "bisakah simpul ini dicapai?". Namun banyak masalah menanyakan hal lain: **berapa langkah paling sedikit** untuk sampai ke sana?
+
+Contohnya peta jalur kereta berikut. Setiap simpul adalah stasiun, dan setiap sisi adalah rel langsung antara dua stasiun. Berpindah dari satu stasiun ke stasiun tetangganya dihitung satu perjalanan.
+
+```txt
+1 --- 2 --- 3
+|     |     |
+|     5 --- 6
+|           |
+4 --- 7 --- 8
+```
+
+Graph ini ditulis dengan format input yang sama seperti di materi Graph. Urutan sisinya penting, karena menentukan urutan tetangga di adjacency list.
+
+```txt title="Input"
+8 9
+1 2
+1 4
+2 3
+2 5
+3 6
+5 6
+4 7
+7 8
+6 8
+```
+
+Dari stasiun 1 ke stasiun 7, rute terpendeknya 1 → 4 → 7, cukup dua perjalanan. Sekarang jalankan DFS rekursif dari stasiun 1 dengan tetangga dikunjungi sesuai urutan input. DFS masuk ke stasiun 2 lebih dulu dan terus menyelam. Rute yang ia temukan ke stasiun 7 adalah 1 → 2 → 3 → 6 → 8 → 7. Stasiun 7 memang ditemukan, tetapi lewat lima perjalanan. Stasiun 4, yang bertetangga langsung dengan stasiun 1, malah dicapai lewat enam perjalanan.
+
+DFS tidak salah. Ia memang dirancang untuk menyelam sedalam mungkin, bukan untuk mencari rute terpendek. Untuk jarak terpendek, kita butuh cara menjelajah yang lain, yaitu **BFS** (_Breadth-First Search_, penelusuran melebar lebih dulu).
+
+## Ide BFS: menyebar seperti riak air
+
+Jatuhkan batu ke kolam yang tenang. Riaknya menyebar ke segala arah dengan kecepatan yang sama: lingkaran pertama, lalu lingkaran kedua yang sedikit lebih jauh, lalu lingkaran ketiga. Titik yang dekat selalu tersentuh lebih dulu daripada titik yang jauh.
+
+BFS menjelajah graph dengan cara yang sama. Mulai dari simpul awal `s`, BFS mengunjungi:
+
+1. semua tetangga `s`, yaitu simpul yang berjarak 1,
+2. lalu semua tetangga mereka yang belum dikunjungi, yaitu simpul yang berjarak 2,
+3. lalu simpul yang berjarak 3, dan seterusnya.
+
+Untuk graph stasiun dengan `s = 1`, lapisannya seperti ini:
+
+```txt
+lapis 0:  1
+lapis 1:  2  4
+lapis 2:  3  5  7
+lapis 3:  6  8
+```
+
+Karena lapisannya diproses berurutan, setiap simpul ditemukan pada lapis yang sama dengan jarak terpendeknya. Stasiun 7 ada di lapis 2, jadi jaraknya 2.
+
+Urutan "lapis demi lapis" ini dijamin oleh [queue](/docs/cpp/queue). Simpul yang ditemukan lebih dulu (lebih dekat) masuk antrean lebih dulu, sehingga juga diproses lebih dulu. Simpul yang baru ditemukan antre di belakang dan menunggu sampai semua simpul yang lebih dekat selesai. Aturan FIFO inilah yang membuat BFS bergerak seperti riak air.
+
+## Algoritma BFS
+
+Jarak setiap simpul disimpan di array `dist`. Nilai `-1` berarti simpul itu **belum ditemukan**, jadi `dist` sekaligus berperan sebagai `visited`.
+
+1. Isi semua `dist` dengan `-1`. Beri `dist[s] = 0`, lalu masukkan `s` ke queue.
+2. Selama queue tidak kosong, ambil simpul paling depan, sebut saja `u`.
+3. Untuk setiap tetangga `v` dari `u`: jika `dist[v]` masih `-1`, isi `dist[v] = dist[u] + 1`, lalu masukkan `v` ke queue.
+
+Perhatikan langkah 3. Simpul diberi tanda (jaraknya diisi) **saat masuk** queue, bukan saat keluar. Dengan begitu setiap simpul masuk queue paling banyak sekali. Alasannya dibahas di bagian [kesalahan yang sering terjadi](#menandai-saat-keluar-dari-queue).
+
+Program berikut menjalankan BFS dari simpul 1, mencetak urutan simpul saat keluar dari queue, lalu jarak setiap simpul.
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int s = 1;                              // simpul awal
+    vector<int> dist(n + 1, -1);            // -1 = belum ditemukan
+    queue<int> q;
+    dist[s] = 0;
+    q.push(s);
+
+    cout << "Urutan BFS:";
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        cout << " " << u;
+        for (int v : adj[u]) {
+            if (dist[v] == -1) {            // v belum pernah ditemukan
+                dist[v] = dist[u] + 1;      // satu lapis lebih jauh dari u
+                q.push(v);
+            }
+        }
+    }
+    cout << endl;
+
+    for (int v = 1; v <= n; v++) {
+        cout << "dist[" << v << "] = " << dist[v] << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for i in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+
+s = 1                                   # simpul awal
+dist = [-1] * (n + 1)                   # -1 = belum ditemukan
+q = deque()
+dist[s] = 0
+q.append(s)
+
+urutan = []
+while len(q) > 0:
+    u = q.popleft()
+    urutan.append(u)
+    for v in adj[u]:
+        if dist[v] == -1:               # v belum pernah ditemukan
+            dist[v] = dist[u] + 1       # satu lapis lebih jauh dari u
+            q.append(v)
+
+print("Urutan BFS:", *urutan)
+for v in range(1, n + 1):
+    print(f"dist[{v}] = {dist[v]}")
+```
+
+Dengan input graph stasiun di atas, output-nya:
+
+```txt title="Output"
+Urutan BFS: 1 2 4 3 5 7 6 8
+dist[1] = 0
+dist[2] = 1
+dist[3] = 2
+dist[4] = 1
+dist[5] = 2
+dist[6] = 3
+dist[7] = 2
+dist[8] = 3
+```
+
+Bagian membaca graph sama persis dengan DFS. Yang berbeda hanya cara menjelajahnya: perulangan `while` yang mengambil dari **depan** queue. Di Python, pastikan memakai `popleft()`, bukan `pop()`.
+
+### Jejak langkah demi langkah
+
+Tabel berikut mengikuti isi queue selama program di atas berjalan. Isi queue ditulis dari depan ke belakang, sama seperti di materi Queue.
+
+| Langkah | Keluar dari queue | Tetangga yang baru ditemukan | Isi queue sesudahnya |
+| --- | --- | --- | --- |
+| awal | | `1` (dist 0) | `1` |
+| 1 | `1` (dist 0) | `2`, `4` (dist 1) | `2 4` |
+| 2 | `2` (dist 1) | `3`, `5` (dist 2) | `4 3 5` |
+| 3 | `4` (dist 1) | `7` (dist 2) | `3 5 7` |
+| 4 | `3` (dist 2) | `6` (dist 3) | `5 7 6` |
+| 5 | `5` (dist 2) | tidak ada, `2` dan `6` sudah ditemukan | `7 6` |
+| 6 | `7` (dist 2) | `8` (dist 3) | `6 8` |
+| 7 | `6` (dist 3) | tidak ada | `8` |
+| 8 | `8` (dist 3) | tidak ada | kosong |
+
+Lihat langkah 5. Simpul 6 sudah punya jarak sejak langkah 4 walaupun masih menunggu di queue, jadi simpul 5 tidak memasukkannya lagi. Urutan keluarnya, `1 2 4 3 5 7 6 8`, persis mengikuti lapisan: semua simpul lapis 1, lalu semua simpul lapis 2, lalu lapis 3.
+
+## Kenapa jaraknya pasti terpendek
+
+Di jejak tadi, jarak simpul yang keluar dari queue tidak pernah turun: 0, lalu 1, 1, lalu 2, 2, 2, lalu 3, 3. Ini selalu berlaku. Simpul berjarak `d + 1` hanya dimasukkan saat simpul berjarak `d` diproses, dan masuknya di belakang, sehingga isi queue selalu terurut menurut jarak.
+
+Sekarang ambil sembarang simpul `v` yang jarak terpendek sebenarnya `d`.
+
+- Simpul yang menemukan `v` pasti tetangganya. Jaraknya tidak mungkin kurang dari `d − 1`, karena kalau begitu `v` punya rute yang lebih pendek dari `d`.
+- Rute terpendek ke `v` melewati sebuah simpul berjarak `d − 1` tepat sebelum `v`. Simpul itu keluar dari queue sebelum semua simpul yang berjarak `d` atau lebih, dan saat itu `v` pasti sudah atau baru saja ditemukan.
+
+Jadi yang menemukan `v` selalu simpul berjarak tepat `d − 1`, dan `dist[v] = d`.
+
+Syaratnya, setiap sisi dihitung sama, yaitu satu langkah. Graph seperti ini disebut graph **tak berbobot**. Untuk graph yang sisinya punya panjang berbeda, lihat bagian [graph berbobot](#graph-berbobot-bfs-tidak-lagi-cukup).
+
+## Menyusun rutenya dengan array induk
+
+Array `dist` memberi tahu **seberapa jauh**, tetapi tidak memberi tahu **lewat mana**. Untuk itu, catat siapa yang menemukan setiap simpul: saat `v` ditemukan dari `u`, simpan `induk[v] = u`. Ini sama dengan array **induk** (_parent_) di materi [DFS](/docs/cpp/dfs). Bedanya, pada BFS simpul `u` selalu satu lapis lebih dekat ke `s` daripada `v`, sehingga rute yang terbentuk pasti terpendek.
+
+Untuk graph stasiun dengan `s = 1`:
+
+| Simpul | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `induk` | 0 | 1 | 2 | 1 | 2 | 3 | 4 | 7 |
+
+Nilai 0 berarti "tidak punya induk". Simpul awal selalu bernilai 0, begitu juga simpul yang tidak terjangkau. Untuk mendapatkan rute ke stasiun 8, ikuti `induk` mundur: 8 → 7 → 4 → 1, lalu berhenti karena `induk[1]` bernilai 0. Rute yang terkumpul masih terbalik, jadi balik urutannya menjadi 1 → 4 → 7 → 8.
+
+Program berikut membaca graph, lalu `s` dan `t` di baris terakhir, dan mencetak jarak serta rutenya.
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    int s, t;
+    cin >> s >> t;
+
+    vector<int> dist(n + 1, -1);
+    vector<int> induk(n + 1, 0);            // 0 = tidak punya induk
+    queue<int> q;
+    dist[s] = 0;
+    q.push(s);
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        for (int v : adj[u]) {
+            if (dist[v] == -1) {
+                dist[v] = dist[u] + 1;
+                induk[v] = u;               // v ditemukan dari u
+                q.push(v);
+            }
+        }
+    }
+
+    if (dist[t] == -1) {
+        cout << "Tidak ada rute" << endl;
+        return 0;
+    }
+
+    vector<int> rute;
+    for (int v = t; v != 0; v = induk[v]) {     // mundur dari t sampai s
+        rute.push_back(v);
+    }
+    reverse(rute.begin(), rute.end());          // balik: s ... t
+
+    cout << "Jarak: " << dist[t] << endl;
+    cout << "Rute:";
+    for (int v : rute) {
+        cout << " " << v;
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for i in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+s, t = map(int, input().split())
+
+dist = [-1] * (n + 1)
+induk = [0] * (n + 1)                   # 0 = tidak punya induk
+q = deque()
+dist[s] = 0
+q.append(s)
+while len(q) > 0:
+    u = q.popleft()
+    for v in adj[u]:
+        if dist[v] == -1:
+            dist[v] = dist[u] + 1
+            induk[v] = u                # v ditemukan dari u
+            q.append(v)
+
+if dist[t] == -1:
+    print("Tidak ada rute")
+else:
+    rute = []
+    v = t
+    while v != 0:                       # mundur dari t sampai s
+        rute.append(v)
+        v = induk[v]
+    rute.reverse()                      # balik: s ... t
+
+    print("Jarak:", dist[t])
+    print("Rute:", *rute)
+```
+
+Dengan input graph stasiun ditambah baris `1 8`, output-nya:
+
+```txt title="Output"
+Jarak: 3
+Rute: 1 4 7 8
+```
+
+`reverse` di C++ berasal dari `<algorithm>` dan membalik isi vector di tempat, sama seperti `rute.reverse()` di Python. Pemeriksaan `dist[t] == -1` harus dilakukan **sebelum** menyusun rute. Tanpa pemeriksaan itu, `induk[t]` bernilai 0 dan program akan mencetak "rute" berisi `t` saja, padahal rutenya tidak ada.
+
+<DeepDive href="/docs/cpp/pustaka/algorithm" kind="pustaka" title="Pustaka algorithm">
+  `reverse`, `sort`, `find`, dan fungsi siap pakai lain dari `<algorithm>`, beserta padanannya di Python.
+</DeepDive>
+
+Jika ada beberapa rute dengan panjang yang sama, BFS memilih salah satunya. Rute mana yang terpilih bergantung pada urutan tetangga di adjacency list.
+
+## BFS pada labirin grid
+
+Di materi [Graph](/docs/cpp/graph) kamu sudah melihat bahwa grid, yaitu [matriks](/docs/cpp/matriks) karakter, juga sebuah graph. Setiap sel yang bukan dinding adalah simpul, dan tetangganya adalah sel di atas, bawah, kiri, dan kanannya yang juga bukan dinding. Adjacency list tidak perlu dibuat. Tetangga cukup dihitung saat dibutuhkan dengan array arah `dr` dan `dc` (urutannya atas, bawah, kiri, kanan): tetangga ke-`k` dari sel `(i, j)` adalah `(i + dr[k], j + dc[k])`, asalkan masih di dalam grid.
+
+Labirin berikut berisi `S` (awal), `E` (tujuan), `#` (dinding), dan `.` (jalan). Setiap langkah berpindah satu sel ke atas, bawah, kiri, atau kanan. Berapa langkah paling sedikit dari `S` ke `E`?
+
+```txt title="Input"
+5 7
+S..#...
+.#.#.#.
+.#...#.
+.####..
+...#..E
+```
+
+Ada dua perubahan dibanding BFS pada graph:
+
+- **Simpulnya berupa pasangan (baris, kolom).** Di C++ pasangan ini disimpan sebagai [struct](/docs/cpp/struct) `Sel`, jadi queue-nya `queue<Sel>`. Di Python dipakai **tuple**, yaitu beberapa nilai yang dibungkus menjadi satu dengan tanda kurung, misalnya `(2, 5)`. Isinya bisa dibongkar lagi ke beberapa variabel: `baris, kolom = q.popleft()`.
+- **`dist` menjadi dua dimensi**, satu nilai untuk setiap sel, dan semuanya diisi `-1`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Sel {
+    int r;
+    int c;
+};
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<string> grid(r);
+    for (int i = 0; i < r; i++) {
+        cin >> grid[i];
+    }
+
+    int sr = 0, sc = 0, er = 0, ec = 0;
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            if (grid[i][j] == 'S') {
+                sr = i;
+                sc = j;
+            }
+            if (grid[i][j] == 'E') {
+                er = i;
+                ec = j;
+            }
+        }
+    }
+
+    int dr[4] = {-1, 1, 0, 0};              // atas, bawah, kiri, kanan
+    int dc[4] = {0, 0, -1, 1};
+    vector<vector<int>> dist(r, vector<int>(c, -1));
+    queue<Sel> q;
+    dist[sr][sc] = 0;
+    q.push({sr, sc});
+
+    while (!q.empty()) {
+        Sel sekarang = q.front();
+        q.pop();
+        for (int k = 0; k < 4; k++) {
+            int nr = sekarang.r + dr[k];
+            int nc = sekarang.c + dc[k];
+            if (nr >= 0 && nr < r && nc >= 0 && nc < c) {           // masih di dalam grid
+                if (grid[nr][nc] != '#' && dist[nr][nc] == -1) {    // bukan dinding, belum ditemukan
+                    dist[nr][nc] = dist[sekarang.r][sekarang.c] + 1;
+                    q.push({nr, nc});
+                }
+            }
+        }
+    }
+
+    cout << dist[er][ec] << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+r, c = map(int, input().split())
+grid = []
+for i in range(r):
+    grid.append(input())
+
+sr, sc, er, ec = 0, 0, 0, 0
+for i in range(r):
+    for j in range(c):
+        if grid[i][j] == "S":
+            sr, sc = i, j
+        if grid[i][j] == "E":
+            er, ec = i, j
+
+dr = [-1, 1, 0, 0]                      # atas, bawah, kiri, kanan
+dc = [0, 0, -1, 1]
+dist = [[-1] * c for _ in range(r)]
+q = deque()
+dist[sr][sc] = 0
+q.append((sr, sc))                      # tuple: (baris, kolom)
+
+while len(q) > 0:
+    baris, kolom = q.popleft()          # bongkar tuple
+    for k in range(4):
+        nr = baris + dr[k]
+        nc = kolom + dc[k]
+        if nr >= 0 and nr < r and nc >= 0 and nc < c:           # masih di dalam grid
+            if grid[nr][nc] != "#" and dist[nr][nc] == -1:      # bukan dinding, belum ditemukan
+                dist[nr][nc] = dist[baris][kolom] + 1
+                q.append((nr, nc))
+
+print(dist[er][ec])
+```
+
+```txt title="Output"
+14
+```
+
+Perhatikan kurung ganda pada `q.append((nr, nc))`: kurung luar milik `append`, kurung dalam membuat tuple. Di C++, `q.push({nr, nc})` membuat sebuah `Sel` dengan kurung kurawal, sama seperti mengisi struct di materi Struct.
+
+Isi `dist` setelah BFS selesai memperlihatkan riaknya. Setiap angka adalah banyak langkah dari `S`:
+
+```txt
+  0  1  2  #  8  9 10
+  1  #  3  #  7  # 11
+  2  #  4  5  6  # 12
+  3  #  #  #  # 14 13
+  4  5  6  # 16 15 14
+```
+
+Riak dari `S` menyebar ke dua arah sekaligus. Cabang kiri bawah (`4 5 6`) buntu di dinding, sedangkan cabang atas memutar dan sampai di `E` (pojok kanan bawah) pada langkah ke-14. BFS tidak perlu tahu cabang mana yang benar. Ia mencoba semua cabang secara bersamaan, lapis demi lapis.
+
+Jika `E` tidak bisa dicapai, `dist[er][ec]` tetap `-1`, dan itulah yang tercetak.
+
+## BFS dari banyak sumber
+
+Misalkan kota pada graph stasiun punya dua rumah sakit, di stasiun 3 dan stasiun 7. Untuk setiap stasiun, berapa perjalanan ke rumah sakit **terdekat**?
+
+Cara langsung adalah menjalankan BFS dari setiap rumah sakit, lalu mengambil jarak terkecil untuk setiap stasiun. Dengan `k` rumah sakit, BFS dijalankan `k` kali. Cara yang lebih cerdas: masukkan **semua sumber** ke queue sejak awal, masing-masing dengan jarak 0, lalu jalankan BFS seperti biasa. Bayangkan beberapa batu dijatuhkan ke kolam pada saat yang sama. Setiap titik akan tersentuh lebih dulu oleh riak dari batu yang paling dekat dengannya.
+
+Hanya bagian awal yang berubah. Program membaca `k` di baris setelah daftar sisi, lalu `k` nomor sumber di baris berikutnya.
+
+```cpp tab="C++"
+int k;
+cin >> k;                               // banyak sumber
+vector<int> dist(n + 1, -1);
+queue<int> q;
+for (int i = 0; i < k; i++) {
+    int s;
+    cin >> s;
+    dist[s] = 0;                        // setiap sumber berjarak 0
+    q.push(s);
+}
+// perulangan while sama persis dengan BFS biasa
+```
+
+```python tab="Python"
+k = int(input())                        # banyak sumber
+sumber = list(map(int, input().split()))
+dist = [-1] * (n + 1)
+q = deque()
+for s in sumber:
+    dist[s] = 0                         # setiap sumber berjarak 0
+    q.append(s)
+# perulangan while sama persis dengan BFS biasa
+```
+
+Dengan sumber 3 dan 7 pada graph stasiun, hasilnya:
+
+| Stasiun | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `dist` | 2 | 1 | 0 | 1 | 2 | 1 | 0 | 1 |
+
+Berapa pun banyak sumbernya, BFS tetap berjalan satu kali. Pola ini dipakai untuk soal seperti jarak setiap rumah ke minimarket terdekat, atau penyebaran sesuatu yang dimulai dari beberapa titik sekaligus.
+
+## Level-order pada tree adalah BFS
+
+Penelusuran **level-order** pada [tree](/docs/cpp/tree) mencetak node tingkat demi tingkat: akar, lalu anak-anaknya, lalu cucu-cucunya. Itu persis BFS yang dimulai dari akar.
+
+```txt
+        50
+       /  \
+     30    70
+    /  \     \
+  20    40    80
+```
+
+```cpp tab="C++"
+void cetakLevelOrder(Node* root) {
+    if (root == nullptr) {
+        return;
+    }
+    queue<Node*> q;
+    q.push(root);
+    while (!q.empty()) {
+        Node* p = q.front();
+        q.pop();
+        cout << p->data << " ";
+        if (p->left != nullptr) {
+            q.push(p->left);
+        }
+        if (p->right != nullptr) {
+            q.push(p->right);
+        }
+    }
+    cout << endl;
+}
+```
+
+```python tab="Python"
+def cetak_level_order(root):
+    if root is None:
+        return
+    q = deque()
+    q.append(root)
+    while len(q) > 0:
+        p = q.popleft()
+        print(p.data, end=" ")
+        if p.left is not None:
+            q.append(p.left)
+        if p.right is not None:
+            q.append(p.right)
+    print()
+```
+
+Untuk tree di atas, output-nya `50 30 70 20 40 80`.
+
+Di sini tidak ada `visited`. Pointer `left` dan `right` hanya mengarah ke bawah, dan setiap node punya tepat satu induk, jadi tidak ada node yang bisa ditemukan dua kali. Lain halnya jika tree disimpan sebagai graph tak berarah dengan adjacency list. Induk sebuah simpul juga tercatat sebagai tetangganya, sehingga `dist` atau `visited` tetap dibutuhkan agar BFS tidak berjalan balik ke atas.
+
+## DFS atau BFS?
+
+| | DFS | BFS |
+| --- | --- | --- |
+| Struktur bantu | stack (lewat rekursi atau `stack`) | queue |
+| Cara menjelajah | menyelam sedalam mungkin, lalu mundur | lapis demi lapis, dari yang terdekat |
+| Jarak terpendek pada graph tak berbobot | tidak dijamin | dijamin |
+| Kompleksitas waktu | O(n + m) | O(n + m) |
+| Cocok untuk | memeriksa keterhubungan, menghitung komponen, mendeteksi siklus, menjelajah semua kemungkinan | jarak dan rute terpendek, langkah minimum, penyebaran dari satu atau banyak titik |
+
+Keduanya mengunjungi setiap simpul yang terjangkau tepat sekali. Untuk pertanyaan seperti "apakah terhubung?" atau "ada berapa komponen?", keduanya sama-sama benar. Begitu soal menyebut **paling sedikit**, **terpendek**, atau **minimum langkah** pada graph tak berbobot, pilih BFS.
+
+Ada satu kelebihan lain BFS. DFS rekursif pada graph yang sangat panjang bisa kehabisan call stack. Di Python, rantai sekitar 1.000 simpul saja sudah melewati batas rekursi bawaan, dan di C++ batasnya lebih besar tetapi tetap ada. Queue BFS disimpan di memori biasa, jadi tidak punya batas seperti itu.
+
+<DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call stack">
+  Bagaimana setiap pemanggilan fungsi memakai call stack, kenapa rekursi yang terlalu dalam membuat program berhenti, dan cara mengubah rekursi menjadi perulangan.
+</DeepDive>
+
+## Graph berbobot: BFS tidak lagi cukup
+
+BFS menghitung **banyak sisi**. Jika setiap sisi punya panjang atau waktu tempuh yang berbeda, rute dengan sisi paling sedikit belum tentu yang tercepat. Pada graph berikut, angka di setiap sisi adalah waktu tempuh dalam menit.
+
+```txt
+       2           3
+  1 ------- 2 ------- 3
+  |                   |
+  +-------- 10 -------+
+```
+
+BFS dari stasiun 1 menemukan stasiun 3 di lapis 1, karena ada rel langsung 1 → 3. Namun rel itu memakan 10 menit, sedangkan rute 1 → 2 → 3 hanya 2 + 3 = 5 menit. Rute dengan sisi lebih banyak justru lebih cepat.
+
+Untuk graph berbobot (dengan bobot yang tidak negatif), algoritma yang umum dipakai adalah **algoritma Dijkstra**. Idenya mirip BFS, tetapi queue biasa diganti [antrean prioritas](/docs/cpp/queue#antrean-prioritas). Simpul yang diproses lebih dulu adalah simpul dengan total jarak sementara **terkecil**, bukan simpul yang paling lama menunggu. Dijkstra tidak dibahas di sini, tetapi kamu sudah punya semua bahan dasarnya.
+
+Jika semua sisi berbobot sama, misalnya semuanya 5 menit, BFS tetap benar. Hitung banyak sisinya dengan BFS, lalu kalikan dengan 5.
+
+## Kompleksitas
+
+Karena simpul ditandai saat masuk, setiap simpul masuk dan keluar queue paling banyak sekali. Saat sebuah simpul keluar, adjacency list-nya diperiksa sekali dari awal sampai akhir. Pada graph tak berarah, total panjang semua adjacency list adalah `2m`, karena setiap sisi dicatat di kedua ujungnya. Jadi BFS bekerja sebanyak kira-kira `n + 2m` langkah, ditulis **O(n + m)**: waktunya sebanding dengan banyak simpul ditambah banyak sisi.
+
+Pada grid `r × c`, setiap sel punya paling banyak 4 tetangga, jadi BFS-nya O(r × c). BFS dari banyak sumber juga tetap O(n + m), karena setiap simpul tetap masuk queue paling banyak sekali.
+
+<DeepDive href="/docs/cpp/pendalaman/kompleksitas-waktu" kind="konsep" title="Kompleksitas waktu">
+  Arti notasi O, cara menghitung langkah sebuah algoritma, dan perbandingan O(1), O(log n), O(n), dan O(n²).
+</DeepDive>
+
+## Kesalahan yang sering terjadi
+
+### Menandai saat keluar dari queue
+
+```cpp tab="C++"
+// ✗ simpul baru ditandai saat KELUAR dari queue
+while (!q.empty()) {
+    int u = q.front();
+    q.pop();
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            dist[v] = dist[u] + 1;
+            q.push(v);
+        }
+    }
+}
+```
+
+```python tab="Python"
+# ✗ simpul baru ditandai saat KELUAR dari queue
+while len(q) > 0:
+    u = q.popleft()
+    visited[u] = True
+    for v in adj[u]:
+        if not visited[v]:
+            dist[v] = dist[u] + 1
+            q.append(v)
+```
+
+Sekilas kode ini tampak wajar, tetapi sebuah simpul bisa masuk queue berkali-kali sebelum ia sempat keluar dan ditandai. Pada graph stasiun, simpul 6 bertetangga dengan 3 dan 5. Keduanya diproses sebelum 6 keluar, jadi 6 masuk queue dua kali. Simpul 8 bahkan masuk tiga kali. Urutan keluarnya menjadi `1 2 4 3 5 7 6 6 8 8 8`, sebelas kali untuk delapan simpul. Lebih buruk lagi, saat salinan simpul 6 diproses, simpul 8 belum ditandai, sehingga `dist[8]` ditimpa menjadi 4. Padahal jarak sebenarnya 3.
+
+Pada graph yang lebih padat, salinan ini berlipat ganda. Pada grid kosong 10 × 10 (100 sel), versi ini mengeluarkan 184.755 sel dari queue. Pada grid 15 × 15, lebih dari lima juta.
+
+Perbaikannya: tandai simpul **tepat saat dimasukkan** ke queue, seperti pada algoritma di atas. Simpul awal juga ditandai sebelum masuk.
+
+### Tidak sengaja memakai stack
+
+```python
+u = q.pop()                 # ✗ mengambil dari belakang: ini stack
+u = q.popleft()             # ✓ mengambil dari depan: ini queue
+```
+
+Ini kesalahan yang sama seperti di materi [Queue](/docs/cpp/queue). Dengan `pop()`, simpul yang **terakhir** ditemukan diproses lebih dulu, sehingga penjelajahannya menyelam seperti DFS. Pada graph stasiun, urutannya menjadi `1 4 7 8 6 5 3 2`, dan `dist[3]` tercetak 5, padahal seharusnya 2. Program tetap berjalan tanpa error, jadi kesalahan ini mudah terlewat. Di C++, kesalahan yang setara adalah memakai `stack` atau `vector` dengan `pop_back()` sebagai pengganti `queue`.
+
+### Lupa mengisi `dist` dengan -1
+
+```cpp tab="C++"
+vector<int> dist(n + 1);            // ✗ isinya 0 semua
+vector<int> dist(n + 1, -1);        // ✓ semua belum ditemukan
+```
+
+```python tab="Python"
+dist = [0] * (n + 1)                # ✗ isinya 0 semua
+dist = [-1] * (n + 1)               # ✓ semua belum ditemukan
+```
+
+Jika `dist` berisi 0, pemeriksaan `dist[v] == -1` tidak pernah benar. BFS berhenti setelah simpul awal, dan semua jarak tercetak 0. Jangan juga memakai 0 sebagai tanda "belum ditemukan", karena simpul awal sendiri berjarak 0.
+
+### Lupa simpul yang tidak terjangkau
+
+Jika graph tidak terhubung, sebagian simpul tidak pernah ditemukan dan `dist`-nya tetap `-1`. Perhatikan tiga hal:
+
+- Periksa `dist[t] == -1` sebelum memakai `dist[t]` sebagai jarak atau menyusun rute ke `t`.
+- Saat mencari jarak terbesar atau terkecil di `dist`, lewati nilai `-1`.
+- Jika soal menyangkut **semua** simpul, satu BFS dari simpul 1 belum cukup. Jalankan BFS lagi dari setiap simpul yang masih `-1`, sama seperti menghitung komponen dengan DFS.
+
+## Rangkuman
+
+- BFS menjelajah graph **lapis demi lapis** dari simpul awal, memakai queue (FIFO), sehingga simpul yang lebih dekat selalu diproses lebih dulu.
+- Isi `dist` dengan `-1` dan beri `dist[s] = 0`. Saat `u` keluar dari queue, setiap tetangga `v` yang masih `-1` diberi `dist[u] + 1` lalu dimasukkan ke queue.
+- Pada graph tak berbobot, `dist` hasil BFS adalah jarak terpendek (banyak sisi paling sedikit). DFS tidak menjamin hal ini.
+- Simpan `induk[v] = u` untuk menyusun rute: telusuri mundur dari tujuan, lalu balik urutannya.
+- Pada grid, setiap sel adalah simpul dengan paling banyak 4 tetangga. Simpan sel sebagai struct `Sel` di C++ atau tuple `(baris, kolom)` di Python, dan pakai `dist` dua dimensi.
+- BFS dari banyak sumber: masukkan semua sumber dengan jarak 0 sejak awal, lalu jalankan BFS satu kali.
+- Level-order pada tree adalah BFS dari akar.
+- Pada graph berbobot, BFS tidak lagi memberi jarak terpendek. Gunakan algoritma Dijkstra, yang memakai antrean prioritas.
+- Kompleksitas BFS O(n + m), dan O(r × c) pada grid.
+- Tandai simpul saat **masuk** queue, ambil dari **depan** (`front`/`popleft`), isi `dist` dengan `-1`, dan tangani simpul yang tidak terjangkau.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Semua graph memakai format input yang sama dengan materi ini: baris pertama `n m`, lalu `m` baris `u v`, simpul bernomor 1 sampai `n`, dan sisinya tak berarah. Grid diberikan sebagai `r c`, lalu `r` baris karakter.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Tebak urutan BFS">
+  Program BFS di bagian [Algoritma BFS](#algoritma-bfs) dijalankan dengan input berikut. Tanpa menjalankannya, tebak output-nya. Lalu jawab: simpul 4 bertetangga dengan simpul 2 dan simpul 3. Berapa kali simpul 4 masuk queue?
+
+  ```txt
+  1 --- 2 --- 5
+  |     |     |
+  3 --- 4 --- 6 --- 7
+  ```
+
+  ```txt title="Input"
+  7 8
+  1 3
+  1 2
+  2 4
+  3 4
+  2 5
+  4 6
+  5 6
+  6 7
+  ```
+
+  <Pembahasan>
+    Karena sisi `1 3` ditulis sebelum `1 2`, adjacency list simpul 1 adalah `3, 2`. Jadi simpul 3 masuk queue lebih dulu daripada simpul 2.
+
+    | Keluar dari queue | Tetangga yang baru ditemukan | Isi queue sesudahnya |
+    | --- | --- | --- |
+    | `1` (dist 0) | `3`, `2` (dist 1) | `3 2` |
+    | `3` (dist 1) | `4` (dist 2) | `2 4` |
+    | `2` (dist 1) | `5` (dist 2) | `4 5` |
+    | `4` (dist 2) | `6` (dist 3) | `5 6` |
+    | `5` (dist 2) | tidak ada | `6` |
+    | `6` (dist 3) | `7` (dist 4) | `7` |
+    | `7` (dist 4) | tidak ada | kosong |
+
+    ```txt title="Output"
+    Urutan BFS: 1 3 2 4 5 6 7
+    dist[1] = 0
+    dist[2] = 1
+    dist[3] = 1
+    dist[4] = 2
+    dist[5] = 2
+    dist[6] = 3
+    dist[7] = 4
+    ```
+
+    Simpul 4 masuk queue **sekali**. Simpul 3 keluar lebih dulu dan menemukan 4. Saat simpul 2 diproses, `dist[4]` sudah bernilai 2, sehingga 4 tidak dimasukkan lagi.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Jarak stasiun 1 ke n">
+  Ada `n` stasiun dan `m` rel langsung di antara pasangan stasiun. Tampilkan banyak perjalanan paling sedikit dari stasiun 1 ke stasiun `n`, atau `-1` jika stasiun `n` tidak bisa dicapai. Batasan: 1 ≤ n ≤ 100.000 dan 0 ≤ m ≤ 100.000.
+
+  ```txt title="Contoh input 1"
+  6 7
+  1 2
+  1 3
+  2 4
+  3 4
+  4 5
+  3 5
+  5 6
+  ```
+
+  ```txt title="Contoh output 1"
+  3
+  ```
+
+  ```txt title="Contoh input 2"
+  4 2
+  1 2
+  3 4
+  ```
+
+  ```txt title="Contoh output 2"
+  -1
+  ```
+
+  <Pembahasan>
+    Jalankan BFS dari stasiun 1, lalu cetak `dist[n]`. Karena `dist` diisi `-1` sejak awal, kasus tidak terjangkau tertangani dengan sendirinya. Untuk `n = 1`, jawabannya 0. Pada contoh 1, rute terpendeknya 1 → 3 → 5 → 6.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<int> dist(n + 1, -1);
+        queue<int> q;
+        dist[1] = 0;
+        q.push(1);
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.push(v);
+                }
+            }
+        }
+        cout << dist[n] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for i in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dist = [-1] * (n + 1)
+    q = deque()
+    dist[1] = 0
+    q.append(1)
+    while len(q) > 0:
+        u = q.popleft()
+        for v in adj[u]:
+            if dist[v] == -1:
+                dist[v] = dist[u] + 1
+                q.append(v)
+    print(dist[n])
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Perbaiki dua BFS">
+  Program berikut seharusnya menampilkan jarak terpendek dari simpul 1 ke setiap simpul dalam satu baris, dengan `-1` untuk simpul yang tidak terjangkau. Untuk input di bawah, jawaban yang benar adalah `0 1 1 2 2`. Ternyata versi C++ mencetak `2 1 1 2 2`, dan versi Python mencetak `0 1 1 2 3`. Temukan kesalahan masing-masing dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <queue>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      int n, m;
+      cin >> n >> m;
+      vector<vector<int>> adj(n + 1);
+      for (int i = 0; i < m; i++) {
+          int u, v;
+          cin >> u >> v;
+          adj[u].push_back(v);
+          adj[v].push_back(u);
+      }
+
+      vector<int> dist(n + 1, 0);
+      queue<int> q;
+      q.push(1);
+      while (!q.empty()) {
+          int u = q.front();
+          q.pop();
+          for (int v : adj[u]) {
+              if (dist[v] == 0) {             // belum ditemukan?
+                  dist[v] = dist[u] + 1;
+                  q.push(v);
+              }
+          }
+      }
+
+      for (int v = 1; v <= n; v++) {
+          if (v > 1) {
+              cout << " ";
+          }
+          cout << dist[v];
+      }
+      cout << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  from collections import deque
+
+  n, m = map(int, input().split())
+  adj = [[] for _ in range(n + 1)]
+  for i in range(m):
+      u, v = map(int, input().split())
+      adj[u].append(v)
+      adj[v].append(u)
+
+  dist = [-1] * (n + 1)
+  q = deque()
+  dist[1] = 0
+  q.append(1)
+  while len(q) > 0:
+      u = q.pop()
+      for v in adj[u]:
+          if dist[v] == -1:               # belum ditemukan?
+              dist[v] = dist[u] + 1
+              q.append(v)
+
+  print(*dist[1:])
+  ```
+
+  ```txt
+  1 --- 2
+  |     |
+  3     |
+  |     |
+  4 --- 5
+  ```
+
+  ```txt title="Input"
+  5 5
+  1 2
+  1 3
+  3 4
+  4 5
+  2 5
+  ```
+
+  <Pembahasan>
+    **C++:** angka 0 dipakai sebagai tanda "belum ditemukan", padahal simpul awal sendiri berjarak 0. Saat simpul 2 diproses, simpul 1 masih bernilai 0, jadi ia "ditemukan" lagi dengan jarak 2 dan bahkan masuk queue lagi. Isi `dist` dengan `-1`, beri `dist[1] = 0`, dan periksa `dist[v] == -1`.
+
+    **Python:** `q.pop()` mengambil dari **belakang**, sehingga queue berubah menjadi stack. Simpul 3 diproses sebelum simpul 2, lalu rantai 3 → 4 → 5 memberi `dist[5] = 3` sebelum simpul 2 sempat menemukan 5 lewat rute yang lebih pendek. Ganti dengan `popleft()`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<int> dist(n + 1, -1);            // -1 = belum ditemukan
+        queue<int> q;
+        dist[1] = 0;
+        q.push(1);
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.push(v);
+                }
+            }
+        }
+
+        for (int v = 1; v <= n; v++) {
+            if (v > 1) {
+                cout << " ";
+            }
+            cout << dist[v];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for i in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dist = [-1] * (n + 1)
+    q = deque()
+    dist[1] = 0
+    q.append(1)
+    while len(q) > 0:
+        u = q.popleft()                     # ambil dari DEPAN
+        for v in adj[u]:
+            if dist[v] == -1:
+                dist[v] = dist[u] + 1
+                q.append(v)
+
+    print(*dist[1:])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Mencetak rute terpendek">
+  Baris terakhir input berisi `s` dan `t`. Tampilkan banyak perjalanan paling sedikit dari `s` ke `t` di baris pertama, lalu rutenya di baris kedua. Jika ada beberapa rute terpendek, tampilkan rute yang ditemukan BFS dengan **tetangga dikunjungi sesuai urutan input**. Jika `t` tidak bisa dicapai, tampilkan `-1` saja.
+
+  ```txt
+  1 --- 2
+  |     |
+  3 --- 4 --- 5
+  |           |
+  +---- 6 ----+
+  ```
+
+  ```txt title="Contoh input 1"
+  6 7
+  1 2
+  1 3
+  2 4
+  3 4
+  4 5
+  3 6
+  6 5
+  1 5
+  ```
+
+  ```txt title="Contoh output 1"
+  3
+  1 2 4 5
+  ```
+
+  ```txt title="Contoh input 2"
+  5 3
+  1 2
+  2 3
+  4 5
+  1 5
+  ```
+
+  ```txt title="Contoh output 2"
+  -1
+  ```
+
+  <Petunjuk>
+    Simpan `induk[v] = u` setiap kali `v` ditemukan dari `u`. Setelah BFS selesai, periksa dulu apakah `t` terjangkau. Jika ya, ikuti `induk` mundur dari `t` sampai simpul awal, lalu balik urutannya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1 ada tiga rute dengan 3 perjalanan: 1-2-4-5, 1-3-4-5, dan 1-3-6-5. Simpul 2 keluar dari queue sebelum simpul 3, jadi simpul 4 ditemukan dari 2. Simpul 4 masuk queue sebelum simpul 6, jadi simpul 5 ditemukan dari 4. Hasilnya `1 2 4 5`. Jika dua sisi pertama input ditukar, jawabannya menjadi `1 3 4 5`. Itulah sebabnya soal menyebut urutan tetangga.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        int s, t;
+        cin >> s >> t;
+
+        vector<int> dist(n + 1, -1);
+        vector<int> induk(n + 1, 0);
+        queue<int> q;
+        dist[s] = 0;
+        q.push(s);
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    induk[v] = u;
+                    q.push(v);
+                }
+            }
+        }
+
+        if (dist[t] == -1) {
+            cout << -1 << endl;
+            return 0;
+        }
+
+        vector<int> rute;
+        for (int v = t; v != 0; v = induk[v]) {
+            rute.push_back(v);
+        }
+        reverse(rute.begin(), rute.end());
+
+        cout << dist[t] << endl;
+        for (int i = 0; i < (int)rute.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << rute[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for i in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+    s, t = map(int, input().split())
+
+    dist = [-1] * (n + 1)
+    induk = [0] * (n + 1)
+    q = deque()
+    dist[s] = 0
+    q.append(s)
+    while len(q) > 0:
+        u = q.popleft()
+        for v in adj[u]:
+            if dist[v] == -1:
+                dist[v] = dist[u] + 1
+                induk[v] = u
+                q.append(v)
+
+    if dist[t] == -1:
+        print(-1)
+    else:
+        rute = []
+        v = t
+        while v != 0:
+            rute.append(v)
+            v = induk[v]
+        rute.reverse()
+        print(dist[t])
+        print(*rute)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Pintu keluar terdekat">
+  Kamu berdiri di sel `S` di dalam sebuah gedung berbentuk grid. `#` adalah dinding dan `.` adalah lantai. Kamu berhasil keluar begitu berdiri di sel bukan dinding yang berada di **tepi** grid (baris pertama, baris terakhir, kolom pertama, atau kolom terakhir). Setiap langkah berpindah ke sel atas, bawah, kiri, atau kanan yang bukan dinding.
+
+  Tampilkan banyak langkah paling sedikit untuk keluar, atau `-1` jika tidak mungkin. Jika `S` sudah berada di tepi, jawabannya `0`.
+
+  ```txt title="Contoh input 1"
+  5 6
+  ######
+  #S...#
+  #.##.#
+  #.#...
+  ######
+  ```
+
+  ```txt title="Contoh output 1"
+  6
+  ```
+
+  ```txt title="Contoh input 2"
+  3 3
+  ###
+  #S#
+  ###
+  ```
+
+  ```txt title="Contoh output 2"
+  -1
+  ```
+
+  <Petunjuk>
+    Jalankan BFS dari `S`. Setiap kali sebuah sel keluar dari queue, periksa apakah sel itu berada di tepi. BFS mengeluarkan sel sesuai urutan jaraknya, jadi sel tepi **pertama** yang keluar pasti yang terdekat.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, satu-satunya sel tepi yang bukan dinding ada di ujung kanan baris keempat. Rutenya ke kanan tiga langkah, turun dua langkah, lalu ke kanan satu langkah, total 6. Jalur ke bawah dari `S` buntu. Begitu sel tepi pertama keluar dari queue, perulangan bisa dihentikan dengan `break`. Jika `S` sendiri di tepi, ia keluar paling awal dengan jarak 0. Kesalahan umum adalah memeriksa tepi pada tetangga yang baru ditemukan lalu lupa memeriksa `S` sendiri.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Sel {
+        int r;
+        int c;
+    };
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<string> grid(r);
+        for (int i = 0; i < r; i++) {
+            cin >> grid[i];
+        }
+
+        int dr[4] = {-1, 1, 0, 0};
+        int dc[4] = {0, 0, -1, 1};
+        vector<vector<int>> dist(r, vector<int>(c, -1));
+        queue<Sel> q;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == 'S') {
+                    dist[i][j] = 0;
+                    q.push({i, j});
+                }
+            }
+        }
+
+        int jawaban = -1;
+        while (!q.empty()) {
+            Sel sekarang = q.front();
+            q.pop();
+            int baris = sekarang.r;
+            int kolom = sekarang.c;
+            if (baris == 0 || baris == r - 1 || kolom == 0 || kolom == c - 1) {
+                jawaban = dist[baris][kolom];   // sel tepi pertama yang keluar = terdekat
+                break;
+            }
+            for (int k = 0; k < 4; k++) {
+                int nr = baris + dr[k];
+                int nc = kolom + dc[k];
+                if (nr >= 0 && nr < r && nc >= 0 && nc < c) {
+                    if (grid[nr][nc] != '#' && dist[nr][nc] == -1) {
+                        dist[nr][nc] = dist[baris][kolom] + 1;
+                        q.push({nr, nc});
+                    }
+                }
+            }
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    r, c = map(int, input().split())
+    grid = []
+    for i in range(r):
+        grid.append(input())
+
+    dr = [-1, 1, 0, 0]
+    dc = [0, 0, -1, 1]
+    dist = [[-1] * c for _ in range(r)]
+    q = deque()
+    for i in range(r):
+        for j in range(c):
+            if grid[i][j] == "S":
+                dist[i][j] = 0
+                q.append((i, j))
+
+    jawaban = -1
+    while len(q) > 0:
+        baris, kolom = q.popleft()
+        if baris == 0 or baris == r - 1 or kolom == 0 or kolom == c - 1:
+            jawaban = dist[baris][kolom]    # sel tepi pertama yang keluar = terdekat
+            break
+        for k in range(4):
+            nr = baris + dr[k]
+            nc = kolom + dc[k]
+            if nr >= 0 and nr < r and nc >= 0 and nc < c:
+                if grid[nr][nc] != "#" and dist[nr][nc] == -1:
+                    dist[nr][nc] = dist[baris][kolom] + 1
+                    q.append((nr, nc))
+    print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Teman tingkat k">
+  Sebuah jejaring sosial punya `n` orang dan `m` pasangan pertemanan. Teman tingkat `k` dari orang `s` adalah orang yang jarak terpendeknya dari `s` tepat `k`. Teman langsung adalah tingkat 1, teman dari teman (yang bukan teman langsung) adalah tingkat 2, dan seterusnya.
+
+  Baris terakhir input berisi `s` dan `k` (1 ≤ k ≤ n). Tampilkan banyaknya teman tingkat `k`, lalu di baris kedua nomor mereka dari yang terkecil, dipisah spasi. Jika tidak ada, tampilkan `0` saja.
+
+  ```txt
+  1 --- 2
+  |     |
+  3 --- 4 --- 5 --- 6
+  |
+  7 --- 8
+  ```
+
+  ```txt title="Contoh input 1"
+  8 8
+  1 2
+  1 3
+  2 4
+  3 4
+  4 5
+  5 6
+  3 7
+  7 8
+  1 2
+  ```
+
+  ```txt title="Contoh output 1"
+  2
+  4 7
+  ```
+
+  ```txt title="Contoh input 2"
+  4 2
+  1 2
+  3 4
+  1 2
+  ```
+
+  ```txt title="Contoh output 2"
+  0
+  ```
+
+  <Petunjuk>
+    Satu BFS dari `s` sudah memberi jarak semua orang. Setelah itu, telusuri `v` dari 1 sampai `n` dan kumpulkan yang `dist[v] == k`. Karena ditelusuri dari nomor kecil, hasilnya sudah terurut tanpa perlu diurutkan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, orang 4 bisa dicapai lewat 2 maupun 3, tetapi jaraknya tetap 2 dan ia hanya dihitung sekali. Orang 8 berjarak 3, jadi tidak termasuk. Pada contoh 2, orang 3 dan 4 tidak terjangkau dari 1, sehingga `dist`-nya `-1` dan tidak pernah terhitung. Kesalahan umum adalah mencatat orang saat ia keluar dari queue. Urutannya mengikuti urutan BFS, bukan urutan nomor.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        int s, k;
+        cin >> s >> k;
+
+        vector<int> dist(n + 1, -1);
+        queue<int> q;
+        dist[s] = 0;
+        q.push(s);
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.push(v);
+                }
+            }
+        }
+
+        vector<int> hasil;
+        for (int v = 1; v <= n; v++) {          // dari nomor kecil ke besar
+            if (dist[v] == k) {
+                hasil.push_back(v);
+            }
+        }
+
+        cout << hasil.size() << endl;
+        if (!hasil.empty()) {
+            for (int i = 0; i < (int)hasil.size(); i++) {
+                if (i > 0) {
+                    cout << " ";
+                }
+                cout << hasil[i];
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for i in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+    s, k = map(int, input().split())
+
+    dist = [-1] * (n + 1)
+    q = deque()
+    dist[s] = 0
+    q.append(s)
+    while len(q) > 0:
+        u = q.popleft()
+        for v in adj[u]:
+            if dist[v] == -1:
+                dist[v] = dist[u] + 1
+                q.append(v)
+
+    hasil = []
+    for v in range(1, n + 1):               # dari nomor kecil ke besar
+        if dist[v] == k:
+            hasil.append(v)
+
+    print(len(hasil))
+    if len(hasil) > 0:
+        print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Langkah kuda catur">
+  Papan catur berukuran `n × n`, dengan baris dan kolom bernomor 1 sampai `n`. Kuda bergerak membentuk huruf L: dua kotak lurus ke satu arah, lalu satu kotak ke samping. Dari kotak `K` di bawah ini, kuda bisa melompat ke kotak-kotak bertanda `x`:
+
+  ```txt
+  . x . x .
+  x . . . x
+  . . K . .
+  x . . . x
+  . x . x .
+  ```
+
+  Input satu baris berisi `n r1 c1 r2 c2` (1 ≤ n ≤ 100). Tampilkan banyak gerakan paling sedikit agar kuda berpindah dari kotak (r1, c1) ke kotak (r2, c2), atau `-1` jika tidak mungkin.
+
+  | Input | Output |
+  | --- | --- |
+  | `8 1 1 8 8` | `6` |
+  | `8 1 1 2 2` | `4` |
+  | `3 1 1 2 2` | `-1` |
+
+  <Petunjuk>
+    Ini BFS pada grid tanpa dinding, tetapi dengan 8 arah, bukan 4. Tulis kedelapan gerakannya di `dr` dan `dc`. Kurangi koordinat input dengan 1 agar cocok dengan indeks yang dimulai dari 0.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap kotak adalah simpul, dan setiap gerakan L yang masih di dalam papan adalah sisi. Contoh 2 menarik: kotak (2, 2) bersebelahan miring dengan (1, 1), tetapi kuda butuh 4 gerakan untuk sampai ke sana. Pada papan 3 × 3, semua gerakan dari kotak tengah keluar papan, sehingga kotak tengah tidak pernah bisa dicapai dan jawabannya `-1`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    struct Sel {
+        int r;
+        int c;
+    };
+
+    int main() {
+        int n, r1, c1, r2, c2;
+        cin >> n >> r1 >> c1 >> r2 >> c2;
+        r1--;                                   // ubah ke indeks mulai 0
+        c1--;
+        r2--;
+        c2--;
+
+        int dr[8] = {-2, -2, -1, -1, 1, 1, 2, 2};
+        int dc[8] = {-1, 1, -2, 2, -2, 2, -1, 1};
+        vector<vector<int>> dist(n, vector<int>(n, -1));
+        queue<Sel> q;
+        dist[r1][c1] = 0;
+        q.push({r1, c1});
+
+        while (!q.empty()) {
+            Sel sekarang = q.front();
+            q.pop();
+            for (int k = 0; k < 8; k++) {
+                int nr = sekarang.r + dr[k];
+                int nc = sekarang.c + dc[k];
+                if (nr >= 0 && nr < n && nc >= 0 && nc < n && dist[nr][nc] == -1) {
+                    dist[nr][nc] = dist[sekarang.r][sekarang.c] + 1;
+                    q.push({nr, nc});
+                }
+            }
+        }
+        cout << dist[r2][c2] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, r1, c1, r2, c2 = map(int, input().split())
+    r1, c1, r2, c2 = r1 - 1, c1 - 1, r2 - 1, c2 - 1     # ubah ke indeks mulai 0
+
+    dr = [-2, -2, -1, -1, 1, 1, 2, 2]
+    dc = [-1, 1, -2, 2, -2, 2, -1, 1]
+    dist = [[-1] * n for _ in range(n)]
+    q = deque()
+    dist[r1][c1] = 0
+    q.append((r1, c1))
+
+    while len(q) > 0:
+        baris, kolom = q.popleft()
+        for k in range(8):
+            nr = baris + dr[k]
+            nc = kolom + dc[k]
+            if nr >= 0 and nr < n and nc >= 0 and nc < n and dist[nr][nc] == -1:
+                dist[nr][nc] = dist[baris][kolom] + 1
+                q.append((nr, nc))
+    print(dist[r2][c2])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Kebakaran lahan">
+  Sebuah lahan berbentuk grid berisi `F` (titik api), `.` (rumput), dan `#` (batu). Setiap menit, api menjalar dari setiap sel yang terbakar ke sel rumput di atas, bawah, kiri, dan kanannya. Batu tidak pernah terbakar dan menghalangi api. Batasan: 1 ≤ r, c ≤ 500.
+
+  Tampilkan pada menit ke berapa semua rumput sudah terbakar. Jika ada rumput yang tidak akan pernah terbakar, tampilkan `-1`. Jika tidak ada rumput sama sekali, jawabannya `0`.
+
+  ```txt title="Contoh input 1"
+  4 6
+  F....#
+  .##...
+  ....#.
+  #...F.
+  ```
+
+  ```txt title="Contoh output 1"
+  4
+  ```
+
+  ```txt title="Contoh input 2"
+  3 4
+  F.#.
+  ..#.
+  ..##
+  ```
+
+  ```txt title="Contoh output 2"
+  -1
+  ```
+
+  <Petunjuk>
+    Semua titik api mulai menyala bersamaan, jadi masukkan semuanya ke queue sejak awal dengan waktu 0. Menit terbakarnya sebuah sel rumput sama dengan jaraknya ke titik api terdekat. Jawabannya adalah waktu terbesar di antara semua sel rumput, kecuali ada rumput yang waktunya tetap `-1`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ini BFS dari banyak sumber. Untuk contoh 1, menit terbakarnya setiap sel adalah:
+
+    ```txt
+    0 1 2 3 4 #
+    1 # # 3 4 3
+    2 3 3 2 # 2
+    # 3 2 1 0 1
+    ```
+
+    Waktu terbesar 4. Tanpa api kedua di kanan bawah, sel-sel di sisi kanan akan terbakar jauh lebih lambat. Pada contoh 2, dua sel rumput di kolom terakhir terkurung batu, jadi jawabannya `-1`. Kesalahan yang sering terjadi:
+
+    - menjalankan BFS hanya dari titik api pertama,
+    - lupa memeriksa rumput yang tidak pernah terbakar, sehingga `-1` tidak pernah tercetak,
+    - memulai `jawaban` dari `-1`, sehingga lahan tanpa rumput menghasilkan `-1`, bukan `0`.
+
+    Lahan yang berisi rumput tetapi tidak punya titik api sama sekali juga tertangani: tidak ada yang masuk queue, semua rumput tetap `-1`, dan jawabannya `-1`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Sel {
+        int r;
+        int c;
+    };
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<string> grid(r);
+        for (int i = 0; i < r; i++) {
+            cin >> grid[i];
+        }
+
+        int dr[4] = {-1, 1, 0, 0};
+        int dc[4] = {0, 0, -1, 1};
+        vector<vector<int>> waktu(r, vector<int>(c, -1));
+        queue<Sel> q;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == 'F') {        // semua titik api mulai bersamaan
+                    waktu[i][j] = 0;
+                    q.push({i, j});
+                }
+            }
+        }
+
+        while (!q.empty()) {
+            Sel sekarang = q.front();
+            q.pop();
+            for (int k = 0; k < 4; k++) {
+                int nr = sekarang.r + dr[k];
+                int nc = sekarang.c + dc[k];
+                if (nr >= 0 && nr < r && nc >= 0 && nc < c) {
+                    if (grid[nr][nc] == '.' && waktu[nr][nc] == -1) {
+                        waktu[nr][nc] = waktu[sekarang.r][sekarang.c] + 1;
+                        q.push({nr, nc});
+                    }
+                }
+            }
+        }
+
+        int jawaban = 0;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == '.') {
+                    if (waktu[i][j] == -1) {
+                        cout << -1 << endl;     // ada rumput yang tidak pernah terbakar
+                        return 0;
+                    }
+                    if (waktu[i][j] > jawaban) {
+                        jawaban = waktu[i][j];
+                    }
+                }
+            }
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    r, c = map(int, input().split())
+    grid = []
+    for i in range(r):
+        grid.append(input())
+
+    dr = [-1, 1, 0, 0]
+    dc = [0, 0, -1, 1]
+    waktu = [[-1] * c for _ in range(r)]
+    q = deque()
+    for i in range(r):
+        for j in range(c):
+            if grid[i][j] == "F":           # semua titik api mulai bersamaan
+                waktu[i][j] = 0
+                q.append((i, j))
+
+    while len(q) > 0:
+        baris, kolom = q.popleft()
+        for k in range(4):
+            nr = baris + dr[k]
+            nc = kolom + dc[k]
+            if nr >= 0 and nr < r and nc >= 0 and nc < c:
+                if grid[nr][nc] == "." and waktu[nr][nc] == -1:
+                    waktu[nr][nc] = waktu[baris][kolom] + 1
+                    q.append((nr, nc))
+
+    jawaban = 0
+    semua_terbakar = True
+    for i in range(r):
+        for j in range(c):
+            if grid[i][j] == ".":
+                if waktu[i][j] == -1:
+                    semua_terbakar = False  # ada rumput yang tidak pernah terbakar
+                elif waktu[i][j] > jawaban:
+                    jawaban = waktu[i][j]
+
+    if semua_terbakar:
+        print(jawaban)
+    else:
+        print(-1)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Membagi dua tim">
+  Panitia lomba ingin membagi `n` peserta ke dua tim, Merah dan Biru. Ada `m` pasangan peserta yang bersaing ketat, dan setiap pasangan itu harus berada di tim yang **berbeda**. Setiap peserta harus masuk salah satu tim, dan boleh saja salah satu tim kosong. Setiap pasangan berisi dua peserta yang berbeda.
+
+  Tampilkan `YA` jika pembagian seperti itu mungkin, atau `TIDAK` jika tidak.
+
+  ```txt title="Contoh input 1"
+  4 4
+  1 2
+  2 3
+  3 4
+  4 1
+  ```
+
+  ```txt title="Contoh output 1"
+  YA
+  ```
+
+  ```txt title="Contoh input 2"
+  6 5
+  1 2
+  2 3
+  4 5
+  5 6
+  6 4
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK
+  ```
+
+  <Petunjuk>
+    Warnai dengan BFS. Simpul awal masuk tim Merah, semua tetangganya pasti Biru, tetangga mereka Merah lagi, dan seterusnya. Jika suatu saat ada sisi yang menghubungkan dua simpul bertim sama, pembagian mustahil. Ingat bahwa graph-nya belum tentu terhubung.
+  </Petunjuk>
+
+  <Pembahasan>
+    Saat `u` diproses, setiap tetangga `v` yang belum punya tim diberi tim lawan, `1 - tim[u]`. Jika `v` sudah punya tim dan timnya sama dengan `u`, ada dua rival di tim yang sama. Konflik ini tidak bisa dihindari, karena di dalam satu komponen tim setiap simpul sudah ditentukan oleh tim simpul awal. Memilih Biru untuk simpul awal hanya menukar semua warna. Graph yang bisa dibagi seperti ini disebut graph **bipartit**.
+
+    Pada contoh 1, timnya Merah, Biru, Merah, Biru, dan setiap rival berbeda tim. Pada contoh 2, peserta 4, 5, dan 6 saling bersaing. Jika 4 Merah, maka 5 Biru, 6 Merah, padahal 6 bersaing dengan 4. Perhatikan bahwa ketiganya tidak terhubung dengan peserta 1. Program yang hanya menjalankan BFS dari peserta 1 akan menjawab `YA`. Karena itu BFS dijalankan dari setiap peserta yang belum punya tim.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<int> tim(n + 1, -1);             // -1 = belum punya tim, 0 = Merah, 1 = Biru
+        bool bisa = true;
+        for (int s = 1; s <= n; s++) {
+            if (tim[s] != -1) {
+                continue;                       // sudah terjangkau BFS sebelumnya
+            }
+            queue<int> q;
+            tim[s] = 0;
+            q.push(s);
+            while (!q.empty()) {
+                int u = q.front();
+                q.pop();
+                for (int v : adj[u]) {
+                    if (tim[v] == -1) {
+                        tim[v] = 1 - tim[u];    // tim lawan
+                        q.push(v);
+                    } else if (tim[v] == tim[u]) {
+                        bisa = false;           // dua rival satu tim
+                    }
+                }
+            }
+        }
+
+        if (bisa) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for i in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    tim = [-1] * (n + 1)                    # -1 = belum punya tim, 0 = Merah, 1 = Biru
+    bisa = True
+    for s in range(1, n + 1):
+        if tim[s] != -1:
+            continue                        # sudah terjangkau BFS sebelumnya
+        q = deque()
+        tim[s] = 0
+        q.append(s)
+        while len(q) > 0:
+            u = q.popleft()
+            for v in adj[u]:
+                if tim[v] == -1:
+                    tim[v] = 1 - tim[u]     # tim lawan
+                    q.append(v)
+                elif tim[v] == tim[u]:
+                    bisa = False            # dua rival satu tim
+
+    if bisa:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Rute terpanjang antardesa">
+  Ada `n` desa yang dihubungkan oleh `n − 1` jalan, sehingga setiap dua desa terhubung lewat tepat satu rute. Dengan kata lain, petanya adalah sebuah [tree](/docs/cpp/tree). Input mengikuti format graph dengan `m = n − 1`. Batasan: 1 ≤ n ≤ 100.000.
+
+  Tampilkan jarak terjauh antara dua desa, yaitu banyak jalan pada rute terpanjang di antara semua pasangan desa.
+
+  ```txt
+  7 --- 1 --- 2 --- 3
+              |
+              4 --- 5 --- 6
+  ```
+
+  ```txt title="Contoh input 1"
+  7 6
+  1 2
+  2 3
+  2 4
+  4 5
+  5 6
+  1 7
+  ```
+
+  ```txt title="Contoh output 1"
+  5
+  ```
+
+  ```txt title="Contoh input 2"
+  1 0
+  ```
+
+  ```txt title="Contoh output 2"
+  0
+  ```
+
+  <Petunjuk>
+    Menjalankan BFS dari setiap desa memang benar, tetapi butuh sekitar `n × n` langkah, terlalu lambat untuk `n = 100.000`. Cukup dua kali BFS: jalankan BFS dari desa 1 dan ambil desa terjauh, sebut `a`. Lalu jalankan BFS dari `a`. Jarak terbesar dari `a` adalah jawabannya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, desa terjauh dari desa 1 adalah desa 6 dengan jarak 4. Jawabannya bukan 4, jadi satu BFS dari desa 1 belum cukup. BFS kedua dari desa 6 menemukan desa 7 dengan jarak 5, lewat rute 6-5-4-2-1-7.
+
+    Cara ini bekerja karena sebuah sifat tree: desa terjauh dari desa mana pun selalu merupakan salah satu ujung rute terpanjang. Begitu satu ujung diketahui, ujung lainnya adalah desa terjauh darinya. Sifat ini tidak berlaku pada graph yang punya siklus. Buktinya di luar cakupan materi ini, tetapi kamu bisa mengujinya sendiri dengan membandingkan hasilnya dengan cara lambat (BFS dari setiap desa) pada tree-tree kecil.
+
+    BFS ditulis sebagai fungsi agar bisa dipanggil dua kali.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    vector<int> bfs(int s, const vector<vector<int>>& adj) {
+        vector<int> dist(adj.size(), -1);
+        queue<int> q;
+        dist[s] = 0;
+        q.push(s);
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.push(v);
+                }
+            }
+        }
+        return dist;
+    }
+
+    int terjauh(const vector<int>& dist) {
+        int hasil = 1;
+        for (int v = 1; v < (int)dist.size(); v++) {
+            if (dist[v] > dist[hasil]) {
+                hasil = v;
+            }
+        }
+        return hasil;
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<int> dari1 = bfs(1, adj);
+        int a = terjauh(dari1);                 // salah satu ujung rute terpanjang
+        vector<int> dariA = bfs(a, adj);
+        int b = terjauh(dariA);                 // ujung yang lain
+        cout << dariA[b] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+
+    def bfs(s, adj, n):
+        dist = [-1] * (n + 1)
+        q = deque()
+        dist[s] = 0
+        q.append(s)
+        while len(q) > 0:
+            u = q.popleft()
+            for v in adj[u]:
+                if dist[v] == -1:
+                    dist[v] = dist[u] + 1
+                    q.append(v)
+        return dist
+
+
+    def terjauh(dist, n):
+        hasil = 1
+        for v in range(1, n + 1):
+            if dist[v] > dist[hasil]:
+                hasil = v
+        return hasil
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for i in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dari_1 = bfs(1, adj, n)
+    a = terjauh(dari_1, n)                  # salah satu ujung rute terpanjang
+    dari_a = bfs(a, adj, n)
+    b = terjauh(dari_a, n)                  # ujung yang lain
+    print(dari_a[b])
+    ```
+  </Pembahasan>
+</Soal>

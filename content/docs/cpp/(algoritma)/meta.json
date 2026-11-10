@@ -1,0 +1,5 @@
+{
+  "title": "Rekursi & Algoritma",
+  "icon": "Workflow",
+  "pages": ["rekursi", "algoritma-pengurutan", "algoritma-pencarian", "divide-and-conquer"]
+}

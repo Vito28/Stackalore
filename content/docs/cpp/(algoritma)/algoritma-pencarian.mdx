@@ -1,0 +1,1474 @@
+---
+title: Algoritma Pencarian
+description: Mencari data dengan cepat memakai pencarian biner pada data terurut, variannya untuk batas bawah dan batas atas, pencarian biner pada jawaban, serta binary_search, lower_bound, upper_bound, dan bisect.
+sumber:
+  - ref: cppreference
+    judul: std::binary_search
+    url: https://en.cppreference.com/w/cpp/algorithm/binary_search
+  - ref: cppreference
+    judul: std::lower_bound
+    url: https://en.cppreference.com/w/cpp/algorithm/lower_bound
+  - ref: cppreference
+    judul: std::upper_bound
+    url: https://en.cppreference.com/w/cpp/algorithm/upper_bound
+  - ref: python-docs
+    judul: "bisect, Array bisection algorithm"
+    url: https://docs.python.org/3/library/bisect.html
+---
+
+## Masalah: mencari di data yang besar
+
+Di materi [Array & vector](/docs/cpp/array-dan-vector#mencari-elemen), kamu mencari sebuah nilai dengan **pencarian linear**: periksa elemen satu per satu dari depan sampai ketemu. Cara ini selalu benar dan bekerja untuk data apa pun. Masalahnya ada pada biaya. Jika nilai yang dicari tidak ada, **semua** elemen harus diperiksa dulu sebelum program yakin.
+
+Bayangkan sebuah toko daring dengan satu juta kode barang, dan setiap detik ada seribu pembeli yang mengecek apakah sebuah kode tersedia. Dengan pencarian linear, itu bisa mencapai satu miliar perbandingan setiap detik. Kompleksitasnya O(n) per pencarian: data dua kali lebih banyak, pencarian dua kali lebih lama.
+
+Di materi [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan), kamu sudah bisa mengurutkan data. Data yang terurut menyimpan informasi tambahan yang sangat berharga: jika `data[i]` lebih kecil daripada yang dicari, **semua** elemen di kiri `data[i]` juga pasti lebih kecil. Sekali membandingkan, banyak elemen bisa dicoret sekaligus. Materi ini membahas cara memanfaatkannya.
+
+## Ide pencarian biner
+
+Coba permainan tebak angka. Temanmu memikirkan sebuah bilangan dari 1 sampai 100. Setiap kali kamu menebak, ia hanya menjawab "terlalu kecil", "terlalu besar", atau "benar".
+
+Menebak 1, 2, 3, dan seterusnya bisa butuh 100 tebakan. Strategi yang jauh lebih baik adalah selalu menebak **tengah-tengah** dari kemungkinan yang tersisa. Tebak 50. Jika jawabannya "terlalu kecil", bilangan 1 sampai 50 tercoret sekaligus dan sisanya 51 sampai 100. Tebak 75, lalu seterusnya. Setiap tebakan membuang separuh kemungkinan: 100 → 50 → 25 → 13 → 7 → 4 → 2 → 1. Paling banyak 7 tebakan.
+
+Teknik ini disebut **pencarian biner** (_binary search_). Permainan tadi hanya berhasil karena bilangan **berurutan**, sehingga jawaban "terlalu kecil" bermakna "cari di sebelah kanan". Pencarian biner pada array juga sama: datanya **harus terurut**.
+
+| Banyak data | Pencarian linear (terburuk) | Pencarian biner (terburuk) |
+| --- | --- | --- |
+| 1.000 | 1.000 perbandingan | 10 perbandingan |
+| 1.000.000 | 1.000.000 perbandingan | 20 perbandingan |
+| 1.000.000.000 | 1.000.000.000 perbandingan | 30 perbandingan |
+
+Pertumbuhan seperti ini ditulis **O(log n)**: setiap kali data menjadi dua kali lipat, pencarian hanya bertambah satu langkah. Penjelasan lebih lengkapnya ada di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+## Pencarian biner langkah demi langkah
+
+Kita memakai dua indeks, `lo` (batas bawah) dan `hi` (batas atas), dengan satu janji: **jika nilai yang dicari ada, ia pasti berada di antara indeks `lo` sampai `hi`**, termasuk kedua ujungnya. Awalnya `lo = 0` dan `hi = n - 1`, yaitu seluruh data.
+
+Selama `lo <= hi`, masih ada kandidat. Ambil indeks tengah `mid`, lalu bandingkan `data[mid]` dengan `x`, nilai yang dicari:
+
+1. `data[mid] == x`: ketemu, kembalikan `mid`.
+2. `data[mid] < x`: `x` pasti di kanan `mid`. Buang `mid` dan seluruh bagian kirinya dengan `lo = mid + 1`.
+3. `data[mid] > x`: `x` pasti di kiri `mid`. Buang `mid` dan seluruh bagian kanannya dengan `hi = mid - 1`.
+
+Jika `lo` sudah melewati `hi`, tidak ada kandidat tersisa. Artinya `x` tidak ada di data, dan fungsi mengembalikan `-1`, sama seperti pencarian linear.
+
+Contohnya, data berikut berisi 10 bilangan terurut:
+
+| Indeks | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Nilai | 5 | 12 | 18 | 23 | 31 | 40 | 47 | 56 | 64 | 78 |
+
+Mencari `47`:
+
+| Langkah | `lo` | `hi` | `mid` | `data[mid]` | Keputusan |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 9 | 4 | 31 | 31 < 47, `lo = 5` |
+| 2 | 5 | 9 | 7 | 56 | 56 > 47, `hi = 6` |
+| 3 | 5 | 6 | 5 | 40 | 40 < 47, `lo = 6` |
+| 4 | 6 | 6 | 6 | 47 | ketemu di indeks 6 |
+
+Mencari `20`, yang tidak ada di data:
+
+| Langkah | `lo` | `hi` | `mid` | `data[mid]` | Keputusan |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 9 | 4 | 31 | 31 > 20, `hi = 3` |
+| 2 | 0 | 3 | 1 | 12 | 12 < 20, `lo = 2` |
+| 3 | 2 | 3 | 2 | 18 | 18 < 20, `lo = 3` |
+| 4 | 3 | 3 | 3 | 23 | 23 > 20, `hi = 2` |
+| 5 | 3 | 2 | | | `lo > hi`, berhenti: tidak ada |
+
+Perhatikan langkah 5. Nilai 20 seharusnya berada di antara 18 (indeks 2) dan 23 (indeks 3). Pencarian berhenti tepat di celah itu, dengan `lo` menunjuk ke posisi tempat 20 seharusnya disisipkan. Fakta ini akan berguna di bagian varian nanti.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int cariBiner(const vector<int>& data, int x) {
+    int lo = 0;
+    int hi = (int)data.size() - 1;
+    while (lo <= hi) {                      // masih ada kandidat
+        int mid = lo + (hi - lo) / 2;       // indeks tengah
+        if (data[mid] == x) {
+            return mid;                     // ketemu
+        } else if (data[mid] < x) {
+            lo = mid + 1;                   // buang separuh kiri
+        } else {
+            hi = mid - 1;                   // buang separuh kanan
+        }
+    }
+    return -1;                              // tidak ada
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> data(n);
+    for (int i = 0; i < n; i++) {
+        cin >> data[i];
+    }
+    int x;
+    cin >> x;
+
+    cout << cariBiner(data, x) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def cari_biner(data, x):
+    lo = 0
+    hi = len(data) - 1
+    while lo <= hi:                         # masih ada kandidat
+        mid = lo + (hi - lo) // 2           # indeks tengah
+        if data[mid] == x:
+            return mid                      # ketemu
+        elif data[mid] < x:
+            lo = mid + 1                    # buang separuh kiri
+        else:
+            hi = mid - 1                    # buang separuh kanan
+    return -1                               # tidak ada
+
+
+n = int(input())
+data = list(map(int, input().split()))
+x = int(input())
+
+print(cari_biner(data, x))
+```
+
+```txt title="Contoh jalannya program (dua kali)"
+10
+5 12 18 23 31 40 47 56 64 78
+47
+6
+
+10
+5 12 18 23 31 40 47 56 64 78
+20
+-1
+```
+
+Rumus `mid = lo + (hi - lo) / 2` sengaja tidak ditulis `(lo + hi) / 2`. Alasannya dibahas di bagian jebakan di bawah.
+
+**Kenapa perulangan ini pasti berhenti?** Di setiap langkah, fungsi entah langsung selesai karena ketemu, entah membuang `mid` beserta salah satu sisinya. Rentang `lo` sampai `hi` selalu menyusut minimal satu elemen, jadi lama-lama pasti kosong.
+
+<Callout type="warning" title="Data harus terurut">
+  Pencarian biner tidak memeriksa apakah datanya terurut, dan tidak memberi error jika tidak. Ia hanya memberi jawaban yang salah. Pada data `8 3 9 1 5`, mencari `3` dimulai dari `mid = 2`. Karena `9 > 3`, separuh kanan dibuang. Lalu `8 > 3`, separuh kanan dibuang lagi, dan hasilnya `-1`, padahal `3` ada di indeks 1. Urutkan dulu, atau pakai pencarian linear.
+</Callout>
+
+Jika nilai yang dicari muncul beberapa kali, versi ini mengembalikan **salah satu** posisinya, belum tentu yang pertama. Cara mencari kemunculan pertama dibahas di bagian varian.
+
+Pencarian biner juga bisa ditulis sebagai fungsi yang memanggil dirinya sendiri, karena setiap langkahnya adalah "masalah yang sama pada separuh data". Versi rekursif itu dibahas di [Divide & Conquer](/docs/cpp/divide-and-conquer).
+
+## Jebakan: meleset satu dan perulangan tanpa akhir
+
+Ide pencarian biner sederhana, tetapi kodenya terkenal mudah salah. Hampir semua kesalahan berasal dari perubahan kecil pada `<=`, `+ 1`, atau `- 1`.
+
+### `lo = mid` tanpa `+ 1`
+
+```cpp
+} else if (data[mid] < x) {
+    lo = mid;              // ✗ seharusnya mid + 1
+}
+```
+
+Ambil data `10 20` dan cari `20`. Awalnya `lo = 0` dan `hi = 1`, jadi `mid = 0`. Karena `10 < 20`, `lo = mid = 0`. Tidak ada yang berubah, dan langkah yang sama terulang selamanya. Program **macet** tanpa pesan apa pun. Hal yang sama terjadi pada `hi = mid` tanpa `- 1`. Ingat janjinya: `mid` sudah diperiksa dan bukan jawaban, jadi ia harus ikut dibuang.
+
+### `while (lo < hi)` alih-alih `lo <= hi`
+
+Saat `lo == hi`, masih ada **satu** kandidat yang belum diperiksa. Dengan `lo < hi`, perulangan berhenti sebelum memeriksanya. Pada jejak pencarian `47` di atas, langkah 4 (`lo = hi = 6`) tidak pernah dijalankan dan hasilnya `-1`. Data berisi satu elemen bahkan tidak pernah diperiksa sama sekali.
+
+### `hi = n` alih-alih `n - 1`
+
+Dengan `hi = n`, janji "jawaban ada di indeks `lo` sampai `hi`" sudah dilanggar sejak awal, karena indeks `n` tidak ada. Saat mencari nilai yang lebih besar daripada semua elemen, `mid` akhirnya bernilai `n` dan program membaca `data[n]`. Di C++ ini _undefined behavior_, di Python `IndexError`.
+
+### Menghitung `mid` dengan aman
+
+Rumus `(lo + hi) / 2` terlihat wajar, tetapi `lo + hi` bisa melewati batas `int` (sekitar 2,1 miliar) sebelum dibagi dua:
+
+```cpp
+int lo = 1500000000, hi = 2000000000;
+int mid = (lo + hi) / 2;          // ✗ 3,5 miliar tidak muat di int: -397483648
+int aman = lo + (hi - lo) / 2;    // ✓ 1750000000
+```
+
+Hasilnya adalah [overflow](/docs/cpp/variabel-dan-tipe-data), dan `mid` menjadi negatif. Untuk indeks array, keadaan ini butuh data lebih dari satu miliar elemen, jadi jarang terjadi. Namun di bagian "pencarian biner pada jawaban", `lo` dan `hi` bisa bernilai miliaran. `lo + (hi - lo) / 2` tidak pernah melebihi `hi`, jadi selalu aman. Python tidak mengenal overflow, tetapi rumus yang sama tetap benar, jadi kebiasaan ini bisa dipakai di kedua bahasa.
+
+Cara cepat menguji pencarian biner buatan sendiri: coba data berisi **1** dan **2** elemen, lalu cari nilai yang lebih kecil daripada semua elemen, lebih besar daripada semua elemen, dan setiap elemen yang ada. Hampir semua kesalahan di atas langsung terlihat.
+
+## Varian: mencari batas
+
+Pada data dengan nilai kembar, pertanyaannya sering bukan "ada atau tidak", tetapi:
+
+- Di indeks mana `x` **pertama kali** muncul?
+- Ada **berapa** `x`?
+- Di mana `x` harus **disisipkan** agar data tetap urut?
+- Ada berapa elemen yang **lebih kecil** daripada `x`?
+
+Semua pertanyaan ini bisa dijawab dengan dua fungsi:
+
+- **Batas bawah** (_lower bound_): indeks pertama yang elemennya **≥ `x`**.
+- **Batas atas** (_upper bound_): indeks pertama yang elemennya **> `x`**.
+
+Jika tidak ada elemen yang memenuhi, jawabannya `n`, yaitu "sesudah elemen terakhir".
+
+Polanya sedikit berbeda dari pencarian biasa. Saat `data[mid]` memenuhi syarat, `mid` adalah **kandidat** jawaban, tetapi mungkin masih ada yang lebih kiri. Jadi simpan `mid` di variabel `jawaban`, lalu lanjutkan mencari di kiri.
+
+```cpp tab="C++"
+// indeks pertama dengan data[i] >= x, atau n jika tidak ada
+int batasBawah(const vector<int>& data, int x) {
+    int lo = 0;
+    int hi = (int)data.size() - 1;
+    int jawaban = data.size();
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (data[mid] >= x) {
+            jawaban = mid;          // kandidat, coba cari yang lebih kiri
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return jawaban;
+}
+
+// indeks pertama dengan data[i] > x, atau n jika tidak ada
+int batasAtas(const vector<int>& data, int x) {
+    int lo = 0;
+    int hi = (int)data.size() - 1;
+    int jawaban = data.size();
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (data[mid] > x) {        // satu-satunya perbedaan: > bukan >=
+            jawaban = mid;
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    return jawaban;
+}
+```
+
+```python tab="Python"
+# indeks pertama dengan data[i] >= x, atau n jika tidak ada
+def batas_bawah(data, x):
+    lo = 0
+    hi = len(data) - 1
+    jawaban = len(data)
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if data[mid] >= x:
+            jawaban = mid           # kandidat, coba cari yang lebih kiri
+            hi = mid - 1
+        else:
+            lo = mid + 1
+    return jawaban
+
+
+# indeks pertama dengan data[i] > x, atau n jika tidak ada
+def batas_atas(data, x):
+    lo = 0
+    hi = len(data) - 1
+    jawaban = len(data)
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if data[mid] > x:           # satu-satunya perbedaan: > bukan >=
+            jawaban = mid
+            hi = mid - 1
+        else:
+            lo = mid + 1
+    return jawaban
+```
+
+Hasilnya untuk data `2 4 4 4 7 9` (indeks 0 sampai 5):
+
+| `x` | `batasBawah` (pertama ≥ x) | `batasAtas` (pertama > x) | Selisihnya |
+| --- | --- | --- | --- |
+| 4 | 1 | 4 | 3 |
+| 5 | 4 | 4 | 0 |
+| 1 | 0 | 0 | 0 |
+| 10 | 6 | 6 | 0 |
+
+Dari dua fungsi ini, pertanyaan-pertanyaan tadi terjawab:
+
+| Pertanyaan | Jawaban |
+| --- | --- |
+| Apakah `x` ada? | `i = batasBawah(x)`, lalu periksa `i < n && data[i] == x` |
+| Indeks kemunculan pertama `x` | `batasBawah(x)`, jika `x` ada |
+| Banyak `x` | `batasAtas(x) - batasBawah(x)` |
+| Posisi sisip agar tetap urut | `batasBawah(x)` |
+| Banyak elemen `< x` | `batasBawah(x)` |
+| Banyak elemen `<= x` | `batasAtas(x)` |
+| Banyak elemen di rentang `a` sampai `b` | `batasAtas(b) - batasBawah(a)` |
+
+Urutan `i < n && data[i] == x` penting. Jika `x` lebih besar daripada semua elemen, `i` bernilai `n`, dan berkat _short-circuit_ `data[n]` tidak pernah dibaca.
+
+Kenapa "banyak elemen `< x`" sama dengan `batasBawah(x)`? Semua elemen sebelum indeks pertama yang `≥ x` pasti `< x`. Jika indeks itu 4, berarti ada tepat 4 elemen di depannya, yaitu indeks 0 sampai 3.
+
+## Pencarian biner pada jawaban
+
+Pencarian biner tidak hanya untuk mencari di dalam array. Ia bisa mencari **jawaban** dari sebuah soal, selama ada syarat yang bersifat **monoton**: jika sebuah nilai memenuhi syarat, semua nilai yang lebih besar juga memenuhi (atau sebaliknya). Jika semua kemungkinan jawaban dijejerkan, hasil pemeriksaannya berbentuk seperti ini:
+
+```txt
+nilai:    1      2      3      4      5      6      7
+syarat: tidak  tidak  tidak    ya     ya     ya     ya
+                               ↑
+                  jawaban: "ya" yang pertama
+```
+
+Bentuk ini sama dengan data terurut, sehingga batas antara "tidak" dan "ya" bisa dicari dengan pola `jawaban` yang sama seperti `batasBawah`.
+
+### Contoh: akar kuadrat bulat
+
+Cari bilangan bulat terbesar `r` dengan `r × r ≤ n`, untuk `0 ≤ n ≤ 1.000.000.000`. Syarat `r × r ≤ n` bernilai "ya" untuk `r` kecil, lalu "tidak" mulai dari suatu titik. Arahnya terbalik dari gambar di atas, jadi kita mencari "ya" yang **terakhir**: saat `mid` memenuhi, simpan sebagai jawaban dan coba yang lebih besar.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+long long akarBulat(long long n) {
+    long long lo = 0, hi = n, jawaban = 0;
+    while (lo <= hi) {
+        long long mid = lo + (hi - lo) / 2;
+        if (mid * mid <= n) {
+            jawaban = mid;          // mid memenuhi, coba yang lebih besar
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;           // terlalu besar
+        }
+    }
+    return jawaban;
+}
+
+int main() {
+    long long n;
+    cin >> n;
+    cout << akarBulat(n) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def akar_bulat(n):
+    lo = 0
+    hi = n
+    jawaban = 0
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if mid * mid <= n:
+            jawaban = mid           # mid memenuhi, coba yang lebih besar
+            lo = mid + 1
+        else:
+            hi = mid - 1            # terlalu besar
+    return jawaban
+
+
+n = int(input())
+print(akar_bulat(n))
+```
+
+```txt title="Contoh jalannya program (dua kali)"
+50
+7
+
+1000000000
+31622
+```
+
+Untuk `n = 50`, `mid` yang diperiksa berturut-turut adalah 25, 12, 5, 8, 6, dan 7. Rentang awalnya 0 sampai 1 miliar pun hanya butuh sekitar 30 langkah. Variabelnya memakai `long long`, karena `mid * mid` bisa mencapai 10¹⁸ dan tidak muat di `int`.
+
+### Contoh: kecepatan membaca minimum
+
+Kamu harus membaca `n` bab buku **sesuai urutan** dalam waktu paling lama `d` hari. Bab ke-`i` berisi `h[i]` halaman, dan sebuah bab harus selesai di hari yang sama dengan hari kamu memulainya. Setiap hari kamu sanggup membaca paling banyak `k` halaman. Berapa `k` terkecil agar semua bab selesai dalam `d` hari?
+
+Mencari `k` secara langsung sulit. Namun untuk `k` **tertentu**, mudah menghitung berapa hari yang dibutuhkan: baca bab demi bab, dan pindah ke hari berikutnya jika bab berikutnya tidak muat lagi di hari ini. Untuk bab `30 50 20 40 10` dan `d = 3`:
+
+| `k` | Pembagian bab per hari | Hari | Cukup? |
+| --- | --- | --- | --- |
+| 50 | `30` / `50` / `20` / `40 10` | 4 | tidak |
+| 60 | `30` / `50` / `20 40` / `10` | 4 | tidak |
+| 69 | `30` / `50` / `20 40` / `10` | 4 | tidak |
+| 70 | `30` / `50 20` / `40 10` | 3 | ya |
+| 100 | `30 50 20` / `40 10` | 2 | ya |
+| 150 | `30 50 20 40 10` | 1 | ya |
+
+Makin besar `k`, hari yang dibutuhkan tidak pernah bertambah. Syaratnya monoton, jadi `k` terkecil yang cukup bisa dicari dengan pencarian biner. Rentang pencariannya juga jelas. `k` tidak boleh lebih kecil dari bab terpanjang, karena bab itu harus selesai dalam sehari. `k` juga tidak perlu lebih besar dari total halaman, karena dengan itu semua bab selesai dalam sehari.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int hariDibutuhkan(const vector<int>& bab, int k) {
+    int hari = 1, terbaca = 0;
+    for (int i = 0; i < (int)bab.size(); i++) {
+        if (terbaca + bab[i] > k) {     // tidak muat lagi hari ini
+            hari++;
+            terbaca = 0;
+        }
+        terbaca += bab[i];
+    }
+    return hari;
+}
+
+int main() {
+    int n, d;
+    cin >> n >> d;
+    vector<int> bab(n);
+    int terpanjang = 0, total = 0;
+    for (int i = 0; i < n; i++) {
+        cin >> bab[i];
+        if (bab[i] > terpanjang) {
+            terpanjang = bab[i];
+        }
+        total += bab[i];
+    }
+
+    int lo = terpanjang, hi = total, jawaban = total;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (hariDibutuhkan(bab, mid) <= d) {
+            jawaban = mid;              // cukup, coba yang lebih kecil
+            hi = mid - 1;
+        } else {
+            lo = mid + 1;               // tidak cukup, harus lebih besar
+        }
+    }
+    cout << jawaban << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def hari_dibutuhkan(bab, k):
+    hari = 1
+    terbaca = 0
+    for h in bab:
+        if terbaca + h > k:             # tidak muat lagi hari ini
+            hari += 1
+            terbaca = 0
+        terbaca += h
+    return hari
+
+
+n, d = map(int, input().split())
+bab = list(map(int, input().split()))
+
+lo = max(bab)
+hi = sum(bab)
+jawaban = hi
+while lo <= hi:
+    mid = lo + (hi - lo) // 2
+    if hari_dibutuhkan(bab, mid) <= d:
+        jawaban = mid                   # cukup, coba yang lebih kecil
+        hi = mid - 1
+    else:
+        lo = mid + 1                    # tidak cukup, harus lebih besar
+print(jawaban)
+```
+
+```txt title="Contoh jalannya program"
+5 3
+30 50 20 40 10
+70
+```
+
+Setiap pemeriksaan butuh `n` langkah, dan pencarian biner hanya memanggilnya sekitar log₂(total) kali. Untuk 100.000 bab dengan total 100 juta halaman, itu sekitar 27 pemeriksaan, jauh lebih cepat daripada mencoba setiap `k` satu per satu.
+
+Kunci dari teknik ini adalah mengubah pertanyaan "berapa nilai terbaik?" menjadi "apakah nilai ini cukup?". Pertanyaan kedua biasanya jauh lebih mudah dijawab.
+
+## Versi pustaka: `lower_bound`, `upper_bound`, dan `bisect`
+
+Kedua bahasa sudah menyediakan pencarian biner yang teruji. Di C++, fungsinya ada di `<algorithm>`. Di Python, ada di modul `bisect`.
+
+| Tujuan | C++ | Python |
+| --- | --- | --- |
+| Apakah `x` ada? | `binary_search(v.begin(), v.end(), x)` | `i = bisect_left(a, x)`, lalu `i < len(a) and a[i] == x` |
+| Indeks pertama ≥ `x` | `lower_bound(v.begin(), v.end(), x) - v.begin()` | `bisect_left(a, x)` |
+| Indeks pertama > `x` | `upper_bound(v.begin(), v.end(), x) - v.begin()` | `bisect_right(a, x)` |
+| Banyak `x` | selisih kedua indeks di atas | `bisect_right(a, x) - bisect_left(a, x)` |
+
+```cpp tab="C++"
+#include <iostream>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> v = {2, 4, 4, 4, 7, 9};
+
+    cout << binary_search(v.begin(), v.end(), 7) << endl;    // 1 (true)
+    cout << binary_search(v.begin(), v.end(), 5) << endl;    // 0 (false)
+
+    int bawah = lower_bound(v.begin(), v.end(), 4) - v.begin();
+    int atas = upper_bound(v.begin(), v.end(), 4) - v.begin();
+    cout << bawah << " " << atas << endl;                    // 1 4
+    cout << "banyak 4: " << atas - bawah << endl;            // 3
+    return 0;
+}
+```
+
+```python tab="Python"
+from bisect import bisect_left, bisect_right
+
+a = [2, 4, 4, 4, 7, 9]
+
+i = bisect_left(a, 7)
+print(i < len(a) and a[i] == 7)          # True
+i = bisect_left(a, 5)
+print(i < len(a) and a[i] == 5)          # False
+
+bawah = bisect_left(a, 4)
+atas = bisect_right(a, 4)
+print(bawah, atas)                       # 1 4
+print("banyak 4:", atas - bawah)         # 3
+```
+
+`lower_bound` dan `upper_bound` mengembalikan **posisi**, sama seperti `find` pada map di materi [Map & Set](/docs/cpp/map-dan-set). Mengurangkannya dengan `v.begin()` mengubah posisi itu menjadi indeks. Jika tidak ada elemen yang memenuhi, hasilnya `v.end()`, yang menjadi indeks `n`. `binary_search` hanya menjawab ada atau tidak, tanpa memberi tahu letaknya.
+
+<Callout type="warning" title="in pada list tetap linear">
+  Di Python, `x in data` dan `data.index(x)` pada list **selalu** memeriksa elemen satu per satu, walaupun list-nya sudah terurut. Python tidak tahu bahwa list-mu terurut. Untuk mencari berkali-kali di list yang besar, pakai `bisect`, atau simpan datanya di `set`.
+</Callout>
+
+<DeepDive href="/docs/cpp/pustaka/algorithm" kind="pustaka" title="<algorithm>">
+  Daftar lengkap fungsi siap pakai untuk vector, termasuk `sort`, `find`, `count`, `binary_search`, `lower_bound`, dan `upper_bound`, beserta padanannya di Python.
+</DeepDive>
+
+## Memilih cara mencari
+
+Pencarian biner bukan satu-satunya cara cepat. Di materi [Map & Set](/docs/cpp/map-dan-set), kamu sudah mengenal **hashing**, yang langsung menuju "loker" tempat sebuah nilai disimpan.
+
+| | Pencarian linear | Pencarian biner | Hashing (`unordered_set`, `set` dan `dict` Python) |
+| --- | --- | --- | --- |
+| Syarat data | apa saja | harus terurut | disimpan di struktur khusus |
+| Persiapan | tidak ada | mengurutkan, O(n log n) | memasukkan semua data, rata-rata O(n) |
+| Satu kali mencari | O(n) | O(log n) | rata-rata O(1) |
+| Menjawab "berapa yang `< x`" atau "nilai terdekat" | bisa, O(n) | bisa, O(log n) | tidak bisa, karena urutan tidak disimpan |
+| Cocok untuk | data kecil, atau hanya sekali mencari | banyak pencarian pada data yang jarang berubah, dan pertanyaan tentang urutan | banyak pengecekan "ada atau tidak", termasuk saat data sering bertambah |
+
+Beberapa pegangan:
+
+- Hanya mencari sekali atau dua kali? Pencarian linear sudah cukup. Mengurutkan dulu justru lebih mahal daripada satu kali pencarian linear.
+- Hanya perlu tahu "ada atau tidak", dan datanya sering ditambah? Pakai `unordered_set` atau `set` Python.
+- Perlu jawaban yang berhubungan dengan urutan, seperti "berapa nilai di bawah 70", "nilai terdekat dengan `x`", atau "posisi sisip"? Urutkan sekali, lalu pakai pencarian biner.
+
+`std::set` dan `std::map` di C++ sebenarnya bukan hash table, melainkan pohon terurut. Pencariannya O(log n) dengan ide yang mirip pencarian biner, dan cara kerjanya akan kamu lihat di materi [Binary Search Tree](/docs/cpp/binary-search-tree).
+
+## Rangkuman
+
+- Pencarian linear bekerja untuk data apa pun, tetapi butuh O(n) perbandingan untuk setiap pencarian.
+- **Pencarian biner** membandingkan dengan elemen tengah, lalu membuang separuh kandidat di setiap langkah. Kompleksitasnya O(log n): sejuta data cukup sekitar 20 langkah. Syaratnya, data **harus terurut**.
+- Polanya: `lo = 0`, `hi = n - 1`, `while (lo <= hi)`, `mid = lo + (hi - lo) / 2`, lalu `lo = mid + 1` atau `hi = mid - 1`. Jika perulangan selesai tanpa menemukan, kembalikan `-1`.
+- Kesalahan umum: `lo = mid` tanpa `+ 1` (macet), `lo < hi` alih-alih `lo <= hi` (kandidat terakhir terlewat), `hi = n` (membaca di luar batas), dan `(lo + hi) / 2` yang bisa overflow.
+- **Batas bawah** adalah indeks pertama yang ≥ `x`, **batas atas** adalah indeks pertama yang > `x`. Keduanya menjawab kemunculan pertama, banyak kemunculan, posisi sisip, dan banyak elemen dalam suatu rentang.
+- **Pencarian biner pada jawaban** bisa dipakai jika syarat "apakah nilai ini cukup?" bersifat monoton. Simpan kandidat di variabel `jawaban`, lalu terus persempit rentangnya.
+- Versi pustaka: `binary_search`, `lower_bound`, dan `upper_bound` dari `<algorithm>`, serta `bisect_left` dan `bisect_right` dari `bisect`.
+- Pilih pencarian linear untuk data kecil, hashing untuk pengecekan "ada atau tidak", dan pencarian biner untuk banyak pertanyaan yang berhubungan dengan urutan.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kamu boleh memakai pencarian biner buatan sendiri maupun versi pustaka, kecuali soal memintanya secara khusus.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Jejak pencarian biner">
+  Program berikut mencetak `data[mid]` di setiap langkah, lalu hasil pencariannya. Tanpa menjalankannya, tebak output untuk `x = 39` dan untuk `x = 12`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      vector<int> data = {3, 8, 11, 15, 20, 26, 31, 39, 44, 50, 57};
+      int x;
+      cin >> x;
+
+      int lo = 0, hi = (int)data.size() - 1, hasil = -1;
+      while (lo <= hi) {
+          int mid = lo + (hi - lo) / 2;
+          cout << data[mid] << " ";
+          if (data[mid] == x) {
+              hasil = mid;
+              break;
+          } else if (data[mid] < x) {
+              lo = mid + 1;
+          } else {
+              hi = mid - 1;
+          }
+      }
+      cout << endl << hasil << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  data = [3, 8, 11, 15, 20, 26, 31, 39, 44, 50, 57]
+  x = int(input())
+
+  lo = 0
+  hi = len(data) - 1
+  hasil = -1
+  while lo <= hi:
+      mid = lo + (hi - lo) // 2
+      print(data[mid], end=" ")
+      if data[mid] == x:
+          hasil = mid
+          break
+      elif data[mid] < x:
+          lo = mid + 1
+      else:
+          hi = mid - 1
+  print()
+  print(hasil)
+  ```
+
+  <Pembahasan>
+    Untuk `x = 39`, output-nya `26 44 31 39` lalu `7`. Untuk `x = 12`, output-nya `26 11 15` lalu `-1`.
+
+    | `x` | `lo` | `hi` | `mid` | `data[mid]` | Keputusan |
+    | --- | --- | --- | --- | --- | --- |
+    | 39 | 0 | 10 | 5 | 26 | 26 < 39, `lo = 6` |
+    | 39 | 6 | 10 | 8 | 44 | 44 > 39, `hi = 7` |
+    | 39 | 6 | 7 | 6 | 31 | 31 < 39, `lo = 7` |
+    | 39 | 7 | 7 | 7 | 39 | ketemu, indeks 7 |
+    | 12 | 0 | 10 | 5 | 26 | 26 > 12, `hi = 4` |
+    | 12 | 0 | 4 | 2 | 11 | 11 < 12, `lo = 3` |
+    | 12 | 3 | 4 | 3 | 15 | 15 > 12, `hi = 2` |
+    | 12 | 3 | 2 | | | `lo > hi`, berhenti |
+
+    Data berisi 11 elemen, jadi pencarian paling banyak butuh 4 langkah. Pencarian linear untuk `x = 12` harus memeriksa seluruh 11 elemen sebelum menyimpulkan `-1`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Ada atau tidak">
+  Baris pertama berisi `n` (1 ≤ n ≤ 100.000). Baris kedua berisi `n` bilangan bulat yang **sudah terurut naik**. Baris ketiga berisi `q` (1 ≤ q ≤ 100.000), dan baris keempat berisi `q` bilangan yang ditanyakan. Untuk setiap bilangan yang ditanyakan, tampilkan `ADA` atau `TIDAK` di baris tersendiri.
+
+  ```txt title="Contoh input"
+  6
+  3 9 14 14 20 31
+  4
+  14 4 31 32
+  ```
+
+  ```txt title="Contoh output"
+  ADA
+  TIDAK
+  ADA
+  TIDAK
+  ```
+
+  <Pembahasan>
+    Dengan pencarian linear, kasus terburuknya 100.000 × 100.000 = 10 miliar perbandingan. Dengan pencarian biner, setiap pertanyaan hanya butuh sekitar 17 langkah. Solusi ini memakai `cariBiner` dari materi. Versi pustakanya: `binary_search(data.begin(), data.end(), x)` di C++, atau `bisect_left` di Python.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int cariBiner(const vector<int>& data, int x) {
+        int lo = 0;
+        int hi = (int)data.size() - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (data[mid] == x) {
+                return mid;
+            } else if (data[mid] < x) {
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return -1;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            int x;
+            cin >> x;
+            if (cariBiner(data, x) != -1) {
+                cout << "ADA" << endl;
+            } else {
+                cout << "TIDAK" << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def cari_biner(data, x):
+        lo = 0
+        hi = len(data) - 1
+        while lo <= hi:
+            mid = lo + (hi - lo) // 2
+            if data[mid] == x:
+                return mid
+            elif data[mid] < x:
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        return -1
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+    q = int(input())
+    tanya = list(map(int, input().split()))
+
+    for x in tanya:
+        if cari_biner(data, x) != -1:
+            print("ADA")
+        else:
+            print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Berapa yang lebih kecil">
+  Baris pertama berisi `n` (1 ≤ n ≤ 100.000), baris kedua berisi `n` bilangan bulat yang sudah terurut naik, dan baris ketiga berisi `x`. Tampilkan banyak bilangan yang **lebih kecil** daripada `x`.
+
+  | Input | Output |
+  | --- | --- |
+  | `6` lalu `2 4 4 4 7 9` lalu `5` | `4` |
+  | `6` lalu `2 4 4 4 7 9` lalu `4` | `1` |
+  | `3` lalu `10 20 30` lalu `99` | `3` |
+
+  <Pembahasan>
+    Banyak elemen yang `< x` sama dengan indeks pertama yang `≥ x`, yaitu batas bawah. Semua elemen sebelum indeks itu pasti lebih kecil daripada `x`. Jika semua elemen lebih kecil, hasilnya `n`, seperti contoh ketiga. Solusi ini memakai versi pustaka.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+        int x;
+        cin >> x;
+
+        int banyak = lower_bound(data.begin(), data.end(), x) - data.begin();
+        cout << banyak << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from bisect import bisect_left
+
+    n = int(input())
+    data = list(map(int, input().split()))
+    x = int(input())
+
+    print(bisect_left(data, x))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Menghitung kemunculan">
+  Baris pertama berisi `n` (1 ≤ n ≤ 100.000), baris kedua berisi `n` bilangan bulat dalam urutan **acak**. Baris ketiga berisi `q` (1 ≤ q ≤ 100.000), dan baris keempat berisi `q` bilangan. Untuk setiap bilangan yang ditanyakan, tampilkan berapa kali bilangan itu muncul, satu jawaban per baris.
+
+  ```txt title="Contoh input"
+  8
+  5 1 5 3 9 5 1 7
+  4
+  5 1 4 9
+  ```
+
+  ```txt title="Contoh output"
+  3
+  2
+  0
+  1
+  ```
+
+  <Petunjuk>
+    Datanya belum urut, jadi urutkan dulu **sekali** di awal. Setelah itu, banyak kemunculan `x` adalah batas atas dikurangi batas bawah.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah diurutkan, data menjadi `1 1 3 5 5 5 7 9`. Untuk `x = 5`, batas bawahnya 3 dan batas atasnya 6, jadi ada 3 kemunculan. Untuk `x = 4`, keduanya bernilai 3, jadi 0. Mengurutkan sekali butuh O(n log n), dan setiap pertanyaan O(log n). Solusi ini memakai `batasBawah` dan `batasAtas` dari materi. Soal ini juga bisa diselesaikan dengan map frekuensi dari materi [Map & Set](/docs/cpp/map-dan-set).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    int batasBawah(const vector<int>& data, int x) {
+        int lo = 0;
+        int hi = (int)data.size() - 1;
+        int jawaban = data.size();
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (data[mid] >= x) {
+                jawaban = mid;
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        return jawaban;
+    }
+
+    int batasAtas(const vector<int>& data, int x) {
+        int lo = 0;
+        int hi = (int)data.size() - 1;
+        int jawaban = data.size();
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (data[mid] > x) {
+                jawaban = mid;
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        return jawaban;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+        sort(data.begin(), data.end());         // sekali saja
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            int x;
+            cin >> x;
+            cout << batasAtas(data, x) - batasBawah(data, x) << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def batas_bawah(data, x):
+        lo = 0
+        hi = len(data) - 1
+        jawaban = len(data)
+        while lo <= hi:
+            mid = lo + (hi - lo) // 2
+            if data[mid] >= x:
+                jawaban = mid
+                hi = mid - 1
+            else:
+                lo = mid + 1
+        return jawaban
+
+
+    def batas_atas(data, x):
+        lo = 0
+        hi = len(data) - 1
+        jawaban = len(data)
+        while lo <= hi:
+            mid = lo + (hi - lo) // 2
+            if data[mid] > x:
+                jawaban = mid
+                hi = mid - 1
+            else:
+                lo = mid + 1
+        return jawaban
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+    data.sort()                                 # sekali saja
+    q = int(input())
+    tanya = list(map(int, input().split()))
+
+    for x in tanya:
+        print(batas_atas(data, x) - batas_bawah(data, x))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Pencarian yang macet">
+  Program berikut membaca `n` bilangan yang sudah terurut naik, lalu `x`, dan seharusnya menampilkan indeks `x` atau `-1`. Untuk input pertama di bawah hasilnya benar. Untuk input kedua, program **tidak pernah selesai**. Untuk input ketiga, hasilnya `-1`, padahal `7` ada. Temukan semua kesalahannya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int cariBiner(const vector<int>& data, int x) {
+      int lo = 0;
+      int hi = (int)data.size() - 1;
+      while (lo < hi) {
+          int mid = (lo + hi) / 2;
+          if (data[mid] == x) {
+              return mid;
+          } else if (data[mid] < x) {
+              lo = mid;
+          } else {
+              hi = mid;
+          }
+      }
+      return -1;
+  }
+
+  int main() {
+      int n;
+      cin >> n;
+      vector<int> data(n);
+      for (int i = 0; i < n; i++) {
+          cin >> data[i];
+      }
+      int x;
+      cin >> x;
+      cout << cariBiner(data, x) << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def cari_biner(data, x):
+      lo = 0
+      hi = len(data) - 1
+      while lo < hi:
+          mid = (lo + hi) // 2
+          if data[mid] == x:
+              return mid
+          elif data[mid] < x:
+              lo = mid
+          else:
+              hi = mid
+      return -1
+
+
+  n = int(input())
+  data = list(map(int, input().split()))
+  x = int(input())
+  print(cari_biner(data, x))
+  ```
+
+  | Input | Output yang benar | Yang terjadi |
+  | --- | --- | --- |
+  | `5` lalu `10 20 30 40 50` lalu `10` | `0` | `0` |
+  | `5` lalu `10 20 30 40 50` lalu `50` | `4` | macet |
+  | `1` lalu `7` lalu `7` | `0` | `-1` |
+
+  <Petunjuk>
+    Telusuri input kedua dengan tangan dan catat `lo`, `hi`, dan `mid` di setiap langkah. Apa yang terjadi saat `hi = lo + 1`? Untuk input ketiga, berapa kali isi perulangan dijalankan?
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada tiga kesalahan yang saling berkaitan.
+
+    1. **`lo = mid` dan `hi = mid`.** Pada input kedua, langkahnya `lo = 0, hi = 4, mid = 2`, lalu `lo = 2, mid = 3`, lalu `lo = 3, hi = 4, mid = 3`. Karena `40 < 50`, `lo = mid = 3` lagi. Tidak ada yang berubah, jadi perulangan berputar selamanya. `mid` sudah diperiksa dan bukan jawaban, jadi harus ikut dibuang: `lo = mid + 1` dan `hi = mid - 1`.
+    2. **`while (lo < hi)`.** Saat `lo == hi` masih ada satu kandidat. Pada input ketiga, `lo = hi = 0`, sehingga isi perulangan tidak pernah dijalankan dan hasilnya `-1`. Syarat yang benar adalah `lo <= hi`.
+    3. **`(lo + hi) / 2`.** Untuk data ini tidak salah, tetapi bisa overflow jika `lo` dan `hi` besar. Biasakan `lo + (hi - lo) / 2`.
+
+    Ketiganya harus diperbaiki bersamaan. Mengganti `lo < hi` menjadi `lo <= hi` saja justru membuat `hi = mid` macet saat `lo == hi`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int cariBiner(const vector<int>& data, int x) {
+        int lo = 0;
+        int hi = (int)data.size() - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (data[mid] == x) {
+                return mid;
+            } else if (data[mid] < x) {
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return -1;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+        int x;
+        cin >> x;
+        cout << cariBiner(data, x) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def cari_biner(data, x):
+        lo = 0
+        hi = len(data) - 1
+        while lo <= hi:
+            mid = lo + (hi - lo) // 2
+            if data[mid] == x:
+                return mid
+            elif data[mid] < x:
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        return -1
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+    x = int(input())
+    print(cari_biner(data, x))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Akar pangkat tiga">
+  Baca sebuah bilangan bulat `n` (0 ≤ n ≤ 10¹⁸). Tampilkan bilangan bulat terbesar `r` yang memenuhi `r × r × r ≤ n`.
+
+  | Input | Output |
+  | --- | --- |
+  | `100` | `4` |
+  | `27` | `3` |
+  | `1000000000000000000` | `1000000` |
+
+  <Petunjuk>
+    Ini pencarian biner pada jawaban, seperti akar kuadrat bulat di materi. Pikirkan batas atas pencariannya. Jika `hi = n`, berapa nilai `mid * mid * mid` pada langkah pertama?
+  </Petunjuk>
+
+  <Pembahasan>
+    Syarat `r³ ≤ n` bernilai "ya" untuk `r` kecil dan "tidak" mulai dari suatu titik, jadi cari "ya" yang terakhir. Jebakannya ada di batas atas. Dengan `hi = n = 10¹⁸`, `mid` pertama sekitar 5 × 10¹⁷, dan pangkat tiganya jauh melewati batas `long long` (sekitar 9,2 × 10¹⁸). Karena 1.000.000³ = 10¹⁸, jawabannya tidak mungkin lebih dari satu juta. Dengan `hi = 1000000`, `mid³` paling besar 10¹⁸, masih muat. Python tidak bisa overflow, tetapi batas yang kecil tetap membuat pencarian lebih singkat.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        long long n;
+        cin >> n;
+
+        long long lo = 0, hi = 1000000, jawaban = 0;
+        while (lo <= hi) {
+            long long mid = lo + (hi - lo) / 2;
+            if (mid * mid * mid <= n) {
+                jawaban = mid;          // memenuhi, coba yang lebih besar
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    lo = 0
+    hi = 1000000
+    jawaban = 0
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if mid * mid * mid <= n:
+            jawaban = mid               # memenuhi, coba yang lebih besar
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Nilai terdekat">
+  Baris pertama berisi `n` (1 ≤ n ≤ 100.000), baris kedua berisi `n` bilangan bulat yang sudah terurut naik. Baris ketiga berisi `q`, dan baris keempat berisi `q` bilangan. Untuk setiap bilangan `x` yang ditanyakan, tampilkan elemen data yang **paling dekat** dengan `x`. Jika ada dua yang sama dekat, pilih yang lebih kecil.
+
+  ```txt title="Contoh input"
+  5
+  3 8 15 21 30
+  5
+  10 18 1 40 21
+  ```
+
+  ```txt title="Contoh output"
+  8
+  15
+  3
+  30
+  21
+  ```
+
+  <Petunjuk>
+    Cari `i`, indeks pertama yang `≥ x`. Kandidat terdekat hanya dua: `data[i]` (yang terkecil di antara yang `≥ x`) dan `data[i - 1]` (yang terbesar di antara yang `< x`). Hati-hati, salah satunya bisa tidak ada.
+  </Petunjuk>
+
+  <Pembahasan>
+    Untuk `x = 18`, batas bawahnya adalah indeks 3 (`21`), dan kandidat kirinya `data[2] = 15`. Keduanya berjarak 3, jadi dipilih yang lebih kecil, `15`. Kasus tepi: jika `i = 0`, tidak ada elemen di kiri (contoh `x = 1`). Jika `i = n`, tidak ada elemen di kanan (contoh `x = 40`). Memakai `<=` saat membandingkan jarak membuat elemen kiri, yang lebih kecil, menang saat seri.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        int q;
+        cin >> q;
+        for (int k = 0; k < q; k++) {
+            int x;
+            cin >> x;
+            int i = lower_bound(data.begin(), data.end(), x) - data.begin();
+
+            int jawaban;
+            if (i == 0) {
+                jawaban = data[0];                  // tidak ada yang di kiri
+            } else if (i == n) {
+                jawaban = data[n - 1];              // tidak ada yang di kanan
+            } else if (x - data[i - 1] <= data[i] - x) {
+                jawaban = data[i - 1];              // kiri lebih dekat atau seri
+            } else {
+                jawaban = data[i];
+            }
+            cout << jawaban << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from bisect import bisect_left
+
+    n = int(input())
+    data = list(map(int, input().split()))
+    q = int(input())
+    tanya = list(map(int, input().split()))
+
+    for x in tanya:
+        i = bisect_left(data, x)
+        if i == 0:
+            jawaban = data[0]                       # tidak ada yang di kiri
+        elif i == n:
+            jawaban = data[n - 1]                   # tidak ada yang di kanan
+        elif x - data[i - 1] <= data[i] - x:
+            jawaban = data[i - 1]                   # kiri lebih dekat atau seri
+        else:
+            jawaban = data[i]
+        print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Mesin fotokopi">
+  Sebuah percetakan punya `k` mesin fotokopi (1 ≤ k ≤ 100.000) yang bekerja bersamaan. Mesin ke-`i` butuh tepat `t[i]` detik untuk menghasilkan satu lembar (1 ≤ t[i] ≤ 1.000.000.000), dan langsung lanjut ke lembar berikutnya. Berapa detik minimum yang dibutuhkan untuk menghasilkan **paling sedikit** `m` lembar (1 ≤ m ≤ 1.000.000.000)?
+
+  Baris pertama berisi `k` dan `m`. Baris kedua berisi `k` bilangan `t[i]`.
+
+  ```txt title="Contoh input 1"
+  3 10
+  2 3 5
+  ```
+
+  ```txt title="Contoh output 1"
+  10
+  ```
+
+  ```txt title="Contoh input 2"
+  1 1000000000
+  1000000000
+  ```
+
+  ```txt title="Contoh output 2"
+  1000000000000000000
+  ```
+
+  <Petunjuk>
+    Dalam `T` detik, mesin ke-`i` menghasilkan `T / t[i]` lembar (pembagian bulat). Makin besar `T`, makin banyak lembar, jadi syarat "cukup `m` lembar?" monoton. Batas atasnya: mesin tercepat saja sanggup menyelesaikan `m` lembar dalam `min(t) × m` detik. Waspadai overflow, baik pada batas atas maupun saat menjumlahkan lembar.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, dalam 10 detik ketiga mesin menghasilkan 5 + 3 + 2 = 10 lembar, sedangkan dalam 9 detik hanya 4 + 3 + 1 = 8 lembar. Jadi jawabannya 10.
+
+    Ada dua jebakan overflow. Pertama, batas atas `min(t) × m` bisa mencapai 10¹⁸, seperti contoh 2, jadi pakai `long long`. Kedua, saat memeriksa `T` yang besar, `T / t[i]` bisa mencapai 10¹⁸ untuk setiap mesin, dan jumlahnya untuk 100.000 mesin pasti meluap. Karena kita hanya perlu tahu apakah jumlahnya sudah mencapai `m`, hentikan penjumlahan begitu `m` tercapai. Python tidak bisa overflow, tetapi berhenti lebih awal tetap menghemat waktu.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    bool cukup(const vector<long long>& t, long long waktu, long long m) {
+        long long lembar = 0;
+        for (int i = 0; i < (int)t.size(); i++) {
+            lembar += waktu / t[i];
+            if (lembar >= m) {
+                return true;            // berhenti sebelum sempat meluap
+            }
+        }
+        return false;
+    }
+
+    int main() {
+        int k;
+        long long m;
+        cin >> k >> m;
+        vector<long long> t(k);
+        long long tercepat = 0;
+        for (int i = 0; i < k; i++) {
+            cin >> t[i];
+            if (i == 0 || t[i] < tercepat) {
+                tercepat = t[i];
+            }
+        }
+
+        long long lo = 1, hi = tercepat * m, jawaban = hi;
+        while (lo <= hi) {
+            long long mid = lo + (hi - lo) / 2;
+            if (cukup(t, mid, m)) {
+                jawaban = mid;          // cukup, coba lebih singkat
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def cukup(t, waktu, m):
+        lembar = 0
+        for x in t:
+            lembar += waktu // x
+            if lembar >= m:
+                return True             # tidak perlu menjumlahkan sisanya
+        return False
+
+
+    k, m = map(int, input().split())
+    t = list(map(int, input().split()))
+
+    lo = 1
+    hi = min(t) * m
+    jawaban = hi
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if cukup(t, mid, m):
+            jawaban = mid               # cukup, coba lebih singkat
+            hi = mid - 1
+        else:
+            lo = mid + 1
+    print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Jarak antar-kios">
+  Di sepanjang sebuah jalan ada `n` titik yang boleh ditempati kios (2 ≤ n ≤ 100.000), masing-masing di posisi bilangan bulat yang **berbeda** antara 0 dan 1.000.000.000, dalam urutan acak. Panitia ingin mendirikan `k` kios (2 ≤ k ≤ n) di `k` titik berbeda, sehingga **jarak terdekat** antara dua kios sebesar mungkin. Tampilkan jarak terdekat terbesar yang bisa dicapai.
+
+  Baris pertama berisi `n` dan `k`. Baris kedua berisi `n` posisi.
+
+  ```txt title="Contoh input 1"
+  5 3
+  1 2 8 4 9
+  ```
+
+  ```txt title="Contoh output 1"
+  3
+  ```
+
+  ```txt title="Contoh input 2"
+  4 2
+  10 0 7 3
+  ```
+
+  ```txt title="Contoh output 2"
+  10
+  ```
+
+  <Petunjuk>
+    Balik pertanyaannya: "bisakah `k` kios didirikan dengan jarak antar-kios **minimal** `jarak`?". Untuk menjawabnya, urutkan posisi, dirikan kios pertama di posisi terkiri, lalu terus dirikan kios di posisi pertama yang berjarak minimal `jarak` dari kios terakhir. Jika `jarak` bisa dicapai, semua jarak yang lebih kecil juga bisa. Jadi cari "ya" yang terakhir.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, posisi terurutnya `1 2 4 8 9`. Untuk jarak 3, kios didirikan di 1, 4, dan 8, jadi 3 kios berhasil. Untuk jarak 4, kios didirikan di 1 dan 8, lalu tidak ada posisi ≥ 12, jadi hanya 2 kios. Jawabannya 3.
+
+    Kenapa mendirikan kios **sedini mungkin** selalu terbaik? Kios yang lebih ke kiri menyisakan ruang paling banyak untuk kios-kios berikutnya. Jika ada susunan yang berhasil, menggeser setiap kiosnya ke posisi paling kiri yang diperbolehkan tidak akan merusaknya. Rentang pencariannya mulai dari 1, karena semua posisi berbeda sehingga jarak 1 pasti bisa, sampai selisih posisi terbesar dan terkecil.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    bool bisa(const vector<int>& posisi, int jarak, int k) {
+        int banyak = 1;                     // kios pertama di posisi terkiri
+        int terakhir = posisi[0];
+        for (int i = 1; i < (int)posisi.size(); i++) {
+            if (posisi[i] - terakhir >= jarak) {
+                banyak++;
+                terakhir = posisi[i];
+            }
+        }
+        return banyak >= k;
+    }
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        vector<int> posisi(n);
+        for (int i = 0; i < n; i++) {
+            cin >> posisi[i];
+        }
+        sort(posisi.begin(), posisi.end());
+
+        int lo = 1, hi = posisi[n - 1] - posisi[0], jawaban = 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (bisa(posisi, mid, k)) {
+                jawaban = mid;              // bisa, coba lebih jauh
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def bisa(posisi, jarak, k):
+        banyak = 1                          # kios pertama di posisi terkiri
+        terakhir = posisi[0]
+        for i in range(1, len(posisi)):
+            if posisi[i] - terakhir >= jarak:
+                banyak += 1
+                terakhir = posisi[i]
+        return banyak >= k
+
+
+    n, k = map(int, input().split())
+    posisi = list(map(int, input().split()))
+    posisi.sort()
+
+    lo = 1
+    hi = posisi[n - 1] - posisi[0]
+    jawaban = 1
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if bisa(posisi, mid, k):
+            jawaban = mid                   # bisa, coba lebih jauh
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Pasangan berjumlah kecil">
+  Baris pertama berisi `n` dan `s` (2 ≤ n ≤ 100.000, 0 ≤ s ≤ 2.000.000.000). Baris kedua berisi `n` bilangan bulat antara 0 dan 1.000.000.000. Hitung banyak **pasangan** indeks `i < j` yang memenuhi `a[i] + a[j] ≤ s`.
+
+  ```txt title="Contoh input 1"
+  5 10
+  7 2 5 1 8
+  ```
+
+  ```txt title="Contoh output 1"
+  7
+  ```
+
+  ```txt title="Contoh input 2"
+  4 4
+  2 2 2 2
+  ```
+
+  ```txt title="Contoh output 2"
+  6
+  ```
+
+  <Petunjuk>
+    Memeriksa semua pasangan butuh sekitar 5 miliar langkah. Urutkan dulu. Mengurutkan tidak mengubah jawabannya, karena syarat `a[i] + a[j] ≤ s` hanya bergantung pada dua nilai yang dipasangkan, bukan posisinya. Lalu untuk setiap `i`, hitung berapa elemen **di kanan `i`** yang `≤ s - a[i]`. Batas atas bisa dicari mulai dari indeks `i + 1`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, data terurutnya `1 2 5 7 8`. Untuk `1`, pasangan di kanannya harus ≤ 9: `2 5 7 8`, ada 4. Untuk `2`, harus ≤ 8: `5 7 8`, ada 3. Untuk `5`, harus ≤ 5: tidak ada di kanannya. Totalnya 7.
+
+    Mencari hanya di kanan `i` menjamin setiap pasangan dihitung tepat sekali dan elemen tidak dipasangkan dengan dirinya sendiri. Di C++, `upper_bound(a.begin() + i + 1, a.end(), batas)` mencari mulai dari indeks `i + 1`. Di Python, `bisect_right` menerima argumen ketiga yang opsional untuk indeks awal pencarian. Banyak pasangan bisa mencapai sekitar 5 miliar, jauh di atas batas `int` (sekitar 2,1 miliar), jadi penghitungnya harus `long long`. Data dan `s` juga disimpan sebagai `long long` agar semua perhitungan memakai tipe yang sama.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        long long s;
+        cin >> n >> s;
+        vector<long long> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        sort(a.begin(), a.end());
+
+        long long banyakPasangan = 0;
+        for (int i = 0; i < n; i++) {
+            long long batas = s - a[i];
+            // indeks pertama di kanan i yang nilainya > batas
+            int j = upper_bound(a.begin() + i + 1, a.end(), batas) - a.begin();
+            banyakPasangan += j - (i + 1);
+        }
+        cout << banyakPasangan << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from bisect import bisect_right
+
+    n, s = map(int, input().split())
+    a = list(map(int, input().split()))
+    a.sort()
+
+    banyak_pasangan = 0
+    for i in range(n):
+        batas = s - a[i]
+        # indeks pertama di kanan i yang nilainya > batas
+        j = bisect_right(a, batas, i + 1)
+        banyak_pasangan += j - (i + 1)
+    print(banyak_pasangan)
+    ```
+
+    Jika `a[i]` sudah lebih besar daripada `s`, `batas` menjadi negatif dan `j` bernilai `i + 1`, sehingga yang ditambahkan 0. Kodenya tidak butuh pemeriksaan khusus untuk kasus itu.
+  </Pembahasan>
+</Soal>

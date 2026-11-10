@@ -5,6 +5,7 @@
     "getline",
     "cmath",
     "iomanip",
-    "vector"
+    "vector",
+    "algorithm"
   ]
 }

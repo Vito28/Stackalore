@@ -1,0 +1,362 @@
+---
+title: Call Stack & Rekursi
+description: Apa yang dicatat komputer setiap kali fungsi dipanggil, kenapa rekursi yang terlalu dalam membuat stack overflow di C++ dan RecursionError di Python, serta cara mengubah rekursi menjadi perulangan dengan stack sendiri.
+sumber:
+  - ref: cppreference
+    judul: Storage class specifiers (automatic storage duration)
+    url: https://en.cppreference.com/w/cpp/language/storage_duration
+  - ref: gcc-docs
+    judul: Options to Request or Suppress Warnings
+    url: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+  - ref: gcc-docs
+    judul: Program Instrumentation Options
+    url: https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
+  - ref: python-docs
+    judul: sys.getrecursionlimit
+    url: https://docs.python.org/3/library/sys.html#sys.getrecursionlimit
+  - ref: python-docs
+    judul: sys.setrecursionlimit
+    url: https://docs.python.org/3/library/sys.html#sys.setrecursionlimit
+  - ref: python-docs
+    judul: Built-in Exceptions, RecursionError
+    url: https://docs.python.org/3/library/exceptions.html#RecursionError
+---
+
+<BackToLesson href="/docs/cpp/rekursi" label="Rekursi" />
+
+Di materi [Rekursi](/docs/cpp/rekursi), kamu melihat bahwa setiap panggilan fungsi punya `n` sendiri, dan semua catatan itu disusun di **call stack**. Halaman ini membahas apa isi catatan tersebut, di mana tempatnya, apa yang terjadi saat tempatnya habis, dan bagaimana menghindarinya.
+
+## Apa isi sebuah frame?
+
+Setiap kali sebuah fungsi dipanggil, komputer menyiapkan satu catatan untuk panggilan itu. Catatan ini disebut **stack frame**, atau cukup **frame**. Ambil contoh program kecil berikut:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int kuadrat(int x) {
+    int hasil = x * x;
+    return hasil;
+}
+
+int jumlahKuadrat(int a, int b) {
+    int total = kuadrat(a) + kuadrat(b);
+    return total;
+}
+
+int main() {
+    cout << jumlahKuadrat(3, 4) << endl;    // 25
+    return 0;
+}
+```
+
+```python tab="Python"
+def kuadrat(x):
+    hasil = x * x
+    return hasil
+
+
+def jumlah_kuadrat(a, b):
+    total = kuadrat(a) + kuadrat(b)
+    return total
+
+
+print(jumlah_kuadrat(3, 4))                 # 25
+```
+
+Sebuah frame berisi tiga hal utama:
+
+| Isi frame | Contoh untuk `kuadrat(3)` |
+| --- | --- |
+| **Parameter**: nilai yang dikirim pemanggil | `x = 3` |
+| **Variabel lokal**: variabel yang dibuat di dalam fungsi | `hasil = 9` |
+| **Alamat kembali**: tempat eksekusi dilanjutkan setelah fungsi selesai | di tengah ekspresi `kuadrat(a) + kuadrat(b)`, milik `jumlahKuadrat` |
+
+Compiler juga bisa menyimpan catatan lain di frame, misalnya nilai sementara saat menghitung ekspresi. Detailnya bergantung pada compiler dan prosesor, tetapi tiga hal di atas selalu ada dalam bentuk tertentu.
+
+Alamat kembali adalah bagian yang paling mudah terlupakan, padahal sangat penting. `kuadrat` dipanggil dua kali dari baris yang sama. Setelah `kuadrat(3)` selesai, eksekusi harus lanjut ke `kuadrat(b)`. Setelah `kuadrat(4)` selesai, eksekusi harus lanjut ke penjumlahan dan pengisian `total`. Fungsi `kuadrat` sendiri tidak tahu siapa yang memanggilnya. Yang tahu hanya alamat kembali di frame-nya.
+
+Berikut isi call stack saat `kuadrat(3)` sedang berjalan:
+
+```txt
+  +--------------------------------------------------+
+  | kuadrat         x = 3, hasil = 9                 |  <- puncak: sedang berjalan
+  |                 kembali ke: jumlahKuadrat,       |
+  |                 lanjut menghitung kuadrat(b)     |
+  +--------------------------------------------------+
+  | jumlahKuadrat   a = 3, b = 4, total = (belum)    |
+  |                 kembali ke: main, lanjut cout    |
+  +--------------------------------------------------+
+  | main                                             |
+  +--------------------------------------------------+
+```
+
+## Stack tumbuh dan menyusut
+
+Setiap pemanggilan fungsi mem-push sebuah frame. Setiap `return` mem-pop frame paling atas, lalu eksekusi melompat ke alamat kembali yang tercatat di frame itu. Gambar berikut menunjukkan call stack dari waktu ke waktu selama program di atas berjalan. Setiap kolom adalah satu saat, dan bagian atas kolom adalah puncak stack.
+
+```txt
+                  kd(3)              kd(4)
+         jK(3,4)  jK(3,4)  jK(3,4)  jK(3,4)  jK(3,4)
+main     main     main     main     main     main     main
+1        2        3        4        5        6        7
+
+jK = jumlahKuadrat, kd = kuadrat
+```
+
+| Saat | Kejadian |
+| --- | --- |
+| 1 → 2 | `main` memanggil `jumlahKuadrat(3, 4)`: push |
+| 2 → 3 | `jumlahKuadrat` memanggil `kuadrat(3)`: push |
+| 3 → 4 | `kuadrat(3)` mengembalikan 9: pop, kembali ke `jumlahKuadrat` |
+| 4 → 5 | `jumlahKuadrat` memanggil `kuadrat(4)`: push |
+| 5 → 6 | `kuadrat(4)` mengembalikan 16: pop |
+| 6 → 7 | `jumlahKuadrat` mengembalikan 25: pop, kembali ke `main` |
+
+Perhatikan saat 5. Frame `kuadrat(4)` menempati tempat yang tadi dipakai `kuadrat(3)`. Membuat dan membuang frame sangat murah: komputer cukup menggeser penanda puncak stack. Itulah sebabnya variabel lokal tidak perlu di-`delete`. Begitu fungsinya selesai, frame-nya ikut hilang bersama semua variabel lokalnya.
+
+Pada fungsi rekursif, polanya sama, hanya saja frame yang ditumpuk berasal dari fungsi yang sama. `faktorial(4)` menumpuk lima frame `faktorial`, masing-masing dengan `n` yang berbeda, seperti yang digambar di materi Rekursi.
+
+### Melihat call stack lewat traceback Python
+
+Saat Python berhenti karena error, ia mencetak isi call stack pada saat itu. Itulah **traceback**. Program berikut sengaja membuat error di kasus dasar:
+
+```python
+def hitung_mundur(n):
+    if n == 0:
+        return 10 // n          # sengaja salah: pembagian dengan nol
+    return hitung_mundur(n - 1)
+
+
+hitung_mundur(3)
+```
+
+```txt title="Error"
+Traceback (most recent call last):
+  File "mundur.py", line 7, in <module>
+    hitung_mundur(3)
+  File "mundur.py", line 4, in hitung_mundur
+    return hitung_mundur(n - 1)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "mundur.py", line 4, in hitung_mundur
+    return hitung_mundur(n - 1)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "mundur.py", line 4, in hitung_mundur
+    return hitung_mundur(n - 1)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "mundur.py", line 3, in hitung_mundur
+    return 10 // n          # sengaja salah: pembagian dengan nol
+           ~~~^^~~
+ZeroDivisionError: integer division or modulo by zero
+```
+
+Setiap baris `File ...` adalah satu frame. Paling atas adalah bagian utama program (`<module>`), lalu `hitung_mundur` untuk `n` = 3, 2, 1, dan terakhir `n = 0`, tempat error terjadi. Kalimat _most recent call last_ berarti panggilan terbaru, yaitu puncak stack, dicetak paling akhir. Cara membaca traceback dibahas di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging).
+
+## Tiga hal yang bernama "stack"
+
+Kata "stack" dipakai untuk tiga hal berbeda, dan ketiganya mudah tertukar:
+
+| | Call stack | Heap | Struktur data stack |
+| --- | --- | --- | --- |
+| Apa itu | area memori untuk frame fungsi | area memori untuk data yang dibuat dengan `new` | cara menyusun data dengan aturan LIFO |
+| Isinya | parameter, variabel lokal, alamat kembali | node linked list, array dinamis, isi `vector` | apa pun yang kamu push |
+| Yang mengatur | compiler, otomatis | programmer, dengan `new` dan `delete` | kodemu, lewat `push` dan `pop` |
+| Ukuran | kecil, umumnya beberapa MB | besar, mendekati seluruh memori yang tersedia | mengikuti tempat penyimpanannya |
+| Dibahas di | halaman ini | [Memori Dinamis](/docs/cpp/pendalaman/memori-dinamis) | [Stack](/docs/cpp/stack) |
+
+Call stack disebut "stack" karena memang bekerja dengan aturan LIFO: fungsi yang terakhir dipanggil selalu selesai paling dulu. Bedanya, call stack diatur otomatis oleh compiler dan tidak bisa kamu push atau pop sendiri.
+
+Struktur data `stack<int>` atau `vector<int>` justru menyimpan elemen-elemennya di **heap**. Yang berada di frame hanya "pegangan" kecilnya. Perbedaan ini terasa saat datanya besar:
+
+```cpp title="Array lokal: crash"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int data[10000000];             // ✗ 40 MB di call stack
+    data[0] = 1;
+    cout << data[0] << endl;        // tidak sempat tercetak
+    return 0;
+}
+```
+
+```cpp title="vector: aman"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> data(10000000);     // 40 MB di heap
+    data[0] = 1;
+    cout << data[0] << endl;        // 1
+    return 0;
+}
+```
+
+Array lokal sebesar 40 MB tidak muat di call stack yang hanya beberapa MB, sehingga program langsung crash walaupun tidak ada rekursi sama sekali. Versi `vector` berjalan normal. Jadi, untuk data besar, pakai `vector`, bukan array lokal.
+
+## Stack overflow di C++
+
+Ukuran call stack ditentukan oleh sistem operasi saat program mulai, dan umumnya hanya beberapa MB. Di Linux biasanya 8 MB. Kamu bisa memeriksanya dengan perintah `ulimit -s` di terminal (hasilnya dalam KB, misalnya `8192`). Di Windows, ukuran bawaannya biasanya lebih kecil lagi.
+
+Jika rekursi terlalu dalam, frame-frame yang ditumpuk akhirnya melewati batas itu. Kondisi ini disebut **stack overflow**. Program mencoba menulis frame baru ke memori yang bukan miliknya, dan sistem operasi langsung menghentikannya. Di Linux, pesannya sama dengan saat mengakses `nullptr`:
+
+```txt title="Output"
+Segmentation fault (core dumped)
+```
+
+Tidak ada nomor baris, dan tidak ada keterangan bahwa penyebabnya rekursi. Di Windows, program biasanya berhenti begitu saja, sering tanpa pesan sama sekali.
+
+Seberapa dalam rekursi boleh berjalan? Tergantung besar setiap frame. Fungsi berikut dicoba dengan g++ di Linux (stack 8 MB, tanpa opsi optimasi):
+
+```cpp
+long long jumlah(int n) {
+    if (n == 0) {
+        return 0;               // kasus dasar
+    }
+    return n + jumlah(n - 1);
+}
+```
+
+| `n` | Hasil |
+| --- | --- |
+| 100.000 | berhasil, `5000050000` |
+| 200.000 | `Segmentation fault` |
+
+Batasnya ternyata sekitar 174.000 panggilan, artinya setiap frame `jumlah` memakan sekitar 48 byte. Fungsi dengan lebih banyak variabel lokal punya frame lebih besar, sehingga batasnya lebih rendah. Angka pastinya bergantung pada compiler, opsi kompilasi, dan sistem operasi, jadi jangan mengandalkannya. Jika kedalaman rekursimu bisa mencapai puluhan ribu, pertimbangkan perulangan.
+
+### Alat bantu untuk menemukannya
+
+- **Peringatan compiler.** Sejak g++ 12, `-Wall` memperingatkan rekursi yang jelas tidak pernah berhenti, misalnya fungsi tanpa kasus dasar sama sekali: `warning: infinite recursion detected [-Winfinite-recursion]`. Kasus dasar yang terlewati, seperti `faktorial(-1)`, tidak bisa dideteksi dengan cara ini.
+- **AddressSanitizer.** Dengan `-fsanitize=address`, crash-nya disertai laporan yang menyebut penyebabnya dengan jelas: `ERROR: AddressSanitizer: stack-overflow`, diikuti daftar fungsi yang sedang menumpuk di call stack.
+
+<Callout type="warning" title="Program yang diam saja">
+  Dengan opsi optimasi seperti `-O2`, compiler kadang mengubah rekursi menjadi perulangan agar lebih cepat. Akibatnya, rekursi tanpa akhir tidak lagi membuat stack penuh. Programnya **macet selamanya** tanpa crash. Jika program rekursifmu tidak selesai-selesai dan tidak mencetak apa pun, curigai kasus dasar yang tidak pernah tercapai.
+</Callout>
+
+## RecursionError di Python
+
+Python tidak menunggu sampai stack benar-benar penuh. Ia menghitung kedalaman rekursi sendiri dan berhenti saat melewati batas tertentu, dengan error yang jelas dan traceback lengkap. Batas bawaannya adalah 1000, dan bisa dilihat dengan `sys.getrecursionlimit()`:
+
+```python
+import sys
+
+
+def jumlah(n):
+    if n == 0:
+        return 0                    # kasus dasar
+    return n + jumlah(n - 1)
+
+
+print(sys.getrecursionlimit())      # 1000
+print(jumlah(998))                  # 498501
+print(jumlah(999))                  # ✗ RecursionError
+```
+
+```txt title="Akhir pesan error"
+  [Previous line repeated 996 more times]
+RecursionError: maximum recursion depth exceeded
+```
+
+Bagian utama program juga dihitung sebagai satu frame. Karena itu, saat dicoba dengan Python 3.12, `jumlah(998)` masih berhasil, sedangkan `jumlah(999)` sudah gagal. Anggap saja batas amannya "jauh di bawah 1000". Baris `[Previous line repeated 996 more times]` muncul karena Python meringkas baris traceback yang sama agar pesannya tidak sepanjang seribu baris.
+
+Batas ini sengaja dibuat kecil. Tujuannya melindungi program dari crash yang sesungguhnya: lebih baik berhenti dengan pesan yang jelas daripada berhenti mendadak seperti _segmentation fault_.
+
+<Callout type="warning" title="Tentang sys.setrecursionlimit">
+  Python menyediakan `sys.setrecursionlimit(n)` untuk menaikkan batas itu. Ini hanya untuk diketahui, bukan untuk dibiasakan. Dokumentasi resminya sendiri mengingatkan bahwa batas yang terlalu tinggi bisa membuat program crash. Menaikkan batas juga tidak membuat program lebih cepat atau lebih hemat memori. Solusi latihan di Stacklore tidak pernah memakainya. Jika kamu butuh kedalaman ribuan, ubah rekursinya menjadi perulangan seperti di bagian berikut.
+</Callout>
+
+## Mengubah rekursi menjadi perulangan
+
+Setiap rekursi bisa ditulis ulang tanpa rekursi. Ada dua kasus.
+
+### Rekursi lurus: cukup perulangan biasa
+
+Rekursi yang memanggil dirinya **satu kali** di setiap tingkat, seperti `faktorial`, `jumlah`, atau `jumlahDigit`, bisa langsung diganti perulangan biasa. Bagian-bagiannya punya padanan yang jelas:
+
+| Rekursi `jumlah(data, i)` | Perulangan |
+| --- | --- |
+| Parameter yang berubah: `i` | Variabel perulangan: `i` |
+| Kasus dasar: `i == data.size()` | Syarat berhenti perulangan |
+| Pekerjaan yang tertunda: `data[i] + ...` | Akumulator: `total += data[i]` |
+
+```cpp tab="C++"
+int total = 0;
+for (int i = 0; i < (int)data.size(); i++) {
+    total += data[i];
+}
+```
+
+```python tab="Python"
+total = 0
+for i in range(len(data)):
+    total += data[i]
+```
+
+### Rekursi bercabang: pakai stack sendiri
+
+Rekursi yang bercabang, seperti `biner` di materi Rekursi, lebih sulit diganti perulangan biasa, karena banyak tugas yang harus "diingat untuk dikerjakan nanti". Call stack-lah yang selama ini mengingatnya. Solusinya, buat stack sendiri yang berisi **tugas yang belum dikerjakan**. Satu tugas adalah satu panggilan, dan isinya cukup parameter panggilan itu.
+
+```cpp tab="C++"
+#include <iostream>
+#include <stack>
+#include <string>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    stack<string> tugas;
+    tugas.push("");                     // panggilan pertama: biner(n, "")
+
+    while (!tugas.empty()) {
+        string sekarang = tugas.top();
+        tugas.pop();
+        if ((int)sekarang.length() == n) {
+            cout << sekarang << endl;   // kasus dasar
+            continue;
+        }
+        tugas.push(sekarang + "1");     // di-push lebih dulu, dikerjakan belakangan
+        tugas.push(sekarang + "0");     // di-push terakhir, dikerjakan duluan
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+
+tugas = [""]                            # panggilan pertama: biner(n, "")
+
+while len(tugas) > 0:
+    sekarang = tugas.pop()
+    if len(sekarang) == n:
+        print(sekarang)                 # kasus dasar
+        continue
+    tugas.append(sekarang + "1")        # di-push lebih dulu, dikerjakan belakangan
+    tugas.append(sekarang + "0")        # di-push terakhir, dikerjakan duluan
+```
+
+Untuk input `3`, output-nya sama persis dengan versi rekursif: `000`, `001`, sampai `111`. Resepnya:
+
+1. Tentukan isi satu tugas, yaitu parameter yang berubah di setiap panggilan. Jika lebih dari satu, bungkus dengan [struct](/docs/cpp/struct).
+2. Push tugas untuk panggilan pertama.
+3. Selama stack belum kosong, pop satu tugas. Jika tugas itu kasus dasar, kerjakan langsung. Jika bukan, push tugas-tugas yang lebih kecil.
+4. Push tugas-tugas kecil itu dalam **urutan terbalik**. Karena LIFO, yang di-push terakhir dikerjakan pertama. Di contoh ini, `"1"` di-push sebelum `"0"` agar `"0"` dikerjakan lebih dulu, sama seperti versi rekursifnya.
+
+Stack buatan sendiri ini menyimpan isinya di heap, jadi bisa berisi jutaan tugas tanpa stack overflow dan tanpa terbentur batas kedalaman Python. Teknik yang sama dipakai lagi di materi [DFS](/docs/cpp/dfs).
+
+Fungsi yang masih punya pekerjaan **setelah** panggilan rekursifnya selesai, seperti `hitungNaik` atau `hanoi`, butuh catatan tambahan di setiap tugas, misalnya penanda "tugas ini tinggal mencetak". Untuk kasus seperti itu, versi rekursif biasanya jauh lebih mudah dibaca. Ubah ke perulangan hanya jika kedalamannya memang bisa terlalu besar.
+
+## Rangkuman
+
+- Setiap panggilan fungsi mendapat satu **frame** di call stack, berisi parameter, variabel lokal, dan alamat kembali.
+- Memanggil fungsi berarti push frame, dan `return` berarti pop. Frame terakhir yang di-push selalu yang pertama selesai (LIFO).
+- Call stack adalah area memori kecil yang diatur otomatis. Heap adalah area besar untuk data dari `new`, termasuk isi `vector`. Struktur data stack adalah aturan LIFO yang kamu atur sendiri.
+- Ukuran call stack umumnya beberapa MB (Linux biasanya 8 MB, cek dengan `ulimit -s`). Rekursi yang terlalu dalam atau array lokal yang terlalu besar membuat **stack overflow**, yang di Linux tampil sebagai `Segmentation fault`.
+- `-Wall` bisa memperingatkan rekursi tanpa akhir yang jelas, dan AddressSanitizer melaporkan `stack-overflow` dengan jelas. Dengan `-O2`, rekursi tanpa akhir bisa berubah menjadi program yang macet.
+- Python membatasi kedalaman rekursi sekitar 1000 (`sys.getrecursionlimit()`) dan berhenti dengan `RecursionError`. `sys.setrecursionlimit` ada, tetapi bukan solusi yang dianjurkan.
+- Rekursi lurus bisa diganti perulangan biasa. Rekursi bercabang bisa diganti perulangan dengan stack buatan sendiri yang berisi tugas-tugas yang belum dikerjakan.
+
+<BackToLesson href="/docs/cpp/rekursi" label="Rekursi" />

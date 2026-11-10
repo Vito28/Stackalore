@@ -1,0 +1,1945 @@
+---
+title: DFS (Depth-First Search)
+description: Menelusuri graph dengan masuk sedalam mungkin lalu mundur, versi rekursif dan versi dengan stack, serta penerapannya untuk mencari jalan, menghitung komponen, flood fill, dan mendeteksi siklus.
+sumber:
+  - ref: cppreference
+    judul: std::stack
+    url: https://en.cppreference.com/w/cpp/container/stack
+  - ref: cppreference
+    judul: std::vector
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: python-docs
+    judul: sys.getrecursionlimit
+    url: https://docs.python.org/3/library/sys.html#sys.getrecursionlimit
+  - ref: python-docs
+    judul: RecursionError
+    url: https://docs.python.org/3/library/exceptions.html#RecursionError
+---
+
+## Masalah: adakah jalan dari A ke B?
+
+Di materi [Graph](/docs/cpp/graph) kamu sudah bisa menyimpan graph sebagai adjacency list. Sekarang muncul pertanyaan yang lebih menarik: dari simpul 1, apakah simpul 5 bisa dicapai? Bagaimana dengan simpul 6?
+
+```txt
+1 ------- 2
+|         | \
+|         |   \
+3 ------- 4 --- 5        6
+```
+
+Untuk graph sekecil ini, jawabannya terlihat dari gambar. Namun peta jalan sebuah kota bisa berisi puluhan ribu persimpangan, dan program tidak bisa "melihat gambar". Kita butuh cara yang sistematis untuk mengunjungi semua simpul yang bisa dicapai.
+
+Bayangkan kamu menjelajahi labirin sambil membawa kapur. Di setiap persimpangan, kamu memilih lorong yang belum bertanda kapur, lalu terus berjalan **sejauh mungkin**. Jika buntu, atau semua lorong di depanmu sudah bertanda, kamu **mundur** ke persimpangan sebelumnya dan mencoba lorong lain di sana. Tanda kapur mencegahmu berputar-putar di tempat yang sama.
+
+Cara menjelajah ini disebut **DFS** (_Depth-First Search_), penelusuran yang mengutamakan kedalaman. Di graph, "lorong" adalah sisi, "persimpangan" adalah simpul, dan "tanda kapur" adalah array `visited`.
+
+## DFS rekursif
+
+Langkah DFS dari sebuah simpul `u`:
+
+1. Jika `u` sudah pernah dikunjungi, langsung kembali.
+2. Tandai `u` sebagai sudah dikunjungi.
+3. Untuk setiap tetangga `v` dari `u`, sesuai urutan di adjacency list, jalankan DFS dari `v`.
+
+Langkah 3 memanggil DFS lagi dari dalam DFS, jadi bentuk paling alaminya adalah fungsi [rekursif](/docs/cpp/rekursi). Langkah 1 adalah kasus dasarnya. "Mundur" di labirin terjadi otomatis saat sebuah pemanggilan selesai dan kembali ke pemanggilnya.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+    if (visited[u]) {
+        return;                              // kasus dasar: sudah pernah dikunjungi
+    }
+    visited[u] = true;                       // tandai SEBELUM masuk ke tetangga
+    cout << u << " ";
+    for (int v : adj[u]) {
+        dfs(v, adj, visited);                // masuk sedalam mungkin lewat v
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    vector<bool> visited(n + 1, false);
+    dfs(1, adj, visited);
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def dfs(u, adj, visited):
+    if visited[u]:
+        return                               # kasus dasar: sudah pernah dikunjungi
+    visited[u] = True                        # tandai SEBELUM masuk ke tetangga
+    print(u, end=" ")
+    for v in adj[u]:
+        dfs(v, adj, visited)                 # masuk sedalam mungkin lewat v
+
+
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+
+visited = [False] * (n + 1)
+dfs(1, adj, visited)
+print()
+```
+
+```txt title="Contoh input"
+6 6
+1 2
+1 3
+2 4
+2 5
+3 4
+4 5
+```
+
+```txt title="Contoh output"
+1 2 4 3 5
+```
+
+Fungsi `dfs` menerima `adj` dan `visited` sebagai _reference_ (`&`), sehingga semua pemanggilan memakai array `visited` yang sama dan tidak ada yang disalin. Di Python, list memang selalu dioper sebagai referensi ke objek yang sama.
+
+### Menelusuri jejaknya
+
+Adjacency list untuk input di atas adalah `1: 2 3`, `2: 1 4 5`, `3: 1 4`, `4: 2 3 5`, `5: 2 4`, dan `6:` kosong. Setiap baris di bawah adalah satu pemanggilan `dfs`. Indentasinya menunjukkan siapa yang memanggil siapa.
+
+```txt
+dfs(1)                  kunjungi 1, tetangga: 2 3
+├─ dfs(2)               kunjungi 2, tetangga: 1 4 5
+│  ├─ dfs(1)            sudah dikunjungi, kembali
+│  ├─ dfs(4)            kunjungi 4, tetangga: 2 3 5
+│  │  ├─ dfs(2)         sudah dikunjungi, kembali
+│  │  ├─ dfs(3)         kunjungi 3, tetangga: 1 4
+│  │  │  ├─ dfs(1)      sudah dikunjungi, kembali
+│  │  │  └─ dfs(4)      sudah dikunjungi, kembali
+│  │  └─ dfs(5)         kunjungi 5, tetangga: 2 4
+│  │     ├─ dfs(2)      sudah dikunjungi, kembali
+│  │     └─ dfs(4)      sudah dikunjungi, kembali
+│  └─ dfs(5)            sudah dikunjungi, kembali
+└─ dfs(3)               sudah dikunjungi, kembali
+
+Urutan kunjungan: 1 2 4 3 5
+```
+
+Perhatikan perjalanannya. Dari 1, DFS tidak memeriksa 2 dan 3 bergantian, tetapi langsung **masuk** ke 2, lalu dari 2 masuk ke 4, lalu dari 4 masuk ke 3. Di simpul 3 semua tetangga sudah dikunjungi (buntu), jadi DFS **mundur** ke 4 dan mencoba tetangga 4 berikutnya, yaitu 5. Simpul 3 akhirnya dicapai lewat 4, bukan langsung dari 1, karena saat `dfs(1)` sampai ke tetangga keduanya, simpul 3 sudah dikunjungi. Simpul 6 tidak pernah dikunjungi karena tidak ada sisi yang menuju ke sana.
+
+Setiap pemanggilan yang belum selesai menunggu di **call stack**. Tabel berikut memperlihatkan isinya pada beberapa saat penting:
+
+| Saat | Call stack (bawah → atas) |
+| --- | --- |
+| mengunjungi 1 | `dfs(1)` |
+| mengunjungi 2 | `dfs(1) dfs(2)` |
+| mengunjungi 4 | `dfs(1) dfs(2) dfs(4)` |
+| mengunjungi 3 | `dfs(1) dfs(2) dfs(4) dfs(3)` |
+| 3 buntu, mundur ke 4 | `dfs(1) dfs(2) dfs(4)` |
+| mengunjungi 5 | `dfs(1) dfs(2) dfs(4) dfs(5)` |
+| semua selesai | kosong |
+
+Saat sebuah simpul dikunjungi, isi call stack sama dengan jalur dari simpul awal ke simpul itu, misalnya 1 → 2 → 4 → 3. "Mundur" berarti pemanggilan teratas selesai dan dikeluarkan dari call stack.
+
+<DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call stack">
+  Bagaimana setiap pemanggilan fungsi disimpan di call stack, apa yang terjadi saat rekursi terlalu dalam, dan cara mengganti rekursi dengan perulangan dan stack sendiri.
+</DeepDive>
+
+### Kenapa `visited` wajib ada?
+
+Hapus pemeriksaan `visited`, dan lihat apa yang terjadi pada graph yang sama:
+
+```cpp
+void dfs(int u, const vector<vector<int>>& adj) {
+    cout << u << " ";
+    for (int v : adj[u]) {
+        dfs(v, adj);                         // ✗ tanpa visited
+    }
+}
+```
+
+`dfs(1)` memanggil `dfs(2)`, yang tetangga pertamanya adalah 1, sehingga memanggil `dfs(1)` lagi, lalu `dfs(2)` lagi, dan seterusnya tanpa akhir. Program mencetak `1 2 1 2 1 2 ...` sampai call stack penuh. Versi C++ berhenti dengan `Segmentation fault` (stack overflow), sedangkan Python berhenti dengan `RecursionError: maximum recursion depth exceeded`.
+
+Di graph tak berarah masalah ini selalu muncul, bahkan pada graph tanpa siklus: setiap sisi bisa dilewati bolak-balik. Di graph yang punya siklus, seperti 2 → 4 → 5 → 2, kamu bisa berputar terus walaupun tidak pernah berbalik arah. Array `visited` memastikan setiap simpul **hanya diproses sekali**.
+
+### Variasi: periksa sebelum memanggil
+
+Kamu akan sering menemukan DFS yang ditulis sedikit berbeda: pemeriksaan `visited` dipindahkan ke **sebelum** pemanggilan rekursif.
+
+```cpp tab="C++"
+void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+    visited[u] = true;
+    cout << u << " ";
+    for (int v : adj[u]) {
+        if (!visited[v]) {                   // hanya masuk ke tetangga yang belum dikunjungi
+            dfs(v, adj, visited);
+        }
+    }
+}
+```
+
+```python tab="Python"
+def dfs(u, adj, visited):
+    visited[u] = True
+    print(u, end=" ")
+    for v in adj[u]:
+        if not visited[v]:                   # hanya masuk ke tetangga yang belum dikunjungi
+            dfs(v, adj, visited)
+```
+
+Urutan kunjungannya sama persis. Bedanya, versi ini tidak membuat pemanggilan yang langsung kembali seperti `dfs(1)` di dalam `dfs(2)`. Kasus dasarnya tidak ditulis sebagai `if` tersendiri: jika semua tetangga `u` sudah dikunjungi, perulangan tidak memanggil apa-apa dan fungsi selesai. Bentuk ini berguna saat kamu perlu mengetahui **dari simpul mana** sebuah simpul ditemukan, seperti pada bagian mencatat jalan nanti. Pemanggil versi ini harus memastikan simpul awalnya belum dikunjungi.
+
+## DFS dengan stack sendiri
+
+Rekursi menyimpan "persimpangan yang belum selesai" di call stack. Kamu juga bisa menyimpannya sendiri di sebuah [Stack](/docs/cpp/stack), sehingga DFS menjadi perulangan biasa tanpa rekursi:
+
+1. Push simpul awal.
+2. Selama stack tidak kosong, pop sebuah simpul `u`.
+3. Jika `u` sudah dikunjungi, lewati. Jika belum, tandai, lalu push semua tetangganya yang belum dikunjungi.
+
+```cpp tab="C++"
+#include <iostream>
+#include <stack>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    vector<bool> visited(n + 1, false);
+    stack<int> s;
+    s.push(1);
+    while (!s.empty()) {
+        int u = s.top();
+        s.pop();
+        if (visited[u]) {
+            continue;                        // sudah dikunjungi lewat jalan lain
+        }
+        visited[u] = true;
+        cout << u << " ";
+        for (int v : adj[u]) {
+            if (!visited[v]) {
+                s.push(v);
+            }
+        }
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+
+visited = [False] * (n + 1)
+s = [1]                                      # list sebagai stack
+while len(s) > 0:
+    u = s.pop()
+    if visited[u]:
+        continue                             # sudah dikunjungi lewat jalan lain
+    visited[u] = True
+    print(u, end=" ")
+    for v in adj[u]:
+        if not visited[v]:
+            s.append(v)
+print()
+```
+
+```txt title="Contoh input"
+6 6
+1 2
+1 3
+2 4
+2 5
+3 4
+4 5
+```
+
+```txt title="Contoh output"
+1 3 4 5 2
+```
+
+Urutannya **berbeda** dari versi rekursif (`1 2 4 3 5`). Jejaknya:
+
+| Pop | Tindakan | Stack sesudahnya (bawah → atas) |
+| --- | --- | --- |
+| | push 1 | `1` |
+| 1 | kunjungi 1, push 2 dan 3 | `2 3` |
+| 3 | kunjungi 3, push 4 | `2 4` |
+| 4 | kunjungi 4, push 2 dan 5 | `2 2 5` |
+| 5 | kunjungi 5, push 2 | `2 2 2` |
+| 2 | kunjungi 2, semua tetangga sudah dikunjungi | `2 2` |
+| 2 | sudah dikunjungi, lewati | `2` |
+| 2 | sudah dikunjungi, lewati | kosong |
+
+Penyebabnya sifat **LIFO**: simpul 1 mem-push 2 lalu 3, sehingga 3 yang keluar lebih dulu. Versi rekursif justru langsung masuk ke tetangga **pertama**. Keduanya tetap DFS yang sah, karena sama-sama masuk sedalam mungkin sebelum mundur. Hanya urutan memilih tetangganya yang terbalik.
+
+Jika ingin urutan yang sama persis dengan versi rekursif, push tetangga dari yang **terakhir** ke yang pertama:
+
+```cpp tab="C++"
+for (int i = (int)adj[u].size() - 1; i >= 0; i--) {
+    int v = adj[u][i];
+    if (!visited[v]) {
+        s.push(v);
+    }
+}
+```
+
+```python tab="Python"
+for v in reversed(adj[u]):                   # dari tetangga terakhir ke pertama
+    if not visited[v]:
+        s.append(v)
+```
+
+Perhatikan juga bahwa simpul 2 sempat berada di stack tiga kali. Simpul baru ditandai saat di-pop, jadi simpul yang sama bisa di-push oleh beberapa tetangga sebelum giliran dikunjunginya tiba. Karena itu pemeriksaan `if (visited[u]) continue;` setelah pop **wajib** ada.
+
+Untuk pertanyaan yang tidak bergantung pada urutan, seperti "bisa dicapai atau tidak?" atau "ada berapa komponen?", versi rekursif dan versi stack memberi jawaban yang sama. Versi stack tidak dibatasi kedalaman call stack, sehingga aman untuk graph yang sangat besar.
+
+## Penerapan DFS
+
+### Apakah ada jalan dari a ke b?
+
+Jalankan DFS dari `a`. Setelah selesai, `visited` berisi `true` untuk setiap simpul yang bisa dicapai dari `a`. Jadi cukup periksa `visited[b]`.
+
+```cpp tab="C++"
+vector<bool> visited(n + 1, false);
+dfs(a, adj, visited);
+if (visited[b]) {
+    cout << "Ada jalan" << endl;
+} else {
+    cout << "Tidak ada jalan" << endl;
+}
+```
+
+```python tab="Python"
+visited = [False] * (n + 1)
+dfs(a, adj, visited)
+if visited[b]:
+    print("Ada jalan")
+else:
+    print("Tidak ada jalan")
+```
+
+Pada graph contoh, DFS dari 1 menandai simpul 1 sampai 5, sehingga ada jalan dari 1 ke 5, tetapi tidak ada jalan dari 1 ke 6.
+
+### Menghitung komponen terhubung
+
+Satu kali DFS mengunjungi **satu komponen** utuh, yaitu semua simpul yang bisa dicapai dari simpul awal. Untuk menghitung komponen, coba setiap simpul dari 1 sampai `n`. Simpul yang belum dikunjungi pasti milik komponen baru, jadi tambah penghitung lalu jalankan DFS dari sana untuk menandai seluruh komponennya.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+    if (visited[u]) {
+        return;                              // kasus dasar
+    }
+    visited[u] = true;
+    for (int v : adj[u]) {
+        dfs(v, adj, visited);
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    vector<bool> visited(n + 1, false);
+    int komponen = 0;
+    for (int u = 1; u <= n; u++) {
+        if (!visited[u]) {
+            komponen++;                      // u belum terjangkau: komponen baru
+            dfs(u, adj, visited);            // tandai seluruh komponen milik u
+        }
+    }
+    cout << komponen << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def dfs(u, adj, visited):
+    if visited[u]:
+        return                               # kasus dasar
+    visited[u] = True
+    for v in adj[u]:
+        dfs(v, adj, visited)
+
+
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+
+visited = [False] * (n + 1)
+komponen = 0
+for u in range(1, n + 1):
+    if not visited[u]:
+        komponen += 1                        # u belum terjangkau: komponen baru
+        dfs(u, adj, visited)                 # tandai seluruh komponen milik u
+print(komponen)
+```
+
+```txt title="Contoh input"
+6 6
+1 2
+1 3
+2 4
+2 5
+3 4
+4 5
+```
+
+```txt title="Contoh output"
+2
+```
+
+Simpul 1 memulai komponen pertama dan DFS-nya menandai 1 sampai 5. Simpul 2 sampai 5 dilewati karena sudah ditandai. Simpul 6 belum ditandai, jadi ia memulai komponen kedua.
+
+### Mencatat jalannya dengan array induk
+
+`visited` hanya menjawab "bisa atau tidak". Untuk mengetahui **jalannya**, catat dari simpul mana setiap simpul pertama kali ditemukan. Catatan ini disebut **induk** (_parent_). Di sinilah variasi "periksa sebelum memanggil" berguna, karena di titik itu kita tahu `v` ditemukan dari `u`.
+
+Setelah DFS selesai, jalannya dibaca **mundur**: mulai dari `b`, ikuti `induk` sampai tiba di `a`, lalu balik urutannya.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited, vector<int>& induk) {
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            induk[v] = u;                    // v pertama kali ditemukan dari u
+            dfs(v, adj, visited, induk);
+        }
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    int a, b;
+    cin >> a >> b;
+
+    vector<bool> visited(n + 1, false);
+    vector<int> induk(n + 1, 0);             // 0 berarti tidak punya induk
+    dfs(a, adj, visited, induk);
+
+    if (!visited[b]) {
+        cout << "Tidak ada jalan" << endl;
+        return 0;
+    }
+    vector<int> jalan;
+    for (int x = b; x != 0; x = induk[x]) {  // mundur dari b sampai a
+        jalan.push_back(x);
+    }
+    for (int i = (int)jalan.size() - 1; i >= 0; i--) {   // cetak dari a ke b
+        cout << jalan[i] << " ";
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def dfs(u, adj, visited, induk):
+    visited[u] = True
+    for v in adj[u]:
+        if not visited[v]:
+            induk[v] = u                     # v pertama kali ditemukan dari u
+            dfs(v, adj, visited, induk)
+
+
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+a, b = map(int, input().split())
+
+visited = [False] * (n + 1)
+induk = [0] * (n + 1)                        # 0 berarti tidak punya induk
+dfs(a, adj, visited, induk)
+
+if not visited[b]:
+    print("Tidak ada jalan")
+else:
+    jalan = []
+    x = b
+    while x != 0:                            # mundur dari b sampai a
+        jalan.append(x)
+        x = induk[x]
+    jalan.reverse()                          # balik agar urut dari a ke b
+    print(*jalan)
+```
+
+```txt title="Contoh input"
+6 6
+1 2
+1 3
+2 4
+2 5
+3 4
+4 5
+1 5
+```
+
+```txt title="Contoh output"
+1 2 4 5
+```
+
+Dari jejak sebelumnya, `induk[2] = 1`, `induk[4] = 2`, `induk[3] = 4`, dan `induk[5] = 4`. Mundur dari 5: 5 → 4 → 2 → 1, lalu dibalik menjadi `1 2 4 5`. Simpul awal `a` tidak pernah mendapat induk, jadi nilainya tetap 0 dan perulangan berhenti di sana.
+
+Perhatikan bahwa jalan ini **bukan yang terpendek**. Jalan 1 → 2 → 5 hanya melewati dua sisi, tetapi DFS terlanjur masuk ke 4 sebelum mencoba sisi 2–5. DFS menjamin menemukan **sebuah** jalan, tidak menjamin yang terpendek.
+
+### Flood fill: menghitung ruangan
+
+Di [Graph](/docs/cpp/graph) kamu melihat bahwa [grid](/docs/cpp/matriks) adalah graph: setiap sel adalah simpul, dan tetangganya adalah sel di atas, bawah, kiri, dan kanan. DFS pada grid disebut **flood fill**, seperti menuang cat di satu sel lalu membiarkannya menyebar ke semua sel terbuka yang tersambung. Fitur "ember cat" di aplikasi menggambar bekerja dengan cara ini.
+
+Contoh: sebuah denah berisi `.` untuk lantai dan `#` untuk dinding. Berapa banyak ruangan, yaitu kelompok lantai yang tersambung? Ini sama dengan menghitung komponen, hanya simpulnya berupa sel.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+void isi(int i, int j, const vector<string>& grid, vector<vector<bool>>& visited) {
+    int r = grid.size();
+    int c = grid[0].size();
+    if (i < 0 || i >= r || j < 0 || j >= c) {
+        return;                              // kasus dasar: di luar denah
+    }
+    if (grid[i][j] == '#' || visited[i][j]) {
+        return;                              // kasus dasar: dinding atau sudah dikunjungi
+    }
+    visited[i][j] = true;
+
+    int dr[4] = {-1, 1, 0, 0};               // atas, bawah, kiri, kanan
+    int dc[4] = {0, 0, -1, 1};
+    for (int d = 0; d < 4; d++) {
+        isi(i + dr[d], j + dc[d], grid, visited);
+    }
+}
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<string> grid(r);
+    for (int i = 0; i < r; i++) {
+        cin >> grid[i];
+    }
+
+    vector<vector<bool>> visited(r, vector<bool>(c, false));
+    int ruangan = 0;
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            if (grid[i][j] == '.' && !visited[i][j]) {
+                ruangan++;                   // lantai yang belum terjangkau: ruangan baru
+                isi(i, j, grid, visited);
+            }
+        }
+    }
+    cout << ruangan << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def isi(i, j, grid, visited):
+    r = len(grid)
+    c = len(grid[0])
+    if i < 0 or i >= r or j < 0 or j >= c:
+        return                               # kasus dasar: di luar denah
+    if grid[i][j] == "#" or visited[i][j]:
+        return                               # kasus dasar: dinding atau sudah dikunjungi
+    visited[i][j] = True
+
+    dr = [-1, 1, 0, 0]                       # atas, bawah, kiri, kanan
+    dc = [0, 0, -1, 1]
+    for d in range(4):
+        isi(i + dr[d], j + dc[d], grid, visited)
+
+
+r, c = map(int, input().split())
+grid = [input() for _ in range(r)]
+
+visited = [[False] * c for _ in range(r)]
+ruangan = 0
+for i in range(r):
+    for j in range(c):
+        if grid[i][j] == "." and not visited[i][j]:
+            ruangan += 1                     # lantai yang belum terjangkau: ruangan baru
+            isi(i, j, grid, visited)
+print(ruangan)
+```
+
+```txt title="Contoh input"
+5 9
+.....#...
+.....#...
+######.##
+...#.....
+...#.....
+```
+
+```txt title="Contoh output"
+3
+```
+
+Ruangan kanan atas dan kanan bawah tersambung lewat "pintu" di baris ketiga, jadi keduanya dihitung sebagai satu ruangan. Ketiga ruangannya adalah kiri atas, kanan (atas dan bawah), dan kiri bawah.
+
+Fungsi `isi` boleh dipanggil dengan sel di luar denah, karena pemeriksaan batas adalah hal **pertama** yang dilakukannya. Urutan kedua `if` itu penting: `grid[i][j]` baru boleh dibaca setelah dipastikan `i` dan `j` berada di dalam batas.
+
+### Mendeteksi siklus di graph tak berarah
+
+Saat DFS berada di `u` dan menemukan tetangga `v` yang **sudah dikunjungi**, artinya `v` bisa dicapai lewat dua jalan: jalan yang dulu dipakai untuk mengunjungi `v`, dan jalan yang sekarang tiba di `u`. Dua jalan itu membentuk siklus.
+
+Ada satu pengecualian. Di graph tak berarah, simpul yang baru saja kita tinggalkan untuk datang ke `u`, yaitu induknya, pasti sudah dikunjungi. Sisi `u`–induk adalah sisi yang sama yang baru dilewati, bukan siklus. Karena itu induknya dilewati.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+bool adaSiklus(int u, int induk, const vector<vector<int>>& adj, vector<bool>& visited) {
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (v == induk) {
+            continue;                        // sisi yang baru saja dilewati, bukan siklus
+        }
+        if (visited[v]) {
+            return true;                     // simpul lama ditemui lewat jalan lain
+        }
+        if (adaSiklus(v, u, adj, visited)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    vector<bool> visited(n + 1, false);
+    bool siklus = false;
+    for (int u = 1; u <= n; u++) {           // periksa setiap komponen
+        if (!visited[u] && adaSiklus(u, 0, adj, visited)) {
+            siklus = true;
+            break;
+        }
+    }
+
+    if (siklus) {
+        cout << "Ada siklus" << endl;
+    } else {
+        cout << "Tidak ada siklus" << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+def ada_siklus(u, induk, adj, visited):
+    visited[u] = True
+    for v in adj[u]:
+        if v == induk:
+            continue                         # sisi yang baru saja dilewati, bukan siklus
+        if visited[v]:
+            return True                      # simpul lama ditemui lewat jalan lain
+        if ada_siklus(v, u, adj, visited):
+            return True
+    return False
+
+
+n, m = map(int, input().split())
+adj = [[] for _ in range(n + 1)]
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)
+
+visited = [False] * (n + 1)
+siklus = False
+for u in range(1, n + 1):                    # periksa setiap komponen
+    if not visited[u] and ada_siklus(u, 0, adj, visited):
+        siklus = True
+        break
+
+if siklus:
+    print("Ada siklus")
+else:
+    print("Tidak ada siklus")
+```
+
+```txt title="Contoh input"
+6 6
+1 2
+1 3
+2 4
+2 5
+3 4
+4 5
+```
+
+```txt title="Contoh output"
+Ada siklus
+```
+
+```txt title="Contoh input 2"
+5 3
+1 2
+2 3
+4 5
+```
+
+```txt title="Contoh output 2"
+Tidak ada siklus
+```
+
+Pada graph contoh, DFS berjalan 1 → 2 → 4 → 3. Di simpul 2, tetangga 1 dilewati karena 1 adalah induknya. Di simpul 3, tetangga pertamanya adalah 1, yang sudah dikunjungi padahal induk 3 adalah 4. Berarti ada siklus 1 → 2 → 4 → 3 → 1. Simpul awal setiap komponen diberi induk 0, karena tidak ada simpul bernomor 0. Pemeriksaan induk ini mengandalkan asumsi tidak ada sisi kembar. Jika 1–2 muncul dua kali, kedua sisi itu sebenarnya membentuk siklus, tetapi akan dilewati.
+
+## Kompleksitas DFS
+
+Setiap simpul ditandai dan diproses paling banyak sekali, dan setiap isi adjacency list diperiksa paling banyak sekali (setiap sisi tak berarah tercatat dua kali). Jadi total kerja DFS dengan adjacency list adalah **O(n + m)**: sebanding dengan banyak simpul ditambah banyak sisi. Untuk grid berukuran `r × c`, kerjanya O(r × c).
+
+Jika graph disimpan sebagai adjacency matrix, mencari tetangga setiap simpul butuh memeriksa satu baris penuh, sehingga DFS menjadi O(n²). Ini salah satu alasan adjacency list lebih disukai untuk penelusuran. Lihat <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term> untuk arti notasi ini.
+
+## DFS pada tree
+
+Kamu sebenarnya sudah pernah menulis DFS. Penelusuran **preorder** di materi [Tree](/docs/cpp/tree) adalah DFS yang dimulai dari root: kunjungi node, lalu masuk sedalam mungkin ke subtree kiri, baru setelah itu ke subtree kanan.
+
+```cpp tab="C++"
+void cetakPreorder(Node* root) {
+    if (root == nullptr) {
+        return;                              // kasus dasar
+    }
+    cout << root->data << " ";               // kunjungi node ini dulu
+    cetakPreorder(root->left);               // masuk sedalam mungkin ke kiri
+    cetakPreorder(root->right);              // baru ke kanan
+}
+```
+
+```python tab="Python"
+def cetak_preorder(root):
+    if root is None:
+        return                               # kasus dasar
+    print(root.data, end=" ")                # kunjungi node ini dulu
+    cetak_preorder(root.left)                # masuk sedalam mungkin ke kiri
+    cetak_preorder(root.right)               # baru ke kanan
+```
+
+Preorder tidak butuh `visited` karena tree tidak punya siklus dan pointer `left`/`right` hanya mengarah ke bawah, tidak pernah kembali ke induk. Namun jika sebuah tree disimpan sebagai graph tak berarah dengan adjacency list, `visited` (atau pemeriksaan induk) tetap dibutuhkan, karena dari anak kamu bisa berjalan kembali ke induknya.
+
+## Kesalahan yang sering terjadi
+
+### Lupa `visited`
+
+Sudah dibahas di atas: tanpa `visited`, DFS bolak-balik di sisi yang sama sampai call stack penuh. Python menampilkan `RecursionError`, C++ biasanya crash dengan `Segmentation fault`. Jika program DFS-mu tiba-tiba crash, periksa dulu apakah setiap simpul ditandai.
+
+### Menandai `visited` terlambat
+
+Menandai simpul **setelah** menelusuri tetangganya sama buruknya dengan tidak menandai sama sekali:
+
+```cpp
+void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+    if (visited[u]) {
+        return;
+    }
+    for (int v : adj[u]) {
+        dfs(v, adj, visited);                // ✗ u belum ditandai, tetangganya bisa kembali ke u
+    }
+    visited[u] = true;                       // terlambat
+}
+```
+
+Saat `dfs(2)` memanggil `dfs(1)`, simpul 1 belum ditandai, sehingga rekursinya tidak pernah berhenti. Aturannya: **tandai dulu, baru telusuri tetangga**.
+
+Di versi stack, simpul memang baru ditandai saat di-pop, sehingga simpul yang sama bisa berada di stack beberapa kali. Jika lupa memeriksa `visited` setelah pop, simpul itu diproses berkali-kali. Pada contoh tadi, output-nya menjadi `1 3 4 5 2 2 2`.
+
+### Rekursi terlalu dalam
+
+Setiap pemanggilan rekursif memakai sedikit ruang di call stack. Pada graph berbentuk rantai panjang (1–2, 2–3, 3–4, dan seterusnya), DFS dari simpul 1 menumpuk satu pemanggilan untuk setiap simpul sebelum ada yang selesai.
+
+- **Python** membatasi kedalaman rekursi sekitar 1000 pemanggilan. DFS rekursif pada rantai berisi 1000 simpul sudah berhenti dengan `RecursionError`.
+- **C++** tidak punya batas jumlah pemanggilan, tetapi ukuran call stack terbatas, biasanya 1 sampai 8 MB. Pada satu percobaan di Linux dengan stack 8 MB, DFS rekursif pada rantai 100.000 simpul sudah crash dengan `Segmentation fault`.
+
+Untuk graph yang bisa sangat besar, pakai DFS dengan stack sendiri, atau BFS yang juga memakai perulangan. Latihan di bawah sengaja memakai graph kecil sehingga versi rekursif aman di kedua bahasa.
+
+## DFS tidak mencari jalan terpendek
+
+DFS menjawab "bisa atau tidak", menghitung komponen, dan menemukan siklus dengan sangat baik. Namun seperti contoh jalan 1 → 2 → 4 → 5 tadi, jalan yang ditemukan DFS bergantung pada urutan tetangga dan sering berputar jauh. Untuk mencari jalan dengan **sisi paling sedikit**, misalnya langkah minimal keluar dari labirin, gunakan [BFS](/docs/cpp/bfs), yang menyebar dari titik awal lapis demi lapis.
+
+## Rangkuman
+
+- **DFS** menelusuri graph dengan masuk sedalam mungkin lewat tetangga yang belum dikunjungi, lalu mundur saat buntu.
+- Versi rekursif: kasus dasarnya "sudah dikunjungi, kembali". Tandai `visited[u]` **sebelum** menelusuri tetangga. Isi call stack selalu jalur dari simpul awal ke simpul yang sedang dikunjungi.
+- Tanpa `visited`, DFS berputar selamanya, bahkan di graph tak berarah tanpa siklus.
+- Versi stack memakai `stack` (C++) atau list (Python). Simpul ditandai saat di-pop, jadi periksa `visited` setelah pop. Urutannya bisa berbeda dari versi rekursif karena sifat LIFO, kecuali tetangga di-push dari belakang.
+- Penerapan: memeriksa jalan dari `a` ke `b`, menghitung komponen, mencatat jalan dengan array induk, flood fill pada grid, dan mendeteksi siklus di graph tak berarah dengan pemeriksaan induk.
+- Kompleksitas DFS dengan adjacency list adalah O(n + m). Preorder pada tree adalah DFS.
+- Rekursi yang terlalu dalam membuat program crash. Untuk graph raksasa, pakai versi stack.
+- Jalan yang ditemukan DFS belum tentu terpendek. Untuk jalan terpendek, pakai BFS.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, graph dibaca dengan format standar: baris pertama `n m`, lalu `m` baris `u v`. Simpul bernomor 1 sampai `n` (`n` ≤ 500), graph tak berarah, tanpa sisi ganda, dan tanpa sisi dari simpul ke dirinya sendiri. Jika output bergantung pada urutan penelusuran, tetangga dikunjungi sesuai urutan input. Batas `n` sengaja kecil agar DFS rekursif aman di Python.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Tebak urutan kunjungan">
+  Graph berikut ditelusuri dengan fungsi `dfs` rekursif dari bagian **DFS rekursif** di atas, mulai dari simpul 1.
+
+  ```txt title="Input"
+  7 8
+  1 4
+  1 2
+  4 5
+  2 5
+  5 3
+  2 6
+  6 7
+  3 7
+  ```
+
+  1. Apa yang dicetak program?
+  2. Saat simpul 3 dikunjungi, pemanggilan `dfs` untuk simpul mana saja yang sedang menunggu di call stack, dari bawah ke atas?
+
+  <Pembahasan>
+    Susun dulu adjacency list sesuai urutan input: `1: 4 2`, `2: 1 5 6`, `3: 5 7`, `4: 1 5`, `5: 4 2 3`, `6: 2 7`, `7: 6 3`.
+
+    1. Output-nya `1 4 5 2 6 7 3`. Dari 1, tetangga pertama adalah 4 (bukan 2, karena sisi `1 4` dibaca lebih dulu). Dari 4 masuk ke 5, dari 5 masuk ke 2 (tetangga 4 sudah dikunjungi), dari 2 masuk ke 6, dari 6 ke 7, dan dari 7 ke 3.
+    2. Call stack-nya `dfs(1) dfs(4) dfs(5) dfs(2) dfs(6) dfs(7)`, dengan `dfs(3)` di puncaknya. Isi call stack selalu jalur dari simpul awal ke simpul yang sedang dikunjungi: 1 → 4 → 5 → 2 → 6 → 7 → 3. Simpul 3 bertetangga dengan 5, tetapi DFS baru tiba di 3 setelah berputar jauh lewat 2, 6, dan 7.
+
+    | Simpul | Tetangga diperiksa | Tindakan |
+    | --- | --- | --- |
+    | 1 | 4 | masuk ke 4 |
+    | 4 | 1, 5 | 1 sudah, masuk ke 5 |
+    | 5 | 4, 2 | 4 sudah, masuk ke 2 |
+    | 2 | 1, 5, 6 | 1 dan 5 sudah, masuk ke 6 |
+    | 6 | 2, 7 | 2 sudah, masuk ke 7 |
+    | 7 | 6, 3 | 6 sudah, masuk ke 3 |
+    | 3 | 5, 7 | semua sudah, mundur sampai selesai |
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Bisa sampai atau tidak">
+  Baca sebuah graph, lalu baris terakhir berisi dua simpul `a` dan `b`. Tampilkan `YA` jika ada jalan dari `a` ke `b`, atau `TIDAK` jika tidak ada. Jika `a` sama dengan `b`, jawabannya `YA`.
+
+  ```txt title="Contoh input"
+  6 4
+  1 2
+  2 3
+  4 5
+  5 6
+  1 3
+  ```
+
+  ```txt title="Contoh output"
+  YA
+  ```
+
+  ```txt title="Contoh input 2"
+  6 4
+  1 2
+  2 3
+  4 5
+  5 6
+  1 6
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK
+  ```
+
+  <Pembahasan>
+    Jalankan DFS dari `a`, lalu periksa `visited[b]`. Kasus `a` sama dengan `b` tertangani otomatis, karena `a` adalah simpul pertama yang ditandai.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+        if (visited[u]) {
+            return;                          // kasus dasar
+        }
+        visited[u] = true;
+        for (int v : adj[u]) {
+            dfs(v, adj, visited);
+        }
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        int a, b;
+        cin >> a >> b;
+
+        vector<bool> visited(n + 1, false);
+        dfs(a, adj, visited);
+        if (visited[b]) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def dfs(u, adj, visited):
+        if visited[u]:
+            return                           # kasus dasar
+        visited[u] = True
+        for v in adj[u]:
+            dfs(v, adj, visited)
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+    a, b = map(int, input().split())
+
+    visited = [False] * (n + 1)
+    dfs(a, adj, visited)
+    if visited[b]:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="DFS yang tidak berhenti">
+  Program berikut seharusnya menampilkan banyak simpul yang bisa dicapai dari simpul 1, termasuk simpul 1 sendiri. Namun versi Python berhenti dengan `RecursionError`, dan versi C++ crash. Temukan kesalahannya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int hitung(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+      if (visited[u]) {
+          return 0;                          // kasus dasar
+      }
+      int total = 1;
+      for (int v : adj[u]) {
+          total += hitung(v, adj, visited);
+      }
+      visited[u] = true;
+      return total;
+  }
+
+  int main() {
+      int n, m;
+      cin >> n >> m;
+      vector<vector<int>> adj(n + 1);
+      for (int i = 0; i < m; i++) {
+          int u, v;
+          cin >> u >> v;
+          adj[u].push_back(v);
+          adj[v].push_back(u);
+      }
+      vector<bool> visited(n + 1, false);
+      cout << hitung(1, adj, visited) << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def hitung(u, adj, visited):
+      if visited[u]:
+          return 0                           # kasus dasar
+      total = 1
+      for v in adj[u]:
+          total += hitung(v, adj, visited)
+      visited[u] = True
+      return total
+
+
+  n, m = map(int, input().split())
+  adj = [[] for _ in range(n + 1)]
+  for _ in range(m):
+      u, v = map(int, input().split())
+      adj[u].append(v)
+      adj[v].append(u)
+  visited = [False] * (n + 1)
+  print(hitung(1, adj, visited))
+  ```
+
+  ```txt title="Contoh input"
+  5 3
+  1 2
+  2 3
+  1 4
+  ```
+
+  ```txt title="Contoh output"
+  4
+  ```
+
+  <Pembahasan>
+    `visited[u]` baru diisi **setelah** semua tetangga ditelusuri. Saat `hitung(1)` memanggil `hitung(2)`, simpul 1 belum ditandai, sehingga `hitung(2)` memanggil `hitung(1)` lagi, dan seterusnya tanpa akhir. Pindahkan penandaan ke sebelum perulangan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int hitung(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+        if (visited[u]) {
+            return 0;                        // kasus dasar
+        }
+        visited[u] = true;                   // perbaikan: tandai dulu
+        int total = 1;
+        for (int v : adj[u]) {
+            total += hitung(v, adj, visited);
+        }
+        return total;
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        vector<bool> visited(n + 1, false);
+        cout << hitung(1, adj, visited) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def hitung(u, adj, visited):
+        if visited[u]:
+            return 0                         # kasus dasar
+        visited[u] = True                    # perbaikan: tandai dulu
+        total = 1
+        for v in adj[u]:
+            total += hitung(v, adj, visited)
+        return total
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+    visited = [False] * (n + 1)
+    print(hitung(1, adj, visited))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Ukuran setiap komponen">
+  Baca sebuah graph. Di baris pertama, tampilkan banyak komponennya. Di baris kedua, tampilkan banyak simpul di setiap komponen, terurut dari kecil ke besar dan dipisah spasi.
+
+  ```txt title="Contoh input"
+  8 5
+  1 2
+  2 3
+  4 5
+  6 7
+  7 4
+  ```
+
+  ```txt title="Contoh output"
+  3
+  1 3 4
+  ```
+
+  ```txt title="Contoh input 2"
+  3 0
+  ```
+
+  ```txt title="Contoh output 2"
+  3
+  1 1 1
+  ```
+
+  <Petunjuk>
+    Ubah DFS agar **mengembalikan** banyak simpul yang baru ia tandai: 0 jika simpulnya sudah dikunjungi, atau 1 ditambah hasil semua pemanggilan untuk tetangganya. Simpan setiap ukuran di sebuah vector, lalu urutkan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pola menghitung komponen tetap sama, hanya hasil DFS-nya kini disimpan. Pada contoh 1, komponennya adalah 1-2-3 (3 simpul), 4-5-6-7 (4 simpul), dan simpul 8 sendirian. Simpul yang tidak punya sisi sama sekali tetap satu komponen berukuran 1.
+
+    ```cpp tab="C++"
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int ukuran(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+        if (visited[u]) {
+            return 0;                        // kasus dasar: tidak menambah apa-apa
+        }
+        visited[u] = true;
+        int total = 1;                       // u sendiri
+        for (int v : adj[u]) {
+            total += ukuran(v, adj, visited);
+        }
+        return total;
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<bool> visited(n + 1, false);
+        vector<int> daftar;
+        for (int u = 1; u <= n; u++) {
+            if (!visited[u]) {
+                daftar.push_back(ukuran(u, adj, visited));
+            }
+        }
+        sort(daftar.begin(), daftar.end());
+
+        cout << daftar.size() << endl;
+        for (int i = 0; i < (int)daftar.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << daftar[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def ukuran(u, adj, visited):
+        if visited[u]:
+            return 0                         # kasus dasar: tidak menambah apa-apa
+        visited[u] = True
+        total = 1                            # u sendiri
+        for v in adj[u]:
+            total += ukuran(v, adj, visited)
+        return total
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    visited = [False] * (n + 1)
+    daftar = []
+    for u in range(1, n + 1):
+        if not visited[u]:
+            daftar.append(ukuran(u, adj, visited))
+    daftar.sort()
+
+    print(len(daftar))
+    print(*daftar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Jalan satu arah">
+  Sebuah kota punya `n` persimpangan dan `m` jalan **satu arah** (graph berarah): baris `u v` berarti kendaraan bisa bergerak dari `u` ke `v`, tetapi tidak sebaliknya. Baris terakhir berisi persimpangan awal `s`. Tampilkan semua persimpangan selain `s` yang bisa dicapai dari `s`, terurut dari nomor kecil, atau `TIDAK ADA` jika tidak ada satu pun.
+
+  ```txt title="Contoh input"
+  6 6
+  1 2
+  2 3
+  3 1
+  4 3
+  2 5
+  6 4
+  2
+  ```
+
+  ```txt title="Contoh output"
+  1 3 5
+  ```
+
+  ```txt title="Contoh input 2"
+  6 6
+  1 2
+  2 3
+  3 1
+  4 3
+  2 5
+  6 4
+  6
+  ```
+
+  ```txt title="Contoh output 2"
+  1 2 3 4 5
+  ```
+
+  ```txt title="Contoh input 3"
+  6 6
+  1 2
+  2 3
+  3 1
+  4 3
+  2 5
+  6 4
+  5
+  ```
+
+  ```txt title="Contoh output 3"
+  TIDAK ADA
+  ```
+
+  <Petunjuk>
+    Untuk graph berarah, tambahkan sisi ke `adj[u]` saja. DFS-nya tidak berubah. Setelah DFS dari `s`, telusuri simpul 1 sampai `n` agar hasilnya otomatis terurut.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, dari 2 kamu bisa ke 3 dan 5, lalu dari 3 ke 1. Persimpangan 4 tidak bisa dicapai, walaupun ada jalan 4 → 3, karena arahnya berlawanan. Graph berarah membuat "bisa dicapai" tidak lagi berlaku dua arah: dari 6 semua persimpangan lain bisa dicapai, tetapi dari 5 tidak ada satu pun.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    void dfs(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+        if (visited[u]) {
+            return;                          // kasus dasar
+        }
+        visited[u] = true;
+        for (int v : adj[u]) {
+            dfs(v, adj, visited);
+        }
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);             // satu arah saja
+        }
+        int s;
+        cin >> s;
+
+        vector<bool> visited(n + 1, false);
+        dfs(s, adj, visited);
+
+        vector<int> hasil;
+        for (int u = 1; u <= n; u++) {
+            if (u != s && visited[u]) {
+                hasil.push_back(u);
+            }
+        }
+
+        if (hasil.empty()) {
+            cout << "TIDAK ADA" << endl;
+        } else {
+            for (int i = 0; i < (int)hasil.size(); i++) {
+                if (i > 0) {
+                    cout << " ";
+                }
+                cout << hasil[i];
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def dfs(u, adj, visited):
+        if visited[u]:
+            return                           # kasus dasar
+        visited[u] = True
+        for v in adj[u]:
+            dfs(v, adj, visited)
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)                     # satu arah saja
+    s = int(input())
+
+    visited = [False] * (n + 1)
+    dfs(s, adj, visited)
+
+    hasil = []
+    for u in range(1, n + 1):
+        if u != s and visited[u]:
+            hasil.append(u)
+
+    if len(hasil) == 0:
+        print("TIDAK ADA")
+    else:
+        print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Pulau terbesar">
+  Sebuah peta berbentuk grid dibaca dengan format: baris pertama `r c` (1 ≤ `r`, `c` ≤ 20), lalu `r` baris berisi `c` karakter. Di peta ini, `#` adalah **daratan** dan `.` adalah air. Sebuah **pulau** adalah kelompok sel daratan yang tersambung lewat atas, bawah, kiri, atau kanan (diagonal tidak dihitung). Tampilkan banyak pulau dan luas pulau terbesar (banyak selnya), dipisah spasi. Jika tidak ada daratan, tampilkan `0 0`.
+
+  ```txt title="Contoh input"
+  4 5
+  ##..#
+  #...#
+  ..#..
+  .###.
+  ```
+
+  ```txt title="Contoh output"
+  3 4
+  ```
+
+  ```txt title="Contoh input 2"
+  2 3
+  ...
+  ...
+  ```
+
+  ```txt title="Contoh output 2"
+  0 0
+  ```
+
+  <Petunjuk>
+    Ini flood fill seperti contoh menghitung ruangan, tetapi sel yang ditelusuri adalah `#`. Agar bisa mengetahui luas, buat fungsi flood fill yang mengembalikan banyak sel yang ia tandai, seperti di soal ukuran komponen.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, pulau kiri atas berisi 3 sel, pulau kanan atas 2 sel, dan pulau bawah 4 sel. Sel `(2, 2)` dan `(3, 2)` bersebelahan atas-bawah, sehingga keempat sel di bawah membentuk satu pulau. Pemeriksaan batas tetap dilakukan paling awal, sebelum `grid[i][j]` dibaca.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int luas(int i, int j, const vector<string>& grid, vector<vector<bool>>& visited) {
+        int r = grid.size();
+        int c = grid[0].size();
+        if (i < 0 || i >= r || j < 0 || j >= c) {
+            return 0;                        // kasus dasar: di luar peta
+        }
+        if (grid[i][j] != '#' || visited[i][j]) {
+            return 0;                        // kasus dasar: air atau sudah dihitung
+        }
+        visited[i][j] = true;
+
+        int dr[4] = {-1, 1, 0, 0};           // atas, bawah, kiri, kanan
+        int dc[4] = {0, 0, -1, 1};
+        int total = 1;
+        for (int d = 0; d < 4; d++) {
+            total += luas(i + dr[d], j + dc[d], grid, visited);
+        }
+        return total;
+    }
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<string> grid(r);
+        for (int i = 0; i < r; i++) {
+            cin >> grid[i];
+        }
+
+        vector<vector<bool>> visited(r, vector<bool>(c, false));
+        int pulau = 0;
+        int terbesar = 0;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == '#' && !visited[i][j]) {
+                    pulau++;
+                    int ukuran = luas(i, j, grid, visited);
+                    if (ukuran > terbesar) {
+                        terbesar = ukuran;
+                    }
+                }
+            }
+        }
+        cout << pulau << " " << terbesar << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def luas(i, j, grid, visited):
+        r = len(grid)
+        c = len(grid[0])
+        if i < 0 or i >= r or j < 0 or j >= c:
+            return 0                         # kasus dasar: di luar peta
+        if grid[i][j] != "#" or visited[i][j]:
+            return 0                         # kasus dasar: air atau sudah dihitung
+        visited[i][j] = True
+
+        dr = [-1, 1, 0, 0]                   # atas, bawah, kiri, kanan
+        dc = [0, 0, -1, 1]
+        total = 1
+        for d in range(4):
+            total += luas(i + dr[d], j + dc[d], grid, visited)
+        return total
+
+
+    r, c = map(int, input().split())
+    grid = [input() for _ in range(r)]
+
+    visited = [[False] * c for _ in range(r)]
+    pulau = 0
+    terbesar = 0
+    for i in range(r):
+        for j in range(c):
+            if grid[i][j] == "#" and not visited[i][j]:
+                pulau += 1
+                ukuran = luas(i, j, grid, visited)
+                if ukuran > terbesar:
+                    terbesar = ukuran
+    print(pulau, terbesar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Satu grup atau bukan">
+  Sebuah grup obrolan besar terpecah menjadi beberapa lingkaran pertemanan. Dua orang berada di lingkaran yang sama jika ada rantai pertemanan yang menghubungkan mereka. Setelah graph pertemanan, ada baris berisi `q` (`q` ≤ 100.000), lalu `q` baris pertanyaan `u v`. Untuk setiap pertanyaan, tampilkan `YA` jika `u` dan `v` berada di lingkaran yang sama, atau `TIDAK` jika tidak.
+
+  ```txt title="Contoh input"
+  6 3
+  1 2
+  2 3
+  4 5
+  4
+  1 3
+  1 4
+  5 4
+  6 6
+  ```
+
+  ```txt title="Contoh output"
+  YA
+  TIDAK
+  YA
+  YA
+  ```
+
+  <Petunjuk>
+    Menjalankan DFS baru untuk setiap pertanyaan terlalu lambat jika `q` besar. Jalankan DFS sekali per komponen, dan beri setiap simpul **nomor komponen**: semua simpul yang ditandai DFS ke-`k` mendapat nomor `k`. Setelah itu setiap pertanyaan cukup membandingkan dua angka.
+  </Petunjuk>
+
+  <Pembahasan>
+    Array `komponen` sekaligus berperan sebagai `visited`: nilai 0 berarti belum dikunjungi. Pada contoh, simpul 1, 2, 3 mendapat nomor 1, simpul 4 dan 5 nomor 2, dan simpul 6 nomor 3. Kerja seluruh DFS adalah O(n + m), dan setiap pertanyaan dijawab dalam satu langkah. Bandingkan dengan DFS ulang untuk setiap pertanyaan, yang bisa memakan 100.000 kali O(n + m).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    void tandai(int u, int nomor, const vector<vector<int>>& adj, vector<int>& komponen) {
+        if (komponen[u] != 0) {
+            return;                          // kasus dasar: sudah punya nomor
+        }
+        komponen[u] = nomor;
+        for (int v : adj[u]) {
+            tandai(v, nomor, adj, komponen);
+        }
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<int> komponen(n + 1, 0);      // 0 berarti belum dikunjungi
+        int nomor = 0;
+        for (int u = 1; u <= n; u++) {
+            if (komponen[u] == 0) {
+                nomor++;
+                tandai(u, nomor, adj, komponen);
+            }
+        }
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            int u, v;
+            cin >> u >> v;
+            if (komponen[u] == komponen[v]) {
+                cout << "YA\n";
+            } else {
+                cout << "TIDAK\n";
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def tandai(u, nomor, adj, komponen):
+        if komponen[u] != 0:
+            return                           # kasus dasar: sudah punya nomor
+        komponen[u] = nomor
+        for v in adj[u]:
+            tandai(v, nomor, adj, komponen)
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    komponen = [0] * (n + 1)                 # 0 berarti belum dikunjungi
+    nomor = 0
+    for u in range(1, n + 1):
+        if komponen[u] == 0:
+            nomor += 1
+            tandai(u, nomor, adj, komponen)
+
+    q = int(input())
+    for _ in range(q):
+        u, v = map(int, input().split())
+        if komponen[u] == komponen[v]:
+            print("YA")
+        else:
+            print("TIDAK")
+    ```
+
+    Versi C++ memakai `"\n"` alih-alih `endl` karena output-nya bisa mencapai 100.000 baris. `endl` memaksa output dikirim setiap baris, sehingga lebih lambat. Bedanya dijelaskan di [`endl` vs `"\n"`](/docs/cpp/pendalaman/buffer#endl-vs-n).
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Apakah ini tree?">
+  Baca sebuah graph, lalu tampilkan `YA` jika graph itu sebuah **tree** (terhubung dan tidak punya siklus), atau `TIDAK` jika bukan.
+
+  ```txt title="Contoh input"
+  5 4
+  1 2
+  1 3
+  3 4
+  3 5
+  ```
+
+  ```txt title="Contoh output"
+  YA
+  ```
+
+  ```txt title="Contoh input 2"
+  5 4
+  1 2
+  2 3
+  3 1
+  4 5
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK
+  ```
+
+  ```txt title="Contoh input 3"
+  1 0
+  ```
+
+  ```txt title="Contoh output 3"
+  YA
+  ```
+
+  <Petunjuk>
+    Di materi [Graph](/docs/cpp/graph) disebutkan bahwa tree dengan `n` simpul selalu punya `n − 1` sisi. Apakah syarat itu saja cukup? Coba contoh 2. Lalu pikirkan: jika sebuah graph terhubung dan sisinya tepat `n − 1`, mungkinkah ia masih punya siklus?
+  </Petunjuk>
+
+  <Pembahasan>
+    Contoh 2 punya `n − 1 = 4` sisi, tetapi bukan tree: ada siklus 1-2-3 dan simpul 4-5 terpisah. Jadi banyak sisi saja tidak cukup. Yang benar: **graph adalah tree jika dan hanya jika terhubung dan punya tepat `n − 1` sisi.**
+
+    Alasannya: bayangkan `n` simpul tanpa sisi, yaitu `n` komponen. Setiap sisi yang ditambahkan paling banyak menggabungkan dua komponen menjadi satu, jadi graph terhubung butuh paling sedikit `n − 1` sisi. Jika ada siklus, salah satu sisi siklus bisa dibuang tanpa memutus graph, sehingga graph itu tetap terhubung dengan `n − 2` sisi. Itu mustahil. Jadi graph terhubung dengan tepat `n − 1` sisi tidak mungkin punya siklus.
+
+    Keterhubungan diperiksa dengan satu DFS dari simpul 1: graph terhubung jika semua `n` simpul dikunjungi. Kasus `n = 1, m = 0` adalah tree berisi satu simpul. Cara lain yang juga benar: periksa terhubung, lalu periksa tidak ada siklus dengan fungsi `adaSiklus` dari materi.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int hitung(int u, const vector<vector<int>>& adj, vector<bool>& visited) {
+        if (visited[u]) {
+            return 0;                        // kasus dasar
+        }
+        visited[u] = true;
+        int total = 1;
+        for (int v : adj[u]) {
+            total += hitung(v, adj, visited);
+        }
+        return total;
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        vector<bool> visited(n + 1, false);
+        bool terhubung = (hitung(1, adj, visited) == n);
+
+        if (terhubung && m == n - 1) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def hitung(u, adj, visited):
+        if visited[u]:
+            return 0                         # kasus dasar
+        visited[u] = True
+        total = 1
+        for v in adj[u]:
+            total += hitung(v, adj, visited)
+        return total
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    visited = [False] * (n + 1)
+    terhubung = hitung(1, adj, visited) == n
+
+    if terhubung and m == n - 1:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Siklus di graph berarah">
+  Baca sebuah graph **berarah** (baris `u v` berarti panah dari `u` ke `v`). Tampilkan `YA` jika graph itu punya siklus berarah, yaitu jalur yang mengikuti arah panah dan kembali ke simpul awalnya, atau `TIDAK` jika tidak ada.
+
+  ```txt title="Contoh input"
+  4 4
+  1 2
+  1 3
+  3 2
+  2 4
+  ```
+
+  ```txt title="Contoh output"
+  TIDAK
+  ```
+
+  ```txt title="Contoh input 2"
+  4 4
+  1 2
+  2 3
+  3 4
+  4 2
+  ```
+
+  ```txt title="Contoh output 2"
+  YA
+  ```
+
+  <Petunjuk>
+    Cara untuk graph tak berarah ("ketemu simpul yang sudah dikunjungi berarti siklus") memberi jawaban salah pada contoh 1. Bedakan tiga keadaan simpul: **belum dikunjungi**, **sedang ditelusuri** (pemanggilannya masih di call stack), dan **selesai**. Siklus hanya ada jika DFS tiba di simpul yang sedang ditelusuri.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, DFS dari 1 menelusuri 1 → 2 → 4, lalu mundur. Saat kemudian menelusuri 1 → 3 → 2, simpul 2 sudah dikunjungi. Namun 2 sudah **selesai**, dan dari 2 tidak ada jalan kembali ke 3, jadi ini bukan siklus. Hanya dua jalan berbeda yang bertemu di simpul yang sama.
+
+    Simpul yang **sedang ditelusuri** adalah simpul di call stack, yaitu jalur dari simpul awal ke simpul sekarang. Jika dari `u` ada panah ke simpul seperti itu, panah tersebut menutup jalur menjadi lingkaran. Pada contoh 2, saat DFS berada di 4 (call stack 1 → 2 → 3 → 4), panah 4 → 2 menuju simpul yang masih sedang ditelusuri, sehingga ada siklus 2 → 3 → 4 → 2.
+
+    Status diberi nilai 0 (belum), 1 (sedang), atau 2 (selesai). Sebuah simpul berubah dari 1 menjadi 2 tepat sebelum pemanggilannya selesai, yaitu saat ia keluar dari call stack. DFS harus dicoba dari setiap simpul yang masih berstatus 0, karena siklus bisa saja tidak terjangkau dari simpul 1.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    // status: 0 = belum dikunjungi, 1 = sedang ditelusuri, 2 = selesai
+    bool adaSiklus(int u, const vector<vector<int>>& adj, vector<int>& status) {
+        if (status[u] == 1) {
+            return true;                     // kasus dasar: kembali ke simpul di call stack
+        }
+        if (status[u] == 2) {
+            return false;                    // kasus dasar: sudah tuntas diperiksa
+        }
+        status[u] = 1;
+        for (int v : adj[u]) {
+            if (adaSiklus(v, adj, status)) {
+                return true;
+            }
+        }
+        status[u] = 2;                       // keluar dari call stack
+        return false;
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+        }
+
+        vector<int> status(n + 1, 0);
+        bool siklus = false;
+        for (int u = 1; u <= n; u++) {
+            if (status[u] == 0 && adaSiklus(u, adj, status)) {
+                siklus = true;
+                break;
+            }
+        }
+
+        if (siklus) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    # status: 0 = belum dikunjungi, 1 = sedang ditelusuri, 2 = selesai
+    def ada_siklus(u, adj, status):
+        if status[u] == 1:
+            return True                      # kasus dasar: kembali ke simpul di call stack
+        if status[u] == 2:
+            return False                     # kasus dasar: sudah tuntas diperiksa
+        status[u] = 1
+        for v in adj[u]:
+            if ada_siklus(v, adj, status):
+                return True
+        status[u] = 2                        # keluar dari call stack
+        return False
+
+
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    status = [0] * (n + 1)
+    siklus = False
+    for u in range(1, n + 1):
+        if status[u] == 0 and ada_siklus(u, adj, status):
+            siklus = True
+            break
+
+    if siklus:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Semester minimal">
+  Sebuah program studi punya `n` mata kuliah dan `m` aturan prasyarat. Baris `u v` berarti mata kuliah `u` harus sudah lulus sebelum `v` boleh diambil (graph berarah). Prasyaratnya tidak pernah melingkar. Setiap semester, seorang mahasiswa boleh mengambil mata kuliah sebanyak apa pun, asalkan semua prasyaratnya sudah lulus di semester-semester **sebelumnya**, dan setiap mata kuliah yang diambil pasti lulus.
+
+  Berapa semester paling sedikit untuk menyelesaikan semua mata kuliah?
+
+  ```txt title="Contoh input"
+  6 5
+  1 2
+  2 4
+  3 4
+  4 5
+  1 6
+  ```
+
+  ```txt title="Contoh output"
+  4
+  ```
+
+  ```txt title="Contoh input 2"
+  3 0
+  ```
+
+  ```txt title="Contoh output 2"
+  1
+  ```
+
+  <Petunjuk>
+    Untuk setiap mata kuliah `v`, hitung semester paling awal ia bisa diambil. Mata kuliah tanpa prasyarat bisa diambil di semester 1. Selain itu, `v` bisa diambil satu semester setelah prasyaratnya yang **paling akhir**. Simpan daftar prasyarat setiap mata kuliah (balik arah panahnya), lalu hitung secara rekursif. Simpan hasilnya agar setiap mata kuliah hanya dihitung sekali.
+  </Petunjuk>
+
+  <Pembahasan>
+    Misalkan `semester(v)` adalah semester paling awal `v` bisa diambil. Maka `semester(v) = 1 + semester terbesar di antara prasyarat v`, atau 1 jika `v` tidak punya prasyarat. Jika setiap mata kuliah diambil di semester paling awalnya, semua aturan terpenuhi, jadi jawabannya adalah nilai `semester(v)` terbesar. Tidak ada jadwal yang lebih cepat, karena rantai prasyarat terpanjang (1 → 2 → 4 → 5 pada contoh 1) harus diambil satu per satu di semester yang berbeda.
+
+    | Mata kuliah | Prasyarat | Semester paling awal |
+    | --- | --- | --- |
+    | 1 | | 1 |
+    | 3 | | 1 |
+    | 2 | 1 | 2 |
+    | 6 | 1 | 2 |
+    | 4 | 2, 3 | 3 |
+    | 5 | 4 | 4 |
+
+    Fungsinya adalah DFS mengikuti panah prasyarat ke belakang, dengan array `memo` sebagai pengganti `visited`: nilai 0 berarti belum dihitung. Tanpa `memo`, mata kuliah yang menjadi prasyarat banyak mata kuliah lain akan dihitung berulang kali, dan pada graph tertentu banyak pemanggilannya bisa meledak secara eksponensial. Dengan `memo`, setiap simpul dihitung sekali, jadi totalnya O(n + m). Teknik menyimpan hasil pemanggilan rekursif seperti ini dibahas di [Memoisasi](/docs/cpp/pendalaman/memoisasi).
+
+    ```cpp tab="C++"
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int semester(int v, const vector<vector<int>>& prasyarat, vector<int>& memo) {
+        if (memo[v] != 0) {
+            return memo[v];                  // kasus dasar: sudah pernah dihitung
+        }
+        int palingAkhir = 0;                 // semester prasyarat yang paling akhir
+        for (int u : prasyarat[v]) {
+            palingAkhir = max(palingAkhir, semester(u, prasyarat, memo));
+        }
+        memo[v] = palingAkhir + 1;           // tanpa prasyarat: semester 1
+        return memo[v];
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> prasyarat(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            prasyarat[v].push_back(u);       // simpan arah balik: v butuh u
+        }
+
+        vector<int> memo(n + 1, 0);
+        int jawaban = 0;
+        for (int v = 1; v <= n; v++) {
+            jawaban = max(jawaban, semester(v, prasyarat, memo));
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def semester(v, prasyarat, memo):
+        if memo[v] != 0:
+            return memo[v]                   # kasus dasar: sudah pernah dihitung
+        paling_akhir = 0                     # semester prasyarat yang paling akhir
+        for u in prasyarat[v]:
+            paling_akhir = max(paling_akhir, semester(u, prasyarat, memo))
+        memo[v] = paling_akhir + 1           # tanpa prasyarat: semester 1
+        return memo[v]
+
+
+    n, m = map(int, input().split())
+    prasyarat = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        prasyarat[v].append(u)               # simpan arah balik: v butuh u
+
+    memo = [0] * (n + 1)
+    jawaban = 0
+    for v in range(1, n + 1):
+        jawaban = max(jawaban, semester(v, prasyarat, memo))
+    print(jawaban)
+    ```
+
+    Urutan mata kuliah yang memenuhi semua prasyarat, seperti 1, 3, 2, 6, 4, 5, disebut **urutan topologis**. Mengambil mata kuliah per semester seperti tabel di atas adalah salah satu cara menyusunnya.
+  </Pembahasan>
+</Soal>

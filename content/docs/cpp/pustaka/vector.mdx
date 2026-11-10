@@ -156,6 +156,8 @@ terkecil = min(nilai)         # 60
 
 `max_element` mengembalikan **posisi** (iterator) elemen terbesar, sehingga perlu tanda `*` di depannya untuk mengambil nilainya.
 
+Fungsi lain dari pustaka ini, misalnya `reverse`, `count`, `binary_search`, dan `lower_bound`, dirangkum di [`<algorithm>`](/docs/cpp/pustaka/algorithm). Cara kerja algoritma pengurutan itu sendiri dibahas di materi [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan).
+
 ## Vector dua dimensi
 
 ```cpp tab="C++"
@@ -173,5 +175,7 @@ m[0][0] = 9
 <Callout type="warning" title="Jebakan Python: [[0] * 4] * 3">
   Menulis `m = [[0] * 4] * 3` di Python membuat **tiga nama untuk baris yang sama**. Mengubah `m[0][0]` akan ikut mengubah `m[1][0]` dan `m[2][0]`. Selalu buat setiap baris secara terpisah dengan `for` seperti contoh di atas.
 </Callout>
+
+Membaca matriks dari input, transpose, perkalian matriks, dan grid karakter dibahas di materi [Matriks](/docs/cpp/matriks).
 
 <BackToLesson href="/docs/cpp/array-dan-vector" label="Array & vector" />

@@ -1,0 +1,1518 @@
+---
+title: Graph
+description: Memodelkan hubungan antar banyak objek dengan simpul dan sisi, mengenal istilah dasarnya, lalu menyimpan graph sebagai adjacency matrix, adjacency list, atau edge list.
+sumber:
+  - ref: cppreference
+    judul: std::vector
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: python-docs
+    judul: Tutorial, List Comprehensions
+    url: https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions
+  - ref: python-docs
+    judul: Tutorial, Tuples and Sequences
+    url: https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences
+---
+
+## Masalah: hubungan yang tidak berbentuk pohon
+
+Di materi [Tree](/docs/cpp/tree) kamu menyimpan data yang bertingkat. Setiap node punya tepat satu induk, dan dari root hanya ada **satu jalan** menuju node mana pun. Bentuk ini cocok untuk folder di komputer atau silsilah keluarga.
+
+Banyak hubungan di dunia nyata tidak serapi itu:
+
+- **Kota dan jalan.** Dari satu kota ke kota lain sering ada beberapa rute, dan kamu bisa berkeliling lalu kembali ke kota asal.
+- **Pertemanan.** Ani berteman dengan Budi dan Citra, sedangkan Budi juga berteman dengan Citra. Tidak ada yang menjadi "induk" siapa pun.
+- **Prasyarat mata kuliah.** Struktur Data harus lulus sebelum mengambil Algoritma. Hubungan ini punya **arah**.
+
+```txt
+Ani ------ Budi
+  \       /    \
+   \     /      \
+    Citra        Dodi ------ Eka
+```
+
+Ani, Budi, dan Citra saling berteman, sehingga dari Ani kamu bisa ke Budi, lalu ke Citra, lalu kembali ke Ani. Jalan yang berputar kembali ke titik awal seperti ini disebut **siklus**. Tree melarang siklus dan hanya mengizinkan satu jalan di antara dua node, jadi hubungan ini tidak bisa disimpan sebagai tree.
+
+Struktur yang lebih umum untuk masalah seperti ini adalah **graph**. Graph terdiri dari sekumpulan **simpul** (_vertex_) dan **sisi** (_edge_) yang menghubungkan pasangan simpul. Tree sebenarnya hanyalah graph khusus: graph yang terhubung dan tidak punya siklus. Jadi semua yang kamu pelajari di sini juga berlaku untuk tree.
+
+## Istilah dasar
+
+Di program, simpul biasanya diberi nomor `1` sampai `n`. Graph berikut punya 6 simpul dan 6 sisi, dan akan dipakai sebagai contoh di sepanjang materi ini.
+
+```txt
+1 ------- 2
+|         | \
+|         |   \
+3 ------- 4 --- 5        6
+```
+
+| Istilah | Arti | Contoh pada gambar |
+| --- | --- | --- |
+| **Simpul** (_vertex_) | objek yang dihubungkan | simpul 1 sampai 6 |
+| **Sisi** (_edge_) | hubungan langsung antara dua simpul | 1–2, 1–3, 2–4, 2–5, 3–4, 4–5 |
+| **Bertetangga** (_adjacent_) | dua simpul yang dihubungkan langsung oleh sebuah sisi | tetangga simpul 2 adalah 1, 4, dan 5 |
+| **Derajat** (_degree_) | banyak sisi yang menyentuh sebuah simpul | derajat simpul 2 adalah 3, derajat simpul 6 adalah 0 |
+| **Jalur** (_path_) | deretan simpul yang setiap dua simpul berurutannya bertetangga | 1 → 3 → 4 → 5 |
+| **Siklus** (_cycle_) | jalur yang kembali ke simpul awal tanpa memakai sisi yang sama dua kali | 2 → 4 → 5 → 2 |
+| **Terhubung** (_connected_) | setiap pasang simpul punya jalur di antaranya | graph ini **tidak** terhubung, karena simpul 6 terpisah |
+| **Komponen** (_component_) | kelompok simpul yang saling terhubung, dibuat sebesar mungkin | ada dua: simpul 1 sampai 5, dan simpul 6 sendirian |
+
+Jumlahkan derajat semua simpul: 2 + 3 + 2 + 3 + 2 + 0 = 12, tepat dua kali banyak sisi. Ini selalu berlaku, karena setiap sisi menyentuh dua simpul dan menyumbang 1 derajat ke masing-masing ujungnya. Fakta kecil ini berguna untuk memeriksa hasil hitunganmu.
+
+Sebuah tree dengan `n` simpul selalu punya tepat `n − 1` sisi. Komponen pertama graph contoh berisi 5 simpul tetapi punya 6 sisi, dua lebih banyak dari tree dengan 5 simpul. Sisi-sisi "lebih" itulah yang membentuk siklus.
+
+<Callout type="info" title="Asumsi di materi ini">
+  Kecuali disebutkan lain, graph di materi ini tidak punya sisi dari sebuah simpul ke dirinya sendiri, dan tidak punya dua sisi kembar di antara pasangan simpul yang sama.
+</Callout>
+
+## Graph berarah dan graph berbobot
+
+### Graph berarah
+
+Pada graph pertemanan, sisinya berlaku dua arah: jika Ani berteman dengan Budi, Budi juga berteman dengan Ani. Graph seperti ini disebut **tak berarah** (_undirected_).
+
+Prasyarat mata kuliah berbeda. "Struktur Data sebelum Algoritma" tidak berarti "Algoritma sebelum Struktur Data". Sisinya punya arah dan digambar sebagai panah. Graph seperti ini disebut **berarah** (_directed_).
+
+```txt
+1 ----> 2 ----> 4 ----> 5
+                ^
+                |
+                3
+
+1 = Dasar Pemrograman      2 = Struktur Data      3 = Matematika Diskrit
+4 = Algoritma              5 = Kecerdasan Buatan
+```
+
+Di graph berarah, derajat dipecah menjadi dua:
+
+- **derajat masuk** (_in-degree_): banyak panah yang menuju simpul itu,
+- **derajat keluar** (_out-degree_): banyak panah yang keluar dari simpul itu.
+
+Simpul 4 punya derajat masuk 2 (dari 2 dan 3) dan derajat keluar 1 (ke 5). Simpul dengan derajat masuk 0, yaitu 1 dan 3, adalah mata kuliah yang bisa langsung diambil tanpa prasyarat.
+
+### Graph berbobot
+
+Kadang setiap sisi membawa angka, misalnya panjang jalan dalam kilometer, ongkos perjalanan, atau waktu tempuh. Angka itu disebut **bobot**, dan graph-nya disebut **berbobot** (_weighted_).
+
+```txt
+        7
+  1 --------- 2
+    \       /
+  4   \   /   2
+        3 --------- 4
+             10
+```
+
+Jalan langsung dari kota 1 ke kota 2 panjangnya 7, tetapi lewat kota 3 hanya 4 + 2 = 6. Jalan langsung tidak selalu yang terpendek. Graph bisa sekaligus berarah dan berbobot, misalnya jalan satu arah dengan panjang tertentu.
+
+## Menyimpan graph di program
+
+Gambar graph mudah dibaca manusia, tetapi program butuh bentuk yang bisa dijawab cepat, misalnya "siapa saja tetangga simpul 2?" atau "apakah 3 dan 5 bertetangga?". Ada tiga cara yang umum dipakai.
+
+### Adjacency matrix
+
+**Adjacency matrix** (matriks ketetanggaan) adalah [matriks](/docs/cpp/matriks) berukuran `n × n`. Isi baris `u` kolom `v` bernilai 1 jika ada sisi dari `u` ke `v`, dan 0 jika tidak. Untuk graph contoh:
+
+| | 1 | 2 | 3 | 4 | 5 | 6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| **1** | 0 | 1 | 1 | 0 | 0 | 0 |
+| **2** | 1 | 0 | 0 | 1 | 1 | 0 |
+| **3** | 1 | 0 | 0 | 1 | 0 | 0 |
+| **4** | 0 | 1 | 1 | 0 | 1 | 0 |
+| **5** | 0 | 1 | 0 | 1 | 0 | 0 |
+| **6** | 0 | 0 | 0 | 0 | 0 | 0 |
+
+Pada graph tak berarah, matriksnya simetris: `mat[u][v]` selalu sama dengan `mat[v][u]`. Jumlah angka di satu baris sama dengan derajat simpul itu. Pada graph berbobot, isi selnya bisa diganti dengan bobot sisi.
+
+```cpp tab="C++"
+// ukuran n + 1 agar simpul 1..n bisa langsung dipakai sebagai indeks
+vector<vector<int>> mat(n + 1, vector<int>(n + 1, 0));
+mat[u][v] = 1;
+mat[v][u] = 1;                        // tak berarah: isi keduanya
+
+if (mat[3][5] == 1) {                 // cek sisi cukup satu langkah
+    cout << "3 dan 5 bertetangga" << endl;
+}
+```
+
+```python tab="Python"
+# ukuran n + 1 agar simpul 1..n bisa langsung dipakai sebagai indeks
+mat = [[0] * (n + 1) for _ in range(n + 1)]
+mat[u][v] = 1
+mat[v][u] = 1                         # tak berarah: isi keduanya
+
+if mat[3][5] == 1:                    # cek sisi cukup satu langkah
+    print("3 dan 5 bertetangga")
+```
+
+Kelebihannya: memeriksa apakah dua simpul bertetangga hanya butuh satu akses. Kekurangannya: matriks selalu berisi `n × n` sel, walaupun sisinya sedikit. Untuk mencari semua tetangga simpul `u`, kamu juga harus memeriksa seluruh baris `u`, termasuk sel-sel yang berisi 0.
+
+### Adjacency list
+
+**Adjacency list** (daftar ketetanggaan) menyimpan, untuk setiap simpul, daftar tetangganya saja. Bentuknya sebuah vector berisi vector:
+
+```txt
+adj[1]: 2 3
+adj[2]: 1 4 5
+adj[3]: 1 4
+adj[4]: 2 3 5
+adj[5]: 2 4
+adj[6]:
+```
+
+```cpp tab="C++"
+vector<vector<int>> adj(n + 1);       // adj[0] tidak dipakai
+adj[u].push_back(v);
+adj[v].push_back(u);                  // tak berarah: dua arah
+
+for (int v : adj[2]) {                // semua tetangga simpul 2
+    cout << v << " ";
+}
+```
+
+```python tab="Python"
+adj = [[] for _ in range(n + 1)]      # adj[0] tidak dipakai
+adj[u].append(v)
+adj[v].append(u)                      # tak berarah: dua arah
+
+for v in adj[2]:                      # semua tetangga simpul 2
+    print(v, end=" ")
+```
+
+Baris `[[] for _ in range(n + 1)]` di Python adalah **list comprehension**: cara singkat membuat list dengan perulangan. Artinya "buat list kosong baru sebanyak `n + 1` kali". Nama `_` dipakai untuk variabel perulangan yang nilainya tidak kita perlukan.
+
+Adjacency list hanya menyimpan sisi yang benar-benar ada. Setiap sisi tak berarah tercatat dua kali (sekali di setiap ujungnya), jadi totalnya `n` daftar dengan `2m` isi. Menelusuri tetangga sebuah simpul juga langsung, tanpa memeriksa sel kosong. Inilah representasi yang paling sering dipakai, termasuk di materi DFS dan BFS nanti.
+
+### Edge list
+
+**Edge list** (daftar sisi) adalah cara paling sederhana: simpan setiap sisi sebagai pasangan, persis seperti yang dibaca dari input.
+
+```cpp tab="C++"
+struct Sisi {
+    int u;
+    int v;
+};
+
+vector<Sisi> daftarSisi;
+daftarSisi.push_back({u, v});
+```
+
+```python tab="Python"
+daftar_sisi = []
+daftar_sisi.append((u, v))            # sebuah tuple
+
+pertama = daftar_sisi[0]
+a, b = pertama                        # bongkar tuple menjadi dua nama
+```
+
+Di Python, `(u, v)` adalah **tuple**: beberapa nilai yang dibungkus kurung biasa dan dipisah koma. Tuple mirip list kecil yang isinya tidak bisa diubah setelah dibuat, dan bisa dibongkar langsung menjadi beberapa variabel seperti `a, b = pertama`. Di C++ kita memakai [struct](/docs/cpp/struct) kecil sebagai gantinya.
+
+Edge list hemat dan mudah dibuat, tetapi untuk mencari tetangga sebuah simpul kamu harus memeriksa semua sisi. Bentuk ini berguna saat program memproses sisi satu per satu, misalnya mengurutkan jalan dari yang terpendek.
+
+### Mana yang dipilih?
+
+Misalkan graph punya `n` simpul dan `m` sisi.
+
+| | Adjacency matrix | Adjacency list | Edge list |
+| --- | --- | --- | --- |
+| Memori | O(n²) | O(n + m) | O(m) |
+| Cek apakah `u` dan `v` bertetangga | O(1) | O(derajat `u`) | O(m) |
+| Menelusuri semua tetangga `u` | O(n) | O(derajat `u`) | O(m) |
+| Cocok untuk | `n` kecil (ratusan sampai beberapa ribu) atau graph yang sangat padat | hampir semua kasus, terutama penelusuran | memproses sisi satu per satu |
+
+Pegangan praktisnya: **pakai adjacency list**, kecuali `n` kecil dan program sering bertanya "apakah `u` dan `v` bertetangga?". Notasi O di tabel menunjukkan bagaimana banyak langkah atau memori bertambah saat graph membesar.
+
+<DeepDive href="/docs/cpp/pendalaman/kompleksitas-waktu" kind="konsep" title="Kompleksitas waktu">
+  Arti O(1), O(n), dan O(n²), serta cara membandingkan dua solusi tanpa harus mengukur waktunya.
+</DeepDive>
+
+## Membaca graph dari input
+
+Hampir semua soal graph memakai format input yang sama. Format ini juga dipakai di latihan materi ini serta materi DFS dan BFS:
+
+- baris pertama berisi `n` dan `m`, yaitu banyak simpul dan banyak sisi,
+- `m` baris berikutnya masing-masing berisi `u v`, artinya ada sisi antara simpul `u` dan simpul `v`,
+- simpul bernomor `1` sampai `n`, dan graph tak berarah kecuali disebutkan berarah.
+
+Program berikut membaca graph contoh, lalu menampilkan derajat dan daftar tetangga setiap simpul.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<vector<int>> adj(n + 1);          // adj[0] tidak dipakai
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);                 // tak berarah: dua arah
+    }
+
+    for (int u = 1; u <= n; u++) {
+        cout << u << " (derajat " << adj[u].size() << "):";
+        for (int v : adj[u]) {
+            cout << " " << v;
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+n, m = map(int, input().split())
+
+adj = [[] for _ in range(n + 1)]             # adj[0] tidak dipakai
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)
+    adj[v].append(u)                         # tak berarah: dua arah
+
+for u in range(1, n + 1):
+    print(f"{u} (derajat {len(adj[u])}):", *adj[u])
+```
+
+```txt title="Contoh input"
+6 6
+1 2
+1 3
+2 4
+2 5
+3 4
+4 5
+```
+
+```txt title="Contoh output"
+1 (derajat 2): 2 3
+2 (derajat 3): 1 4 5
+3 (derajat 2): 1 4
+4 (derajat 3): 2 3 5
+5 (derajat 2): 2 4
+6 (derajat 0):
+```
+
+Tiga hal yang perlu diperhatikan:
+
+- **Ukurannya `n + 1`.** Indeks 0 dibiarkan kosong, sehingga nomor simpul bisa langsung dipakai sebagai indeks tanpa dikurangi 1.
+- **Derajat adalah panjang daftar.** `adj[u].size()` atau `len(adj[u])`, tanpa perlu menghitung ulang.
+- **Urutan tetangga mengikuti urutan input.** Daftar tetangga simpul 2 berisi `1 4 5` karena sisi 1–2 dibaca lebih dulu daripada 2–4 dan 2–5. Urutan ini tidak penting untuk derajat, tetapi menentukan urutan kunjungan saat graph ditelusuri nanti.
+
+## Graph berarah di program
+
+Untuk graph berarah, baris `u v` berarti panah dari `u` ke `v`, jadi hanya `adj[u]` yang ditambah. Derajat keluar adalah panjang `adj[u]`. Derajat masuk perlu dihitung sendiri dengan sebuah array penghitung.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<vector<int>> adj(n + 1);
+    vector<int> masuk(n + 1, 0);             // derajat masuk setiap simpul
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);                 // berarah: hanya u -> v
+        masuk[v]++;
+    }
+
+    for (int u = 1; u <= n; u++) {
+        cout << u << ": masuk " << masuk[u] << ", keluar " << adj[u].size() << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+n, m = map(int, input().split())
+
+adj = [[] for _ in range(n + 1)]
+masuk = [0] * (n + 1)                        # derajat masuk setiap simpul
+for _ in range(m):
+    u, v = map(int, input().split())
+    adj[u].append(v)                         # berarah: hanya u -> v
+    masuk[v] += 1
+
+for u in range(1, n + 1):
+    print(f"{u}: masuk {masuk[u]}, keluar {len(adj[u])}")
+```
+
+Untuk graph prasyarat mata kuliah di atas:
+
+```txt title="Contoh input"
+5 4
+1 2
+2 4
+3 4
+4 5
+```
+
+```txt title="Contoh output"
+1: masuk 0, keluar 1
+2: masuk 1, keluar 1
+3: masuk 0, keluar 1
+4: masuk 2, keluar 1
+5: masuk 1, keluar 0
+```
+
+## Graph berbobot di program
+
+Pada graph berbobot, setiap isi adjacency list harus menyimpan dua hal: simpul tujuan dan bobotnya. Di C++ kita membungkusnya dengan struct `Edge`. Di Python cukup memakai tuple `(ke, bobot)`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct Edge {
+    int ke;       // simpul tujuan
+    int bobot;    // misalnya panjang jalan
+};
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<vector<Edge>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});            // tak berarah: dua arah, bobot sama
+    }
+
+    for (int u = 1; u <= n; u++) {
+        cout << u << ":";
+        for (Edge e : adj[u]) {
+            cout << " " << e.ke << "(" << e.bobot << ")";
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+n, m = map(int, input().split())
+
+adj = [[] for _ in range(n + 1)]
+for _ in range(m):
+    u, v, w = map(int, input().split())
+    adj[u].append((v, w))                    # tuple (ke, bobot)
+    adj[v].append((u, w))                    # tak berarah: dua arah, bobot sama
+
+for u in range(1, n + 1):
+    baris = f"{u}:"
+    for ke, bobot in adj[u]:                 # bongkar setiap tuple
+        baris += f" {ke}({bobot})"
+    print(baris)
+```
+
+Input graph berbobot memakai `u v w`: ada sisi antara `u` dan `v` dengan bobot `w`. Untuk graph kota di atas:
+
+```txt title="Contoh input"
+4 4
+1 2 7
+1 3 4
+2 3 2
+3 4 10
+```
+
+```txt title="Contoh output"
+1: 2(7) 3(4)
+2: 1(7) 3(2)
+3: 1(4) 2(2) 4(10)
+4: 3(10)
+```
+
+## Grid sebagai graph
+
+Peta permainan, denah gedung, dan labirin sering disimpan sebagai **grid**, yaitu [matriks](/docs/cpp/matriks) karakter. Grid juga sebuah graph:
+
+- setiap **sel** adalah simpul,
+- dua sel bertetangga jika bersebelahan **atas, bawah, kiri, atau kanan**, dan keduanya bisa dilewati.
+
+Dengan `.` sebagai sel terbuka dan `#` sebagai dinding, grid berikut punya 10 simpul (sel `.`):
+
+```txt
+..#.
+.#..
+....
+```
+
+Grid tidak perlu diubah menjadi adjacency list. Tetangga sel `(i, j)` bisa dihitung langsung saat dibutuhkan dengan dua array arah:
+
+| `d` | Arah | `dr[d]` | `dc[d]` | Tetangga |
+| --- | --- | --- | --- | --- |
+| 0 | atas | -1 | 0 | `(i - 1, j)` |
+| 1 | bawah | 1 | 0 | `(i + 1, j)` |
+| 2 | kiri | 0 | -1 | `(i, j - 1)` |
+| 3 | kanan | 0 | 1 | `(i, j + 1)` |
+
+Program berikut membaca grid dengan format baris pertama `r c` (banyak baris dan kolom) lalu `r` baris karakter. Untuk setiap sel terbuka, program menampilkan derajatnya, yaitu banyak tetangga yang juga terbuka.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<string> grid(r);
+    for (int i = 0; i < r; i++) {
+        cin >> grid[i];
+    }
+
+    int dr[4] = {-1, 1, 0, 0};               // atas, bawah, kiri, kanan
+    int dc[4] = {0, 0, -1, 1};
+
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            if (grid[i][j] == '#') {
+                cout << '#';
+                continue;
+            }
+            int derajat = 0;
+            for (int d = 0; d < 4; d++) {
+                int nr = i + dr[d];
+                int nc = j + dc[d];
+                if (nr >= 0 && nr < r && nc >= 0 && nc < c && grid[nr][nc] == '.') {
+                    derajat++;
+                }
+            }
+            cout << derajat;
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+r, c = map(int, input().split())
+grid = [input() for _ in range(r)]
+
+dr = [-1, 1, 0, 0]                           # atas, bawah, kiri, kanan
+dc = [0, 0, -1, 1]
+
+for i in range(r):
+    baris = ""
+    for j in range(c):
+        if grid[i][j] == "#":
+            baris += "#"
+            continue
+        derajat = 0
+        for d in range(4):
+            nr = i + dr[d]
+            nc = j + dc[d]
+            if nr >= 0 and nr < r and nc >= 0 and nc < c and grid[nr][nc] == ".":
+                derajat += 1
+        baris += str(derajat)
+    print(baris)
+```
+
+```txt title="Contoh input"
+3 4
+..#.
+.#..
+....
+```
+
+```txt title="Contoh output"
+21#1
+2#23
+2232
+```
+
+Pemeriksaan batas `nr >= 0 && nr < r && nc >= 0 && nc < c` harus ditulis **sebelum** `grid[nr][nc]`. Berkat _short-circuit_, sel di luar grid tidak pernah diakses. Di C++, mengakses di luar batas adalah _undefined behavior_. Di Python lebih licik: `grid[-1]` tidak error, tetapi diam-diam mengambil baris **terakhir**, sehingga sel di tepi atas seolah-olah bertetangga dengan sel di tepi bawah.
+
+## Kesalahan yang sering terjadi
+
+### Sisi tak berarah hanya ditambahkan satu arah
+
+```cpp
+adj[u].push_back(v);      // ✗ adj[v] lupa ditambah u
+```
+
+Program tetap berjalan tanpa error, tetapi graph-nya diam-diam berubah menjadi berarah. Untuk input contoh, daftar tetangga simpul 2 menjadi `4 5` (simpul 1 hilang), derajat simpul 5 menjadi 0, dan penelusuran dari simpul 5 tidak akan ke mana-mana. Untuk graph tak berarah, **setiap sisi selalu ditambahkan dua kali**.
+
+### Penomoran 0 dan 1 tercampur
+
+```cpp
+vector<vector<int>> adj(n);   // ✗ indeks 0..n-1, padahal simpul bernomor 1..n
+adj[u].push_back(v);          // saat u == n: di luar batas
+```
+
+Di C++, `adj[n]` pada vector berukuran `n` adalah _undefined behavior_: program bisa crash, bisa juga diam-diam merusak data lain. Python berhenti dengan `IndexError: list index out of range`. Pilih satu cara dan konsisten: buat ukuran `n + 1` untuk simpul 1..n seperti di materi ini, atau kurangi setiap nomor dengan 1 tepat saat dibaca jika ingin memakai indeks 0..n-1. Jangan mencampur keduanya.
+
+### Adjacency matrix untuk graph raksasa
+
+Jaringan jalan sebuah provinsi bisa punya `n = 100.000` persimpangan. Adjacency matrix-nya berisi 100.000 × 100.000 = 10 miliar sel. Dengan `int` berukuran 4 byte, itu sekitar 40 GB memori, jauh lebih besar dari RAM laptop biasa, padahal sebagian besar selnya berisi 0. Adjacency list untuk graph yang sama, dengan sekitar 200.000 sisi, hanya butuh beberapa megabyte.
+
+### Python: `[[]] * (n + 1)`
+
+```python
+adj = [[]] * (n + 1)      # ✗ n + 1 nama untuk SATU list yang sama
+adj[1].append(2)
+print(adj)                # [[2], [2], [2], ...]: semua simpul ikut berubah
+```
+
+Perkalian list hanya menyalin **referensi** ke list kosong yang sama, bukan membuat list baru. Akibatnya, menambah tetangga ke satu simpul terlihat di semua simpul. Selalu buat dengan `[[] for _ in range(n + 1)]`, yang membuat list kosong baru di setiap putaran.
+
+## Berikutnya: menelusuri graph
+
+Sekarang kamu bisa menyimpan graph. Pertanyaan yang lebih menarik muncul setelahnya: apakah ada jalan dari simpul 1 ke simpul 5? Berapa banyak komponen di graph ini? Berapa langkah minimal dari pintu masuk labirin ke pintu keluar? Semuanya dijawab dengan **menelusuri** graph, yaitu mengunjungi simpul-simpulnya secara teratur.
+
+Ada dua cara penelusuran yang menjadi dasar hampir semua algoritma graph. [DFS](/docs/cpp/dfs) masuk sedalam mungkin lebih dulu lalu mundur, sedangkan [BFS](/docs/cpp/bfs) menyebar lapis demi lapis dari titik awal.
+
+## Rangkuman
+
+- **Graph** terdiri dari **simpul** dan **sisi**. Graph bisa menyimpan siklus dan banyak jalan di antara dua simpul. Tree adalah graph khusus yang terhubung dan tanpa siklus.
+- Istilah penting: tetangga, derajat, jalur, siklus, terhubung, dan komponen. Jumlah semua derajat selalu `2m`.
+- **Graph berarah** punya derajat masuk dan derajat keluar. **Graph berbobot** menyimpan angka di setiap sisi.
+- **Adjacency matrix** memakai memori O(n²) dan bisa memeriksa sebuah sisi dalam O(1). **Adjacency list** memakai O(n + m) dan paling cocok untuk menelusuri tetangga. **Edge list** menyimpan sisi apa adanya.
+- Format input standar: `n m`, lalu `m` baris `u v` (atau `u v w` untuk berbobot), simpul bernomor 1..n. Buat `adj` berukuran `n + 1`.
+- Untuk graph tak berarah, tambahkan setiap sisi ke **kedua** ujungnya. Untuk graph berbobot, simpan `Edge {ke, bobot}` di C++ atau tuple `(ke, bobot)` di Python.
+- Grid adalah graph: setiap sel adalah simpul, dan tetangganya dicari dengan `dr`/`dc` untuk arah atas, bawah, kiri, kanan. Selalu periksa batas sebelum mengakses sel.
+- Di Python, buat adjacency list dengan `[[] for _ in range(n + 1)]`, jangan `[[]] * (n + 1)`.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, graph dibaca dengan format standar: baris pertama `n m`, lalu `m` baris `u v`. Simpul bernomor 1 sampai `n`, graph tak berarah, tanpa sisi ganda, dan tanpa sisi dari simpul ke dirinya sendiri.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Derajat setiap simpul">
+  Baca sebuah graph, lalu tampilkan derajat simpul 1 sampai `n` dalam satu baris, dipisah spasi.
+
+  ```txt title="Contoh input"
+  5 4
+  1 2
+  1 3
+  1 4
+  4 5
+  ```
+
+  ```txt title="Contoh output"
+  3 1 1 2 1
+  ```
+
+  ```txt title="Contoh input 2"
+  3 1
+  2 3
+  ```
+
+  ```txt title="Contoh output 2"
+  0 1 1
+  ```
+
+  <Pembahasan>
+    Setiap sisi `u v` menambah derajat **kedua** ujungnya. Soal ini bahkan tidak perlu menyimpan daftar tetangga, cukup array penghitung berukuran `n + 1`. Periksa hasilmu: jumlah semua derajat pada contoh pertama adalah 3 + 1 + 1 + 2 + 1 = 8, tepat dua kali banyak sisi.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<int> derajat(n + 1, 0);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            derajat[u]++;
+            derajat[v]++;
+        }
+
+        for (int u = 1; u <= n; u++) {
+            if (u > 1) {
+                cout << " ";
+            }
+            cout << derajat[u];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    derajat = [0] * (n + 1)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        derajat[u] += 1
+        derajat[v] += 1
+
+    print(*derajat[1:])                      # lewati indeks 0
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak isi adjacency list">
+  Tanpa menjalankannya, tebak output program berikut untuk input di bawahnya. Kedua versi menghasilkan output yang sama.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      int n, m;
+      cin >> n >> m;
+      vector<vector<int>> adj(n + 1);
+      for (int i = 0; i < m; i++) {
+          int u, v;
+          cin >> u >> v;
+          adj[u].push_back(v);
+          adj[v].push_back(u);
+      }
+      for (int u = 1; u <= n; u++) {
+          cout << u << ":";
+          for (int v : adj[u]) {
+              cout << " " << v;
+          }
+          cout << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n, m = map(int, input().split())
+  adj = [[] for _ in range(n + 1)]
+  for _ in range(m):
+      u, v = map(int, input().split())
+      adj[u].append(v)
+      adj[v].append(u)
+  for u in range(1, n + 1):
+      print(f"{u}:", *adj[u])
+  ```
+
+  ```txt title="Input"
+  4 4
+  2 3
+  1 2
+  4 2
+  3 1
+  ```
+
+  <Pembahasan>
+    Output-nya:
+
+    ```txt
+    1: 2 3
+    2: 3 1 4
+    3: 2 1
+    4: 2
+    ```
+
+    Setiap sisi menambah satu isi ke daftar **kedua** ujungnya, dengan urutan sesuai input. Daftarnya tidak terurut otomatis.
+
+    | Sisi dibaca | `adj[1]` | `adj[2]` | `adj[3]` | `adj[4]` |
+    | --- | --- | --- | --- | --- |
+    | 2 3 | | 3 | 2 | |
+    | 1 2 | 2 | 3 1 | 2 | |
+    | 4 2 | 2 | 3 1 4 | 2 | 2 |
+    | 3 1 | 2 3 | 3 1 4 | 2 1 | 2 |
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tetangga yang hilang">
+  Program berikut membaca graph, lalu sebuah nomor simpul `k` di baris terakhir, dan seharusnya menampilkan semua tetangga `k` sesuai urutan input. Untuk contoh input, program menampilkan `3 5`, padahal jawaban yang benar `1 3 4 5`. Temukan kesalahannya dan perbaiki. Simpul `k` dijamin punya paling sedikit satu tetangga.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      int n, m;
+      cin >> n >> m;
+      vector<vector<int>> adj(n + 1);
+      for (int i = 0; i < m; i++) {
+          int u, v;
+          cin >> u >> v;
+          adj[u].push_back(v);
+      }
+      int k;
+      cin >> k;
+      for (int i = 0; i < (int)adj[k].size(); i++) {
+          if (i > 0) {
+              cout << " ";
+          }
+          cout << adj[k][i];
+      }
+      cout << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n, m = map(int, input().split())
+  adj = [[] for _ in range(n + 1)]
+  for _ in range(m):
+      u, v = map(int, input().split())
+      adj[u].append(v)
+  k = int(input())
+  print(*adj[k])
+  ```
+
+  ```txt title="Contoh input"
+  5 4
+  1 2
+  2 3
+  4 2
+  2 5
+  2
+  ```
+
+  ```txt title="Contoh output"
+  1 3 4 5
+  ```
+
+  <Pembahasan>
+    Sisi hanya ditambahkan dari `u` ke `v`. Sisi `1 2` dan `4 2` menempatkan simpul 2 di posisi `v`, sehingga 1 dan 4 tidak pernah masuk ke `adj[2]`. Graph-nya tak berarah, jadi setiap sisi harus ditambahkan ke kedua ujungnya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);             // perbaikan: arah sebaliknya
+        }
+        int k;
+        cin >> k;
+        for (int i = 0; i < (int)adj[k].size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << adj[k][i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)                     # perbaikan: arah sebaliknya
+    k = int(input())
+    print(*adj[k])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Jalan dari satu kota">
+  Sebuah graph berbobot menggambarkan `n` kota dan `m` jalan. Setiap baris sisi berisi `u v w`: jalan antara kota `u` dan `v` sepanjang `w` km (1 ≤ `w` ≤ 1000, `m` ≤ 1000). Baris terakhir berisi nomor kota `k`.
+
+  Tampilkan setiap jalan yang keluar dari kota `k` sesuai urutan input, satu per baris dalam format `tujuan panjang`. Setelah itu tampilkan `Total` diikuti jumlah panjang semua jalan tersebut.
+
+  ```txt title="Contoh input"
+  5 5
+  1 2 12
+  2 3 5
+  4 2 8
+  3 4 20
+  5 1 3
+  2
+  ```
+
+  ```txt title="Contoh output"
+  1 12
+  3 5
+  4 8
+  Total 25
+  ```
+
+  ```txt title="Contoh input 2"
+  3 1
+  1 2 9
+  3
+  ```
+
+  ```txt title="Contoh output 2"
+  Total 0
+  ```
+
+  <Petunjuk>
+    Simpan graph sebagai adjacency list berisi `Edge {ke, bobot}` di C++, atau tuple `(ke, bobot)` di Python. Jangan lupa menambahkan setiap jalan ke kedua kota.
+  </Petunjuk>
+
+  <Pembahasan>
+    Sisi `4 2 8` ditulis dengan kota 2 di posisi kedua, tetapi tetap muncul di daftar kota 2 karena setiap jalan ditambahkan dua arah dengan bobot yang sama. Kota yang tidak punya jalan, seperti kota 3 pada contoh 2, cukup menampilkan `Total 0`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Edge {
+        int ke;
+        int bobot;
+    };
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<vector<Edge>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v, w;
+            cin >> u >> v >> w;
+            adj[u].push_back({v, w});
+            adj[v].push_back({u, w});
+        }
+
+        int k;
+        cin >> k;
+        int total = 0;
+        for (Edge e : adj[k]) {
+            cout << e.ke << " " << e.bobot << endl;
+            total += e.bobot;
+        }
+        cout << "Total " << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    k = int(input())
+    total = 0
+    for ke, bobot in adj[k]:
+        print(ke, bobot)
+        total += bobot
+    print("Total", total)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Paling banyak teman">
+  Ada `n` orang bernomor 1 sampai `n` dan `m` pasangan pertemanan (`m` ≥ 1). Tampilkan nomor orang yang temannya paling banyak. Jika ada beberapa, pilih nomor terkecil. Di baris kedua, tampilkan nomor teman-temannya, **terurut dari kecil ke besar**.
+
+  ```txt title="Contoh input"
+  6 6
+  1 2
+  3 2
+  2 5
+  4 5
+  5 6
+  3 5
+  ```
+
+  ```txt title="Contoh output"
+  5
+  2 3 4 6
+  ```
+
+  ```txt title="Contoh input 2"
+  4 2
+  3 4
+  1 2
+  ```
+
+  ```txt title="Contoh output 2"
+  1
+  2
+  ```
+
+  <Petunjuk>
+    Banyak teman adalah derajat, yaitu panjang daftar tetangga. Cari derajat terbesar dengan membandingkan memakai `>` (bukan `>=`) sambil menelusuri dari simpul 1, agar simpul dengan nomor terkecil yang menang saat seri. Daftar tetangga mengikuti urutan input, jadi perlu diurutkan sebelum dicetak.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh pertama, daftar tetangga simpul 5 adalah `2 4 6 3` sesuai urutan input, sehingga perlu diurutkan menjadi `2 3 4 6`. Pada contoh kedua semua orang punya tepat satu teman, dan karena perbandingannya memakai `>`, simpul 1 tetap menjadi jawaban.
+
+    ```cpp tab="C++"
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+
+        int terbanyak = 1;
+        for (int u = 2; u <= n; u++) {
+            if (adj[u].size() > adj[terbanyak].size()) {
+                terbanyak = u;
+            }
+        }
+
+        vector<int> teman = adj[terbanyak];
+        sort(teman.begin(), teman.end());
+
+        cout << terbanyak << endl;
+        for (int i = 0; i < (int)teman.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << teman[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    terbanyak = 1
+    for u in range(2, n + 1):
+        if len(adj[u]) > len(adj[terbanyak]):
+            terbanyak = u
+
+    print(terbanyak)
+    print(*sorted(adj[terbanyak]))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Mata kuliah awal dan akhir">
+  Sebuah graph **berarah** menggambarkan prasyarat `n` mata kuliah. Baris `u v` berarti mata kuliah `u` harus lulus sebelum mengambil `v`. Prasyaratnya tidak pernah melingkar.
+
+  Di baris pertama, tampilkan mata kuliah yang tidak punya prasyarat. Di baris kedua, tampilkan mata kuliah yang tidak menjadi prasyarat mata kuliah lain. Keduanya terurut dari nomor kecil, dipisah spasi.
+
+  ```txt title="Contoh input"
+  6 5
+  1 2
+  2 4
+  3 4
+  4 5
+  1 6
+  ```
+
+  ```txt title="Contoh output"
+  1 3
+  5 6
+  ```
+
+  ```txt title="Contoh input 2"
+  3 1
+  1 2
+  ```
+
+  ```txt title="Contoh output 2"
+  1 3
+  2 3
+  ```
+
+  <Petunjuk>
+    "Tidak punya prasyarat" berarti tidak ada panah yang masuk, yaitu derajat masuk 0. "Tidak menjadi prasyarat" berarti tidak ada panah yang keluar, yaitu derajat keluar 0. Hitung keduanya dengan dua array.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap baris `u v` menambah derajat keluar `u` dan derajat masuk `v`. Menelusuri simpul dari 1 sampai `n` otomatis menghasilkan urutan dari kecil ke besar. Perhatikan mata kuliah 3 pada contoh 2: ia tidak terhubung ke mana pun, jadi muncul di kedua baris. Karena prasyaratnya tidak melingkar, selalu ada paling sedikit satu mata kuliah di setiap baris.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    void cetakYangNol(const vector<int>& derajat, int n) {
+        bool pertama = true;
+        for (int u = 1; u <= n; u++) {
+            if (derajat[u] == 0) {
+                if (!pertama) {
+                    cout << " ";
+                }
+                cout << u;
+                pertama = false;
+            }
+        }
+        cout << endl;
+    }
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<int> masuk(n + 1, 0);
+        vector<int> keluar(n + 1, 0);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            keluar[u]++;
+            masuk[v]++;
+        }
+
+        cetakYangNol(masuk, n);              // tanpa prasyarat
+        cetakYangNol(keluar, n);             // bukan prasyarat siapa pun
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    masuk = [0] * (n + 1)
+    keluar = [0] * (n + 1)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        keluar[u] += 1
+        masuk[v] += 1
+
+    awal = []
+    akhir = []
+    for u in range(1, n + 1):
+        if masuk[u] == 0:
+            awal.append(u)                   # tanpa prasyarat
+        if keluar[u] == 0:
+            akhir.append(u)                  # bukan prasyarat siapa pun
+    print(*awal)
+    print(*akhir)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Dari matriks ke list">
+  Baris pertama berisi `n`. Lalu ada `n` baris berisi adjacency matrix sebuah graph tak berarah: `n` angka 0 atau 1 per baris, simetris, dan diagonalnya 0. Tampilkan banyak sisi graph itu, lalu adjacency list-nya: untuk setiap simpul `u` dari 1 sampai `n`, satu baris berformat `u:` diikuti tetangganya dari nomor kecil ke besar.
+
+  ```txt title="Contoh input"
+  4
+  0 1 1 0
+  1 0 1 1
+  1 1 0 0
+  0 1 0 0
+  ```
+
+  ```txt title="Contoh output"
+  4
+  1: 2 3
+  2: 1 3 4
+  3: 1 2
+  4: 2
+  ```
+
+  <Petunjuk>
+    Setiap sisi muncul **dua kali** di matriks: di `mat[u][v]` dan `mat[v][u]`. Hitung angka 1 di atas diagonal saja, atau hitung semua lalu bagi dua. Simpan matriks dengan indeks 0..n-1 seperti saat membaca, lalu tambahkan 1 saat mencetak nomor simpul.
+  </Petunjuk>
+
+  <Pembahasan>
+    Membaca matriks dengan indeks 0 sementara simpul bernomor dari 1 tidak masalah, asalkan konversinya dilakukan di **satu tempat** saja, yaitu saat mencetak. Banyak sisi dihitung dari sel di atas diagonal (`j > i`), sehingga setiap sisi terhitung tepat sekali. Cara lain: jumlah semua angka 1 adalah jumlah semua derajat, yaitu `2m`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<vector<int>> mat(n, vector<int>(n));
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                cin >> mat[i][j];
+            }
+        }
+
+        int m = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {    // hanya di atas diagonal
+                m += mat[i][j];
+            }
+        }
+        cout << m << endl;
+
+        for (int i = 0; i < n; i++) {
+            cout << i + 1 << ":";                // indeks 0..n-1 menjadi simpul 1..n
+            for (int j = 0; j < n; j++) {
+                if (mat[i][j] == 1) {
+                    cout << " " << j + 1;
+                }
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    mat = [list(map(int, input().split())) for _ in range(n)]
+
+    m = 0
+    for i in range(n):
+        for j in range(i + 1, n):                # hanya di atas diagonal
+            m += mat[i][j]
+    print(m)
+
+    for i in range(n):
+        tetangga = []
+        for j in range(n):
+            if mat[i][j] == 1:
+                tetangga.append(j + 1)           # indeks 0..n-1 menjadi simpul 1..n
+        print(f"{i + 1}:", *tetangga)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Mencari selebriti">
+  Di sebuah pesta ada `n` orang (1 ≤ `n` ≤ 100.000). Ada `m` baris (`m` ≤ 200.000) berisi `a b` yang berarti orang `a` **mengenal** orang `b` (graph berarah, `a` ≠ `b`). Data dikumpulkan dari beberapa sumber, jadi **pasangan yang sama bisa muncul lebih dari sekali**.
+
+  Seorang **selebriti** dikenal oleh semua orang lain, tetapi tidak mengenal siapa pun. Tampilkan nomor selebriti, atau `-1` jika tidak ada.
+
+  ```txt title="Contoh input"
+  4 5
+  1 3
+  2 3
+  4 3
+  1 2
+  4 1
+  ```
+
+  ```txt title="Contoh output"
+  3
+  ```
+
+  ```txt title="Contoh input 2"
+  3 2
+  1 3
+  1 3
+  ```
+
+  ```txt title="Contoh output 2"
+  -1
+  ```
+
+  ```txt title="Contoh input 3"
+  1 0
+  ```
+
+  ```txt title="Contoh output 3"
+  1
+  ```
+
+  <Petunjuk>
+    Dalam bahasa graph, selebriti adalah simpul dengan derajat keluar 0 dan derajat masuk `n − 1`, dengan syarat setiap orang yang mengenalnya hanya dihitung **sekali**. Simpan untuk setiap orang sebuah `set` berisi siapa saja yang mengenalnya. Adjacency matrix tidak bisa dipakai karena `n` terlalu besar.
+  </Petunjuk>
+
+  <Pembahasan>
+    Menghitung derajat masuk dengan `masuk[b]++` biasa memberi jawaban salah pada contoh 2: baris `1 3` muncul dua kali, sehingga simpul 3 tampak dikenal oleh 2 orang, padahal hanya orang 1 yang mengenalnya. Karena itu yang dihitung adalah **banyak orang berbeda** yang mengenal `b`, memakai `set` dari materi [Map & Set](/docs/cpp/map-dan-set). Derajat keluar cukup diperiksa apakah 0 atau tidak, jadi duplikat tidak berpengaruh di sana.
+
+    Kasus `n = 1` juga perlu diperhatikan: tidak ada "orang lain", jadi syarat dikenal oleh `n − 1 = 0` orang langsung terpenuhi, dan orang 1 adalah selebriti. Paling banyak ada satu selebriti. Jika A dan B sama-sama selebriti, A harus mengenal B (karena B dikenal semua orang), padahal A tidak mengenal siapa pun.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <set>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<set<int>> dikenalOleh(n + 1);     // dikenalOleh[b] = siapa saja yang mengenal b
+        vector<int> keluar(n + 1, 0);
+        for (int i = 0; i < m; i++) {
+            int a, b;
+            cin >> a >> b;
+            dikenalOleh[b].insert(a);            // duplikat otomatis diabaikan
+            keluar[a]++;
+        }
+
+        int selebriti = -1;
+        for (int u = 1; u <= n; u++) {
+            if ((int)dikenalOleh[u].size() == n - 1 && keluar[u] == 0) {
+                selebriti = u;
+            }
+        }
+        cout << selebriti << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    dikenal_oleh = [set() for _ in range(n + 1)]   # dikenal_oleh[b] = siapa saja yang mengenal b
+    keluar = [0] * (n + 1)
+    for _ in range(m):
+        a, b = map(int, input().split())
+        dikenal_oleh[b].add(a)                   # duplikat otomatis diabaikan
+        keluar[a] += 1
+
+    selebriti = -1
+    for u in range(1, n + 1):
+        if len(dikenal_oleh[u]) == n - 1 and keluar[u] == 0:
+            selebriti = u
+    print(selebriti)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Saran teman">
+  Sebuah media sosial ingin menyarankan teman baru untuk pengguna `s`. Calon yang disarankan adalah orang yang **belum** berteman dengan `s`, bukan `s` sendiri, tetapi berteman dengan paling sedikit satu teman `s`. Graph pertemanan dibaca dengan format standar (`n` ≤ 100.000, `m` ≤ 200.000), lalu baris terakhir berisi `s`.
+
+  Untuk setiap calon, dari nomor kecil ke besar, tampilkan satu baris berisi nomor calon dan banyak **teman bersama** (teman `s` yang juga berteman dengan calon itu). Jika tidak ada calon sama sekali, tampilkan `TIDAK ADA`.
+
+  ```txt title="Contoh input"
+  7 7
+  1 2
+  1 3
+  2 4
+  3 4
+  3 5
+  5 6
+  2 3
+  1
+  ```
+
+  ```txt title="Contoh output"
+  4 2
+  5 1
+  ```
+
+  ```txt title="Contoh input 2"
+  7 7
+  1 2
+  1 3
+  2 4
+  3 4
+  3 5
+  5 6
+  2 3
+  7
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK ADA
+  ```
+
+  <Petunjuk>
+    Untuk setiap teman `f` dari `s`, telusuri semua teman `x` dari `f`, lalu tambahkan `bersama[x]` dengan 1. Setelah itu, calon adalah simpul `x` dengan `bersama[x] > 0` yang bukan `s` dan bukan teman langsung `s`. Tandai dulu teman langsung `s` di sebuah array `bool`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada tiga jebakan. Pertama, `s` sendiri adalah teman dari setiap temannya, jadi ia pasti ikut terhitung dan harus dibuang. Kedua, teman langsung `s` bisa juga muncul sebagai "teman dari teman": pada contoh, 3 adalah teman 2, padahal 3 sudah berteman dengan 1. Ketiga, calon yang sama bisa ditemukan lewat beberapa teman, seperti simpul 4 lewat 2 dan 3. Karena dihitung dengan array `bersama`, ia tetap dicetak sekali dengan jumlah yang benar.
+
+    Menelusuri simpul dari 1 sampai `n` saat mencetak membuat hasilnya terurut tanpa perlu `sort`. Total kerjanya paling banyak sebanding dengan `n + m`, karena setiap daftar tetangga dibaca paling banyak sekali.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<vector<int>> adj(n + 1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        int s;
+        cin >> s;
+
+        vector<bool> temanLangsung(n + 1, false);
+        for (int f : adj[s]) {
+            temanLangsung[f] = true;
+        }
+
+        vector<int> bersama(n + 1, 0);
+        for (int f : adj[s]) {
+            for (int x : adj[f]) {
+                bersama[x]++;                    // x berteman dengan f, teman s
+            }
+        }
+
+        bool ada = false;
+        for (int x = 1; x <= n; x++) {
+            if (x != s && !temanLangsung[x] && bersama[x] > 0) {
+                cout << x << " " << bersama[x] << endl;
+                ada = true;
+            }
+        }
+        if (!ada) {
+            cout << "TIDAK ADA" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+    s = int(input())
+
+    teman_langsung = [False] * (n + 1)
+    for f in adj[s]:
+        teman_langsung[f] = True
+
+    bersama = [0] * (n + 1)
+    for f in adj[s]:
+        for x in adj[f]:
+            bersama[x] += 1                      # x berteman dengan f, teman s
+
+    ada = False
+    for x in range(1, n + 1):
+        if x != s and not teman_langsung[x] and bersama[x] > 0:
+            print(x, bersama[x])
+            ada = True
+    if not ada:
+        print("TIDAK ADA")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Segitiga pertemanan">
+  Tiga orang membentuk **segitiga** jika ketiganya saling berteman. Baca graph pertemanan (`n` ≤ 100), lalu tampilkan banyak segitiga. Tiga orang yang sama hanya dihitung sekali, apa pun urutan penyebutannya.
+
+  ```txt title="Contoh input"
+  5 7
+  1 2
+  2 3
+  1 3
+  3 4
+  4 5
+  3 5
+  2 4
+  ```
+
+  ```txt title="Contoh output"
+  3
+  ```
+
+  ```txt title="Contoh input 2"
+  4 6
+  1 2
+  1 3
+  1 4
+  2 3
+  2 4
+  3 4
+  ```
+
+  ```txt title="Contoh output 2"
+  4
+  ```
+
+  <Petunjuk>
+    Agar setiap segitiga terhitung tepat sekali, hitung hanya dengan urutan nomor `u < v < w`. Gabungkan dua representasi: adjacency list untuk menelusuri tetangga `u` dan `v`, dan adjacency matrix untuk memeriksa sisi `u`–`w` dalam satu langkah.
+  </Petunjuk>
+
+  <Pembahasan>
+    Satu segitiga, misalnya orang 1, 2, dan 3, bisa disebut dalam 6 urutan: 1-2-3, 1-3-2, 2-1-3, dan seterusnya. Tanpa aturan urutan, setiap segitiga akan terhitung 6 kali. Dengan syarat `u < v < w`, hanya urutan 1-2-3 yang diterima. Pada contoh 1 segitiganya adalah 1-2-3, 2-3-4, dan 3-4-5. Contoh 2 adalah graph lengkap dengan 4 simpul: setiap 3 dari 4 simpul membentuk segitiga, jadi ada 4.
+
+    Algoritmanya: untuk setiap sisi `u`–`v` dengan `u < v`, telusuri tetangga `w` dari `v` dengan `w > v`, lalu periksa `mat[u][w]`. Memeriksa `w` di adjacency list `u` juga bisa, tetapi butuh perulangan tambahan. Matriks memberi jawabannya dalam satu langkah, dan dengan `n` ≤ 100 ukurannya kecil.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, m;
+        cin >> n >> m;
+
+        vector<vector<int>> adj(n + 1);
+        vector<vector<int>> mat(n + 1, vector<int>(n + 1, 0));
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+            mat[u][v] = 1;
+            mat[v][u] = 1;
+        }
+
+        int segitiga = 0;
+        for (int u = 1; u <= n; u++) {
+            for (int v : adj[u]) {
+                if (v <= u) {
+                    continue;                    // jaga urutan u < v
+                }
+                for (int w : adj[v]) {
+                    if (w > v && mat[u][w] == 1) {   // jaga urutan v < w, lalu cek sisi u-w
+                        segitiga++;
+                    }
+                }
+            }
+        }
+        cout << segitiga << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    mat = [[0] * (n + 1) for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+        mat[u][v] = 1
+        mat[v][u] = 1
+
+    segitiga = 0
+    for u in range(1, n + 1):
+        for v in adj[u]:
+            if v <= u:
+                continue                         # jaga urutan u < v
+            for w in adj[v]:
+                if w > v and mat[u][w] == 1:     # jaga urutan v < w, lalu cek sisi u-w
+                    segitiga += 1
+    print(segitiga)
+    ```
+  </Pembahasan>
+</Soal>

@@ -1,0 +1,312 @@
+---
+title: "<algorithm>"
+description: Fungsi siap pakai untuk mengurutkan, membalik, mencari, menghitung, dan mengambil nilai terkecil atau terbesar dari vector, beserta padanannya di Python.
+sumber:
+  - ref: cppreference
+    judul: "Standard library header <algorithm>"
+    url: https://en.cppreference.com/w/cpp/header/algorithm
+  - ref: cppreference
+    judul: std::sort
+    url: https://en.cppreference.com/w/cpp/algorithm/sort
+  - ref: cppreference
+    judul: std::lower_bound
+    url: https://en.cppreference.com/w/cpp/algorithm/lower_bound
+  - ref: cppreference
+    judul: std::accumulate
+    url: https://en.cppreference.com/w/cpp/algorithm/accumulate
+  - ref: python-docs
+    judul: Built-in Functions
+    url: https://docs.python.org/3/library/functions.html
+  - ref: python-docs
+    judul: "bisect, Array bisection algorithm"
+    url: https://docs.python.org/3/library/bisect.html
+---
+
+<BackToLesson href="/docs/cpp/algoritma-pengurutan" label="Algoritma Pengurutan" />
+
+<Callout title="Ringkasan">
+  `<algorithm>` berisi fungsi siap pakai untuk mengolah vector, string, dan array: mengurutkan, membalik, mencari, menghitung, dan mengambil nilai terkecil atau terbesar. Tambahkan `#include <algorithm>`. Padanannya di Python kebanyakan berupa fungsi bawaan (`sorted`, `min`, `max`, `sum`), method list, dan modul `bisect`.
+</Callout>
+
+## Cara memanggil: dari `begin()` sampai `end()`
+
+Hampir semua fungsi di `<algorithm>` menerima **dua posisi**: awal dan akhir bagian yang diolah. `v.begin()` menunjuk elemen pertama, sedangkan `v.end()` menunjuk posisi **sesudah** elemen terakhir. Jadi `sort(v.begin(), v.end())` berarti "urutkan dari elemen pertama sampai elemen terakhir".
+
+Sebagian vector pun bisa diolah. `v.begin() + 3` adalah posisi indeks 3, seperti di [pustaka vector](/docs/cpp/pustaka/vector), dan elemen di posisi akhir tidak ikut diolah:
+
+```cpp tab="C++"
+vector<int> v = {50, 20, 40, 10, 30};
+sort(v.begin(), v.begin() + 3);      // hanya indeks 0 sampai 2: 20 40 50 10 30
+```
+
+```python tab="Python"
+v = [50, 20, 40, 10, 30]
+v[:3] = sorted(v[:3])                # hanya indeks 0 sampai 2: [20, 40, 50, 10, 30]
+```
+
+Beberapa fungsi mengembalikan sebuah **posisi**, bukan nilai. Ada dua cara memakainya:
+
+- `*posisi` membaca nilai di posisi itu.
+- `posisi - v.begin()` mengubahnya menjadi indeks.
+
+## Mengurutkan
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `sort(v.begin(), v.end())` | urut naik | `v.sort()`, atau `sorted(v)` untuk list baru |
+| `sort(v.begin(), v.end(), greater<int>())` | urut turun | `v.sort(reverse=True)` |
+| `sort(v.begin(), v.end(), lebihDulu)` | urut dengan fungsi pembanding sendiri | `v.sort(key=fungsi_kunci)` |
+| `stable_sort(v.begin(), v.end(), lebihDulu)` | seperti `sort`, tetapi elemen yang dianggap sama tetap dalam urutan asli | `v.sort(key=fungsi_kunci)`, selalu stabil |
+
+```cpp tab="C++"
+#include <algorithm>
+#include <functional>
+
+vector<int> v = {70, 95, 60, 85};
+sort(v.begin(), v.end());                    // 60 70 85 95
+sort(v.begin(), v.end(), greater<int>());    // 95 85 70 60
+
+string s = "kopi";
+sort(s.begin(), s.end());                    // "ikop"
+```
+
+```python tab="Python"
+v = [70, 95, 60, 85]
+v.sort()                       # [60, 70, 85, 95]
+v.sort(reverse=True)           # [95, 85, 70, 60]
+
+s = "kopi"
+s = "".join(sorted(s))         # "ikop", string Python tidak bisa diubah di tempat
+```
+
+- `greater<int>()` adalah pembanding siap pakai dari `<functional>`.
+- Fungsi pembanding buatan sendiri, misalnya `bool lebihDulu(const Siswa& a, const Siswa& b)`, mengembalikan `true` jika `a` harus berada **sebelum** `b`. Selalu pakai `<` atau `>`, bukan `<=` atau `>=`.
+- `sort` dan `stable_sort` butuh sekitar n log n langkah. Penjelasan lengkap, termasuk beberapa kunci sekaligus dan kestabilan, ada di [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan).
+
+## Membalik
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `reverse(v.begin(), v.end())` | membalik urutan elemen vector itu sendiri | `v.reverse()` |
+| `reverse(s.begin(), s.end())` | membalik string | `s = s[::-1]` |
+| | list baru yang urutannya terbalik | `v[::-1]` atau `list(reversed(v))` |
+
+```cpp tab="C++"
+vector<int> v = {1, 2, 3, 4};
+reverse(v.begin(), v.end());       // 4 3 2 1
+```
+
+```python tab="Python"
+v = [1, 2, 3, 4]
+v.reverse()                        # [4, 3, 2, 1]
+
+for x in reversed(v):              # menelusuri dari belakang tanpa mengubah v
+    print(x, end=" ")              # 1 2 3 4
+```
+
+`reversed(v)` di Python tidak langsung membuat list. Ia memberi elemen satu per satu dari belakang, sehingga cocok untuk perulangan. Bungkus dengan `list(...)` jika kamu butuh list-nya.
+
+## Nilai terkecil dan terbesar
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `min(a, b)`, `max(a, b)` | yang lebih kecil atau lebih besar dari dua nilai | `min(a, b)`, `max(a, b)` |
+| `*min_element(v.begin(), v.end())` | nilai terkecil di vector | `min(v)` |
+| `*max_element(v.begin(), v.end())` | nilai terbesar di vector | `max(v)` |
+| `min_element(v.begin(), v.end()) - v.begin()` | indeks nilai terkecil (yang pertama jika kembar) | `v.index(min(v))` |
+| `max_element(v.begin(), v.end()) - v.begin()` | indeks nilai terbesar (yang pertama jika kembar) | `v.index(max(v))` |
+
+```cpp tab="C++"
+vector<int> nilai = {70, 95, 60, 95};
+
+int terbesar = *max_element(nilai.begin(), nilai.end());                       // 95
+int indeksTerbesar = max_element(nilai.begin(), nilai.end()) - nilai.begin();  // 1
+int indeksTerkecil = min_element(nilai.begin(), nilai.end()) - nilai.begin();  // 2
+```
+
+```python tab="Python"
+nilai = [70, 95, 60, 95]
+
+terbesar = max(nilai)                         # 95
+indeks_terbesar = nilai.index(max(nilai))     # 1
+indeks_terkecil = nilai.index(min(nilai))     # 2
+```
+
+`min_element` dan `max_element` mengembalikan **posisi** elemen, bukan nilainya. Tanda `*` membaca nilainya, dan `- v.begin()` mengubah posisi itu menjadi indeks. Di C++, kedua argumen `min(a, b)` dan `max(a, b)` harus bertipe sama persis. `min(5, 2.5)` ditolak dengan `no matching function for call to 'min(int, double)'`.
+
+<Callout type="warning" title="Vector kosong">
+  Pada vector kosong, `min_element` dan `max_element` mengembalikan `v.end()`, dan membaca `*v.end()` adalah [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior). Python lebih tegas: `min([])` berhenti dengan `ValueError: min() iterable argument is empty`. Periksa dulu bahwa datanya tidak kosong.
+</Callout>
+
+## Mencari dan menghitung
+
+Fungsi berikut bekerja pada data apa pun, terurut atau tidak. Semuanya memeriksa elemen satu per satu, jadi butuh O(n) langkah.
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `find(v.begin(), v.end(), x)` | posisi `x` yang pertama, atau `v.end()` jika tidak ada | |
+| `find(v.begin(), v.end(), x) - v.begin()` | indeks `x` yang pertama, atau `n` jika tidak ada | `v.index(x)`, tetapi `ValueError` jika tidak ada |
+| `find(v.begin(), v.end(), x) != v.end()` | apakah `x` ada? | `x in v` |
+| `count(v.begin(), v.end(), x)` | banyak `x` | `v.count(x)` |
+
+Fungsi berikut memakai [pencarian biner](/docs/cpp/algoritma-pencarian), sehingga hanya butuh O(log n) langkah, tetapi **datanya harus sudah terurut naik**.
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `binary_search(v.begin(), v.end(), x)` | apakah `x` ada? (`true` atau `false`) | `i = bisect_left(v, x)`, lalu `i < len(v) and v[i] == x` |
+| `lower_bound(v.begin(), v.end(), x) - v.begin()` | indeks pertama yang elemennya `>= x` | `bisect_left(v, x)` |
+| `upper_bound(v.begin(), v.end(), x) - v.begin()` | indeks pertama yang elemennya `> x` | `bisect_right(v, x)` |
+| `upper_bound(...) - lower_bound(...)` | banyak `x` | `bisect_right(v, x) - bisect_left(v, x)` |
+
+Jika tidak ada elemen yang memenuhi, `lower_bound` dan `upper_bound` menghasilkan indeks `n`. Di Python, kedua fungsi itu diambil dengan `from bisect import bisect_left, bisect_right`.
+
+```cpp tab="C++"
+vector<int> v = {7, 3, 9, 3, 5};
+
+int i = find(v.begin(), v.end(), 3) - v.begin();   // 1
+int j = find(v.begin(), v.end(), 8) - v.begin();   // 5, sama dengan n: tidak ada
+int banyak = count(v.begin(), v.end(), 3);         // 2
+
+sort(v.begin(), v.end());                          // 3 3 5 7 9
+bool ada = binary_search(v.begin(), v.end(), 7);   // true
+int bawah = lower_bound(v.begin(), v.end(), 3) - v.begin();   // 0
+int atas = upper_bound(v.begin(), v.end(), 3) - v.begin();    // 2
+```
+
+```python tab="Python"
+from bisect import bisect_left, bisect_right
+
+v = [7, 3, 9, 3, 5]
+
+i = v.index(3)                      # 1
+ada_8 = 8 in v                      # False, v.index(8) akan ValueError
+banyak = v.count(3)                 # 2
+
+v.sort()                            # [3, 3, 5, 7, 9]
+k = bisect_left(v, 7)
+ada = k < len(v) and v[k] == 7      # True
+bawah = bisect_left(v, 3)           # 0
+atas = bisect_right(v, 3)           # 2
+```
+
+<Callout type="warning" title="Data harus terurut untuk pencarian biner">
+  `binary_search`, `lower_bound`, `upper_bound`, dan `bisect` tidak memeriksa apakah datanya terurut. Pada data acak, mereka tidak memberi error, hanya jawaban yang salah. Urutkan dulu dengan `sort` atau `v.sort()`.
+</Callout>
+
+`x in v`, `v.index(x)`, dan `v.count(x)` di Python selalu memeriksa satu per satu, walaupun list-nya sudah terurut. Untuk mencari berkali-kali di list yang besar, pakai `bisect`, atau simpan datanya di `set`.
+
+## Menukar
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `swap(a, b)` | menukar isi dua variabel, termasuk dua elemen vector | `a, b = b, a` |
+
+```cpp tab="C++"
+vector<int> v = {10, 20, 30};
+swap(v[0], v[2]);          // 30 20 10
+```
+
+```python tab="Python"
+v = [10, 20, 30]
+v[0], v[2] = v[2], v[0]    # [30, 20, 10]
+```
+
+`swap` resminya berada di header `<utility>`, yang biasanya sudah ikut terbawa oleh `<algorithm>` atau `<vector>`. Menulis `#include <utility>` tidak ada ruginya.
+
+## Menjumlahkan: `accumulate`
+
+| C++ | Arti | Python |
+| --- | --- | --- |
+| `accumulate(v.begin(), v.end(), 0)` | jumlah semua elemen, dihitung sebagai `int` | `sum(v)` |
+| `accumulate(v.begin(), v.end(), 0LL)` | jumlah semua elemen, dihitung sebagai `long long` | `sum(v)` |
+
+`accumulate` **tidak** berada di `<algorithm>`, melainkan di `<numeric>`. Argumen ketiganya adalah nilai awal penjumlahan, dan tipenya menentukan tipe hasil. Dengan `0`, penjumlahan dilakukan sebagai `int` dan bisa overflow:
+
+```cpp
+#include <numeric>
+
+vector<int> v = {2000000000, 2000000000};
+cout << accumulate(v.begin(), v.end(), 0) << endl;     // ✗ -294967296
+cout << accumulate(v.begin(), v.end(), 0LL) << endl;   // ✓ 4000000000
+```
+
+Akhiran `LL` membuat `0LL` bertipe `long long`. Python tidak mengenal overflow, jadi `sum(v)` selalu benar.
+
+## Contoh lengkap
+
+Program berikut membaca nilai ujian `n` siswa, lalu memakai beberapa fungsi sekaligus. Batas lulusnya 70.
+
+```cpp tab="C++"
+#include <iostream>
+#include <algorithm>
+#include <numeric>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> nilai(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nilai[i];
+    }
+
+    int terkecil = *min_element(nilai.begin(), nilai.end());
+    int terbesar = *max_element(nilai.begin(), nilai.end());
+    long long total = accumulate(nilai.begin(), nilai.end(), 0LL);
+    int sempurna = count(nilai.begin(), nilai.end(), 100);
+
+    sort(nilai.begin(), nilai.end());
+    int belumLulus = lower_bound(nilai.begin(), nilai.end(), 70) - nilai.begin();
+
+    cout << "Terkecil: " << terkecil << endl;
+    cout << "Terbesar: " << terbesar << endl;
+    cout << "Total: " << total << endl;
+    cout << "Nilai 100: " << sempurna << " orang" << endl;
+    cout << "Lulus: " << n - belumLulus << " orang" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+from bisect import bisect_left
+
+n = int(input())
+nilai = list(map(int, input().split()))
+
+terkecil = min(nilai)
+terbesar = max(nilai)
+total = sum(nilai)
+sempurna = nilai.count(100)
+
+nilai.sort()
+belum_lulus = bisect_left(nilai, 70)
+
+print("Terkecil:", terkecil)
+print("Terbesar:", terbesar)
+print("Total:", total)
+print("Nilai 100:", sempurna, "orang")
+print("Lulus:", n - belum_lulus, "orang")
+```
+
+```txt title="Contoh jalannya program"
+10
+80 45 100 70 65 90 100 55 72 89
+Terkecil: 45
+Terbesar: 100
+Total: 766
+Nilai 100: 2 orang
+Lulus: 7 orang
+```
+
+Setelah diurutkan, `lower_bound` mencari indeks pertama yang nilainya `>= 70`. Semua siswa sebelum indeks itu belum lulus, jadi sisanya, `n - belumLulus`, adalah yang lulus.
+
+## Rangkuman
+
+- `#include <algorithm>` menyediakan `sort`, `stable_sort`, `reverse`, `min_element`, `max_element`, `find`, `count`, `binary_search`, `lower_bound`, `upper_bound`, dan `swap`. `accumulate` ada di `<numeric>`, dan `greater` di `<functional>`.
+- Fungsi-fungsinya menerima rentang `v.begin()` sampai `v.end()`. Fungsi yang mengembalikan posisi dibaca dengan `*`, atau diubah menjadi indeks dengan `- v.begin()`.
+- `binary_search`, `lower_bound`, `upper_bound`, dan `bisect` hanya benar pada data yang **sudah terurut**.
+- `find` mengembalikan `v.end()` jika tidak ketemu, sedangkan `list.index` di Python melempar `ValueError`.
+- Padanan Python: `sorted`, `list.sort`, `reversed`, `min`, `max`, `list.index`, `list.count`, `in`, `bisect_left`, `bisect_right`, dan `sum`.
+
+<BackToLesson href="/docs/cpp/algoritma-pengurutan" label="Algoritma Pengurutan" />

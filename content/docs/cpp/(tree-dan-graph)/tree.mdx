@@ -1,0 +1,2144 @@
+---
+title: Tree & Binary Tree
+description: Menyimpan data bertingkat seperti folder dan silsilah sebagai tree, istilah-istilahnya, binary tree dengan node dan pointer, empat cara menelusurinya, serta fungsi rekursif untuk menghitung isi tree.
+sumber:
+  - ref: cppreference
+    judul: new expression
+    url: https://en.cppreference.com/w/cpp/language/new
+  - ref: cppreference
+    judul: delete expression
+    url: https://en.cppreference.com/w/cpp/language/delete
+  - ref: cppreference
+    judul: std::queue
+    url: https://en.cppreference.com/w/cpp/container/queue
+  - ref: cppreference
+    judul: std::max
+    url: https://en.cppreference.com/w/cpp/algorithm/max
+  - ref: python-docs
+    judul: Tutorial, Classes
+    url: https://docs.python.org/3/tutorial/classes.html
+  - ref: python-docs
+    judul: collections.deque
+    url: https://docs.python.org/3/library/collections.html#collections.deque
+---
+
+## Masalah: data yang bertingkat
+
+Semua struktur data yang sudah kamu pelajari menyusun data dalam satu baris. Di [array dan vector](/docs/cpp/array-dan-vector), [stack](/docs/cpp/stack), [queue](/docs/cpp/queue), maupun [linked list](/docs/cpp/linked-list), setiap elemen punya paling banyak satu elemen sebelum dan satu elemen sesudah.
+
+Banyak data di sekitar kita tidak berbentuk baris, tetapi **bertingkat**. Lihat isi folder di komputermu:
+
+```txt
+Dokumen
+├── Kuliah
+│   ├── Algoritma
+│   └── Basis Data
+├── Foto
+│   └── Liburan
+└── CV.pdf
+```
+
+`Dokumen` berisi tiga hal. `Kuliah` berisi dua folder lagi, dan `Foto` berisi satu. Pola yang sama muncul di silsilah keluarga, di bagan organisasi (direktur membawahi beberapa manajer, setiap manajer membawahi beberapa staf), dan di bagan turnamen. Jika semua nama itu dimasukkan ke satu vector, informasi terpentingnya hilang: **siapa berada di bawah siapa**.
+
+Struktur data untuk data bertingkat disebut **tree** (pohon). Namanya diambil dari pohon yang digambar terbalik: akarnya di atas, cabangnya tumbuh ke bawah.
+
+Materi ini memakai dua hal yang sudah kamu kuasai. Dari [Linked List](/docs/cpp/linked-list), kamu sudah mengenal node yang saling terhubung lewat pointer. Dari [Rekursi](/docs/cpp/rekursi), kamu sudah mengenal fungsi yang memanggil dirinya sendiri untuk masalah yang lebih kecil. Tree adalah tempat keduanya bertemu.
+
+## Istilah pada tree
+
+Setiap elemen tree disebut **node**, sama seperti di linked list. Bedanya, sebuah node boleh terhubung ke **beberapa** node di bawahnya. Tree berikut berisi sembilan node:
+
+```txt
+                 A                  kedalaman 0
+             /   |   \
+            B    C    D             kedalaman 1
+           / \        |
+          E   F       G             kedalaman 2
+                     / \
+                    H   I           kedalaman 3
+```
+
+| Istilah | Arti | Contoh pada gambar |
+| --- | --- | --- |
+| **Root** (akar) | Node paling atas, satu-satunya node yang tidak punya parent | `A` |
+| **Edge** (sisi) | Garis yang menghubungkan dua node | `A-B`, `D-G`, dan seterusnya |
+| **Parent** (induk) | Node yang tepat berada di atas sebuah node | `D` adalah parent dari `G` |
+| **Child** (anak) | Node yang tepat berada di bawah sebuah node | `E` dan `F` adalah anak dari `B` |
+| **Sibling** (saudara) | Node-node yang parent-nya sama | `B`, `C`, `D` bersaudara, begitu juga `H` dan `I` |
+| **Leaf** (daun) | Node yang tidak punya anak | `E`, `F`, `C`, `H`, `I` |
+| **Subtree** | Sebuah node beserta semua node di bawahnya | Subtree dengan root `D` berisi `D`, `G`, `H`, `I` |
+| **Depth** (kedalaman) | Banyak edge dari root ke node itu | Kedalaman `A` = 0, `G` = 2, `H` = 3 |
+| **Level** | Kumpulan node yang kedalamannya sama, dihitung mulai 0 | Level 2 berisi `E`, `F`, `G` |
+| **Height** (tinggi) | Banyak edge pada jalur terpanjang dari node itu **turun** ke sebuah daun | Tinggi `D` = 2, `B` = 1, setiap daun = 0 |
+
+Node-node di jalur dari root sampai parent sebuah node disebut **leluhur** (_ancestor_) node itu. Leluhur `H` adalah `G`, `D`, dan `A`. Sebaliknya, semua node di bawah sebuah node adalah **keturunannya** (_descendant_).
+
+Beberapa hal selalu benar pada setiap tree:
+
+- Hanya ada satu root, dan setiap node selain root punya **tepat satu** parent.
+- Dari root ada tepat satu jalur ke setiap node. Tidak ada jalur yang melingkar kembali.
+- Tree dengan `n` node punya tepat `n - 1` edge, karena setiap node selain root terhubung ke parent-nya lewat satu edge. Tree di atas punya 9 node dan 8 edge.
+
+<Callout title="Definisi tinggi yang dipakai di Stacklore">
+  Tinggi sebuah tree adalah tinggi root-nya, yaitu kedalaman node yang paling dalam. Tree di atas bertinggi 3. Tree yang hanya berisi satu node bertinggi 0, dan tree kosong (tanpa node sama sekali) disepakati bertinggi -1. Sebagian buku dan soal menghitung tinggi dalam **banyak node**, bukan banyak edge, sehingga hasilnya selalu lebih besar satu. Selalu periksa definisi yang dipakai soal.
+</Callout>
+
+Perhatikan juga bahwa setiap anak dari root adalah root dari sebuah subtree, dan setiap subtree juga sebuah tree. Tree tersusun dari tree-tree yang lebih kecil. Sifat inilah yang membuat rekursi sangat cocok untuk tree.
+
+## Binary tree
+
+Tree yang paling sering dipakai adalah **binary tree**: setiap node punya **paling banyak dua** anak, yang disebut **anak kiri** dan **anak kanan**. Posisi kiri dan kanan itu penting. Dua tree berikut berbeda, walaupun sama-sama berisi `5` dengan satu anak `8`:
+
+```txt
+    5           5
+   /             \
+  8               8
+```
+
+Tree contoh berikut akan dipakai sepanjang materi ini. Isinya tujuh node, tiga di antaranya daun (`3`, `40`, dan `18`), dan tingginya 3 (jalur `12 → 7 → 25 → 40`).
+
+```txt
+            12
+          /    \
+         7      30
+        / \       \
+       3   25      18
+          /
+        40
+```
+
+### Node untuk binary tree
+
+Node linked list punya satu pointer, `next`. Node binary tree punya dua: `left` menyimpan alamat anak kiri dan `right` menyimpan alamat anak kanan. Anak yang tidak ada diisi `nullptr` (Python: `None`).
+
+```txt
+          root
+           |
+           v
+     [• | 12 | •]                 setiap node: [left | data | right]
+      /         \
+     v           v
+[• | 7 | •]   [∅ | 30 | •]
+                         \
+                          ...
+```
+
+Program berikut membuat tree kecil berisi tiga node secara manual. Semua yang dipakai sudah kamu kenal dari linked list: `new`, `->`, `nullptr`, dan `delete`.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* left;      // anak kiri
+    Node* right;     // anak kanan
+};
+
+int main() {
+    Node* root = new Node{12, nullptr, nullptr};
+    root->left = new Node{7, nullptr, nullptr};
+    root->right = new Node{30, nullptr, nullptr};
+
+    cout << root->data << endl;           // 12
+    cout << root->left->data << endl;     // 7
+    cout << root->right->data << endl;    // 30
+
+    delete root->left;     // anak lebih dulu
+    delete root->right;
+    delete root;           // baru parent-nya
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.left = None       # anak kiri
+        self.right = None      # anak kanan
+
+
+root = Node(12)
+root.left = Node(7)
+root.right = Node(30)
+
+print(root.data)               # 12
+print(root.left.data)          # 7
+print(root.right.data)         # 30
+```
+
+Perhatikan urutan `delete`: anak-anak dulu, baru root. Alamat anak tersimpan **di dalam** root. Jika root di-`delete` lebih dulu, `root->left` tidak boleh dibaca lagi, dan kedua anaknya tidak bisa dibebaskan.
+
+Tree contoh dibangun dengan cara yang sama, satu node demi satu node. Supaya bisa dipakai ulang, pembuatannya dibungkus dalam fungsi `buatContoh` yang mengembalikan root:
+
+```cpp tab="C++"
+Node* buatContoh() {
+    Node* root = new Node{12, nullptr, nullptr};
+    root->left = new Node{7, nullptr, nullptr};
+    root->right = new Node{30, nullptr, nullptr};
+    root->left->left = new Node{3, nullptr, nullptr};
+    root->left->right = new Node{25, nullptr, nullptr};
+    root->right->right = new Node{18, nullptr, nullptr};
+    root->left->right->left = new Node{40, nullptr, nullptr};
+    return root;
+}
+```
+
+```python tab="Python"
+def buat_contoh():
+    root = Node(12)
+    root.left = Node(7)
+    root.right = Node(30)
+    root.left.left = Node(3)
+    root.left.right = Node(25)
+    root.right.right = Node(18)
+    root.left.right.left = Node(40)
+    return root
+```
+
+Baca `root->left->right->left` dari kiri ke kanan: dari root ke kiri (node 7), lalu ke kanan (node 25), lalu ke kiri (node 40). Tujuh node ini dibebaskan sekaligus dengan fungsi `hapusTree` yang dibahas di bagian [Membebaskan memori tree](#membebaskan-memori-tree).
+
+## Menelusuri tree
+
+Linked list hanya punya satu urutan penelusuran, dari head sampai ujung. Tree bercabang, jadi ada beberapa urutan yang masuk akal. Tiga urutan pertama ditulis secara rekursif, dan bedanya hanya pada **kapan root dikunjungi** dibandingkan kedua subtree-nya:
+
+| Nama | Urutan kunjungan | Hasil pada tree contoh |
+| --- | --- | --- |
+| **Preorder** | root, subtree kiri, subtree kanan | `12 7 3 25 40 30 18` |
+| **Inorder** | subtree kiri, root, subtree kanan | `3 7 40 25 12 30 18` |
+| **Postorder** | subtree kiri, subtree kanan, root | `3 40 25 7 18 30 12` |
+
+Awalan _pre_ (sebelum), _in_ (di tengah), dan _post_ (sesudah) menunjukkan posisi root.
+
+```cpp tab="C++"
+void cetakPreorder(Node* root) {
+    if (root == nullptr) {             // kasus dasar: tree kosong
+        return;
+    }
+    cout << root->data << " ";         // root
+    cetakPreorder(root->left);         // subtree kiri
+    cetakPreorder(root->right);        // subtree kanan
+}
+
+void cetakInorder(Node* root) {
+    if (root == nullptr) {             // kasus dasar: tree kosong
+        return;
+    }
+    cetakInorder(root->left);          // subtree kiri
+    cout << root->data << " ";         // root
+    cetakInorder(root->right);         // subtree kanan
+}
+
+void cetakPostorder(Node* root) {
+    if (root == nullptr) {             // kasus dasar: tree kosong
+        return;
+    }
+    cetakPostorder(root->left);        // subtree kiri
+    cetakPostorder(root->right);       // subtree kanan
+    cout << root->data << " ";         // root
+}
+```
+
+```python tab="Python"
+def cetak_preorder(root):
+    if root is None:                   # kasus dasar: tree kosong
+        return
+    print(root.data, end=" ")          # root
+    cetak_preorder(root.left)          # subtree kiri
+    cetak_preorder(root.right)         # subtree kanan
+
+
+def cetak_inorder(root):
+    if root is None:                   # kasus dasar: tree kosong
+        return
+    cetak_inorder(root.left)           # subtree kiri
+    print(root.data, end=" ")          # root
+    cetak_inorder(root.right)          # subtree kanan
+
+
+def cetak_postorder(root):
+    if root is None:                   # kasus dasar: tree kosong
+        return
+    cetak_postorder(root.left)         # subtree kiri
+    cetak_postorder(root.right)        # subtree kanan
+    print(root.data, end=" ")          # root
+```
+
+Kasus dasarnya adalah tree kosong, karena tidak ada yang perlu dicetak. Setiap panggilan rekursif menerima subtree yang lebih kecil, jadi lama-kelamaan semua panggilan pasti sampai di `nullptr`. Polanya sama dengan yang kamu pelajari di [Rekursi](/docs/cpp/rekursi): kasus dasar dulu, lalu panggilan untuk masalah yang lebih kecil.
+
+### Jejak inorder
+
+Berikut semua panggilan `cetakInorder` pada tree contoh. "Kiri kosong" berarti panggilan dengan `nullptr` yang langsung kembali.
+
+```txt
+cetakInorder(12)
+├── cetakInorder(7)
+│   ├── cetakInorder(3)
+│   │   ├── kiri kosong
+│   │   ├── cetak 3
+│   │   └── kanan kosong
+│   ├── cetak 7
+│   └── cetakInorder(25)
+│       ├── cetakInorder(40)
+│       │   ├── kiri kosong
+│       │   ├── cetak 40
+│       │   └── kanan kosong
+│       ├── cetak 25
+│       └── kanan kosong
+├── cetak 12
+└── cetakInorder(30)
+    ├── kiri kosong
+    ├── cetak 30
+    └── cetakInorder(18)
+        ├── kiri kosong
+        ├── cetak 18
+        └── kanan kosong
+```
+
+Baris "cetak" yang dibaca dari atas ke bawah menghasilkan `3 7 40 25 12 30 18`. Panggilan `cetakInorder(12)` baru boleh mencetak 12 setelah **seluruh** subtree kirinya selesai, berapa pun dalamnya.
+
+<Callout type="info" title="Cara cepat menebak urutan">
+  Bayangkan kamu berjalan menyusuri tepi luar tree, mulai dari sisi kiri root, turun dan mengitari setiap node, sampai kembali ke sisi kanan root. Setiap node kamu lewati tiga kali: di sisi kirinya, di bawahnya, dan di sisi kanannya. Preorder mencatat node saat kamu lewat di sisi kirinya, inorder saat lewat di bawahnya, dan postorder saat lewat di sisi kanannya.
+</Callout>
+
+### Level-order: tingkat demi tingkat
+
+Urutan keempat mengunjungi node **per level**: dari atas ke bawah, dan dari kiri ke kanan di setiap level. Pada tree contoh hasilnya `12 7 30 3 25 18 40`.
+
+Urutan ini tidak bisa ditulis dengan pola rekursif di atas, karena node `30` harus dikunjungi sebelum anak-anak `7`, padahal keduanya berada di subtree yang berbeda. Alat yang tepat adalah [queue](/docs/cpp/queue): node yang ditemukan lebih dulu, dikunjungi lebih dulu.
+
+1. Masukkan root ke queue.
+2. Selama queue belum kosong, keluarkan node terdepan dan cetak datanya. Lalu masukkan anak kiri dan anak kanannya (jika ada) ke belakang queue.
+
+```cpp tab="C++"
+#include <queue>
+
+void cetakLevelOrder(Node* root) {
+    if (root == nullptr) {
+        return;
+    }
+    queue<Node*> q;                    // queue berisi alamat node
+    q.push(root);
+    while (!q.empty()) {
+        Node* p = q.front();
+        q.pop();
+        cout << p->data << " ";
+        if (p->left != nullptr) {
+            q.push(p->left);
+        }
+        if (p->right != nullptr) {
+            q.push(p->right);
+        }
+    }
+    cout << endl;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+
+def cetak_level_order(root):
+    if root is None:
+        return
+    q = deque()                        # queue berisi node
+    q.append(root)
+    while len(q) > 0:
+        p = q.popleft()
+        print(p.data, end=" ")
+        if p.left is not None:
+            q.append(p.left)
+        if p.right is not None:
+            q.append(p.right)
+    print()
+```
+
+| Langkah | Keluar dan dicetak | Masuk ke queue | Isi queue (depan → belakang) |
+| --- | --- | --- | --- |
+| awal | | 12 | `12` |
+| 1 | 12 | 7, 30 | `7 30` |
+| 2 | 7 | 3, 25 | `30 3 25` |
+| 3 | 30 | 18 | `3 25 18` |
+| 4 | 3 | | `25 18` |
+| 5 | 25 | 40 | `18 40` |
+| 6 | 18 | | `40` |
+| 7 | 40 | | (kosong) |
+
+Anak selalu masuk di belakang node-node yang sudah menunggu, jadi seluruh level 1 keluar sebelum level 2 dimulai, dan seterusnya. Ide "kunjungi yang dekat dulu dengan bantuan queue" ini akan kamu temui lagi sebagai [BFS](/docs/cpp/bfs) pada graph. Sebaliknya, tiga penelusuran rekursif tadi menyelam sedalam mungkin sebelum kembali. Itu adalah bentuk sederhana dari [DFS](/docs/cpp/dfs).
+
+### Menyimpan hasil penelusuran
+
+Fungsi `cetak...` di atas langsung mencetak, sehingga ada spasi di akhir baris dan urutannya tidak bisa diolah lagi. Sering kali lebih berguna menyimpan urutan kunjungan ke vector. Vector dikirim sebagai reference (`&`) agar semua panggilan rekursif mengisi vector yang **sama**:
+
+```cpp tab="C++"
+void inorder(Node* root, vector<int>& hasil) {
+    if (root == nullptr) {             // kasus dasar
+        return;
+    }
+    inorder(root->left, hasil);
+    hasil.push_back(root->data);
+    inorder(root->right, hasil);
+}
+
+// pemakaian:
+vector<int> hasil;
+inorder(root, hasil);
+for (int i = 0; i < (int)hasil.size(); i++) {
+    if (i > 0) {
+        cout << " ";
+    }
+    cout << hasil[i];
+}
+cout << endl;                          // 3 7 40 25 12 30 18
+```
+
+```python tab="Python"
+def inorder(root, hasil):
+    if root is None:                   # kasus dasar
+        return
+    inorder(root.left, hasil)
+    hasil.append(root.data)
+    inorder(root.right, hasil)
+
+
+# pemakaian:
+hasil = []
+inorder(root, hasil)
+print(*hasil)                          # 3 7 40 25 12 30 18
+```
+
+Di Python tidak perlu tanda khusus, karena list yang dikirim ke fungsi tidak disalin. Semua panggilan memakai list yang sama, seperti dijelaskan di <Term href="/docs/cpp/pendalaman/pass-by-value-dan-reference">pass by value dan reference</Term>. Preorder dan postorder disimpan dengan cara yang sama, cukup pindahkan baris `push_back`/`append`.
+
+## Fungsi rekursif pada tree
+
+Banyak pertanyaan tentang tree dijawab dengan pola tiga langkah yang sama:
+
+1. **Kasus dasar.** Jika tree kosong, kembalikan jawaban untuk tree kosong.
+2. **Selesaikan kiri, selesaikan kanan.** Panggil fungsi yang sama untuk subtree kiri dan subtree kanan.
+3. **Gabungkan.** Susun jawaban untuk node ini dari kedua jawaban tadi dan data node itu sendiri.
+
+Ini adalah pola [Divide & Conquer](/docs/cpp/divide-and-conquer): masalah dibagi menjadi bagian yang lebih kecil, setiap bagian diselesaikan, lalu hasilnya digabung. Bedanya, pada tree pembagiannya sudah tersedia, yaitu subtree kiri dan subtree kanan.
+
+| Pertanyaan | Jawaban untuk tree kosong | Cara menggabungkan |
+| --- | --- | --- |
+| Banyak node | `0` | kiri + kanan + 1 |
+| Jumlah semua data | `0` | kiri + kanan + data node |
+| Tinggi | `-1` | 1 + yang lebih besar di antara kiri dan kanan |
+| Banyak daun | `0` | 1 jika node ini daun, selain itu kiri + kanan |
+
+```cpp tab="C++"
+#include <algorithm>     // max
+
+int banyakNode(Node* root) {
+    if (root == nullptr) {                 // kasus dasar
+        return 0;
+    }
+    return banyakNode(root->left) + banyakNode(root->right) + 1;
+}
+
+int jumlah(Node* root) {
+    if (root == nullptr) {                 // kasus dasar
+        return 0;
+    }
+    return jumlah(root->left) + jumlah(root->right) + root->data;
+}
+
+int tinggi(Node* root) {
+    if (root == nullptr) {                 // kasus dasar: tree kosong bertinggi -1
+        return -1;
+    }
+    return 1 + max(tinggi(root->left), tinggi(root->right));
+}
+
+int banyakDaun(Node* root) {
+    if (root == nullptr) {                 // kasus dasar: tree kosong
+        return 0;
+    }
+    if (root->left == nullptr && root->right == nullptr) {   // kasus dasar: daun
+        return 1;
+    }
+    return banyakDaun(root->left) + banyakDaun(root->right);
+}
+```
+
+```python tab="Python"
+def banyak_node(root):
+    if root is None:                       # kasus dasar
+        return 0
+    return banyak_node(root.left) + banyak_node(root.right) + 1
+
+
+def jumlah(root):
+    if root is None:                       # kasus dasar
+        return 0
+    return jumlah(root.left) + jumlah(root.right) + root.data
+
+
+def tinggi(root):
+    if root is None:                       # kasus dasar: tree kosong bertinggi -1
+        return -1
+    return 1 + max(tinggi(root.left), tinggi(root.right))
+
+
+def banyak_daun(root):
+    if root is None:                       # kasus dasar: tree kosong
+        return 0
+    if root.left is None and root.right is None:   # kasus dasar: daun
+        return 1
+    return banyak_daun(root.left) + banyak_daun(root.right)
+```
+
+`max(a, b)` mengembalikan nilai yang lebih besar dari dua nilai. Di C++ fungsi ini berasal dari `<algorithm>` (lihat <Term href="/docs/cpp/pustaka/algorithm">pustaka algorithm</Term>), di Python sudah tersedia langsung. Untuk tree contoh, keempat fungsi menghasilkan 7 node, jumlah 135, tinggi 3, dan 3 daun.
+
+Kenapa tree kosong bertinggi -1? Daun punya dua subtree kosong, jadi tingginya `1 + max(-1, -1) = 0`, sesuai definisi bahwa tinggi daun adalah 0. Berikut cara `tinggi` menghitung tree contoh, dari bawah ke atas:
+
+| Node | `tinggi` subtree kiri | `tinggi` subtree kanan | `tinggi` node |
+| --- | --- | --- | --- |
+| 3 | -1 | -1 | 0 |
+| 40 | -1 | -1 | 0 |
+| 25 | 0 (node 40) | -1 | 1 |
+| 7 | 0 (node 3) | 1 (node 25) | 2 |
+| 18 | -1 | -1 | 0 |
+| 30 | -1 | 0 (node 18) | 1 |
+| 12 | 2 (node 7) | 1 (node 30) | 3 |
+
+Urutan baris tabel ini, `3 40 25 7 18 30 12`, sama dengan urutan postorder. Itu bukan kebetulan: sebuah node baru bisa dihitung setelah kedua subtree-nya selesai, jadi pola "selesaikan kiri, selesaikan kanan, gabungkan" memang selalu postorder.
+
+### Nilai terbesar
+
+Tree kosong tidak punya nilai terbesar. Karena itu fungsi berikut mensyaratkan root bukan `nullptr`, lalu hanya turun ke anak yang memang ada:
+
+```cpp tab="C++"
+int nilaiMaks(Node* root) {                // syarat: root bukan nullptr
+    int hasil = root->data;
+    if (root->left != nullptr) {
+        hasil = max(hasil, nilaiMaks(root->left));
+    }
+    if (root->right != nullptr) {
+        hasil = max(hasil, nilaiMaks(root->right));
+    }
+    return hasil;
+}
+```
+
+```python tab="Python"
+def nilai_maks(root):                      # syarat: root bukan None
+    hasil = root.data
+    if root.left is not None:
+        hasil = max(hasil, nilai_maks(root.left))
+    if root.right is not None:
+        hasil = max(hasil, nilai_maks(root.right))
+    return hasil
+```
+
+Kasus dasarnya tersembunyi. Pada daun, kedua `if` bernilai salah, sehingga fungsi langsung mengembalikan datanya sendiri tanpa memanggil dirinya lagi. Untuk tree contoh hasilnya 40.
+
+Setiap fungsi di bagian ini mengunjungi setiap node tepat satu kali, jadi waktunya sebanding dengan banyak node, yaitu O(n). Notasi ini dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+## Membebaskan memori tree
+
+Setiap node dibuat dengan `new`, jadi di C++ setiap node harus di-`delete`. Seperti pada contoh tiga node tadi, urutannya penting: kedua subtree dihapus lebih dulu, baru node itu sendiri. Itu tepat urutan postorder.
+
+```cpp
+void hapusTree(Node* root) {
+    if (root == nullptr) {       // kasus dasar: tidak ada yang dihapus
+        return;
+    }
+    hapusTree(root->left);       // 1. hapus seluruh subtree kiri
+    hapusTree(root->right);      // 2. hapus seluruh subtree kanan
+    delete root;                 // 3. terakhir, node ini sendiri
+}
+```
+
+Jika `delete root` ditulis paling awal, baris sesudahnya membaca `root->left` dari node yang sudah dihapus. Itu kesalahan _use after free_ yang sama dengan menghapus linked list tanpa menyimpan `next` lebih dulu.
+
+Python tidak butuh fungsi ini. Cukup `root = None`. Root tidak lagi ditunjuk siapa pun sehingga dibebaskan, lalu anak-anaknya menyusul, sama seperti linked list. Di C++, setelah `hapusTree(root)`, variabel `root` di `main` masih menyimpan alamat lama yang sudah tidak sah. Jangan memakainya lagi, atau isi ulang dengan `root = nullptr;`.
+
+## Membaca tree dari input
+
+Soal tree biasanya memberikan tree lewat input dengan format seperti ini:
+
+- Baris pertama berisi `n`, banyak node. Node diberi nomor 1 sampai `n`.
+- `n` baris berikutnya berisi `data kiri kanan` untuk node nomor 1, 2, sampai `n`: datanya, nomor anak kirinya, dan nomor anak kanannya. Angka `0` berarti tidak punya anak di sisi itu.
+- Node nomor 1 adalah root.
+
+Berikut tree contoh dengan nomor setiap node ditulis di dalam kurung, beserta input-nya:
+
+```txt
+              12 (1)
+            /        \
+         7 (2)       30 (3)
+        /    \            \
+     3 (4)   25 (5)       18 (6)
+            /
+         40 (7)
+```
+
+```txt title="Input untuk tree contoh"
+7
+12 2 3
+7 4 5
+30 0 6
+3 0 0
+25 7 0
+18 0 0
+40 0 0
+```
+
+Baris `12 2 3` berarti: node nomor 1 berisi 12, anak kirinya node nomor 2, dan anak kanannya node nomor 3. Jangan tertukar antara **nomor node** dan **data**. Baris `7 4 5` adalah node nomor 2 yang berisi 7, bukan node nomor 7. Penomoran tidak harus per level seperti ini. Nomor apa pun boleh, asalkan root bernomor 1.
+
+Ada satu kesulitan: baris node 1 sudah menyebut node 2 dan 3, padahal baris keduanya belum dibaca. Karena itu, buat dulu **semua** node dan simpan alamatnya di `vector<Node*>`. Setelah itu, baca baris demi baris sambil menyambungkan pointer-nya:
+
+```cpp tab="C++"
+Node* bacaTree() {
+    int n;
+    cin >> n;
+    vector<Node*> node(n + 1, nullptr);    // node[i] = alamat node nomor i
+    for (int i = 1; i <= n; i++) {
+        node[i] = new Node{0, nullptr, nullptr};
+    }
+    for (int i = 1; i <= n; i++) {
+        int data, kiri, kanan;
+        cin >> data >> kiri >> kanan;
+        node[i]->data = data;
+        node[i]->left = node[kiri];        // kiri = 0 berarti node[0], yaitu nullptr
+        node[i]->right = node[kanan];
+    }
+    return node[1];                        // node 1 adalah root
+}
+```
+
+```python tab="Python"
+def baca_tree():
+    n = int(input())
+    node = [None] * (n + 1)                # node[i] = node nomor i
+    for i in range(1, n + 1):
+        node[i] = Node(0)
+    for i in range(1, n + 1):
+        data, kiri, kanan = map(int, input().split())
+        node[i].data = data
+        node[i].left = node[kiri]          # kiri = 0 berarti node[0], yaitu None
+        node[i].right = node[kanan]
+    return node[1]                         # node 1 adalah root
+```
+
+`node[0]` sengaja dibiarkan `nullptr`, sehingga angka `0` di input otomatis berarti "tidak ada anak" tanpa perlu `if`. Vector `node` hilang saat fungsi selesai, tetapi node-node yang dibuat dengan `new` tetap ada. Semuanya bisa dijangkau dari root yang dikembalikan, jadi cukup satu `hapusTree(root)` untuk membebaskannya.
+
+Program lengkap berikut membaca tree, lalu menampilkan urutan inorder, banyak node, tinggi, dan banyak daun:
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* left;
+    Node* right;
+};
+
+Node* bacaTree() {
+    int n;
+    cin >> n;
+    vector<Node*> node(n + 1, nullptr);
+    for (int i = 1; i <= n; i++) {
+        node[i] = new Node{0, nullptr, nullptr};
+    }
+    for (int i = 1; i <= n; i++) {
+        int data, kiri, kanan;
+        cin >> data >> kiri >> kanan;
+        node[i]->data = data;
+        node[i]->left = node[kiri];
+        node[i]->right = node[kanan];
+    }
+    return node[1];
+}
+
+void inorder(Node* root, vector<int>& hasil) {
+    if (root == nullptr) {                 // kasus dasar
+        return;
+    }
+    inorder(root->left, hasil);
+    hasil.push_back(root->data);
+    inorder(root->right, hasil);
+}
+
+int banyakNode(Node* root) {
+    if (root == nullptr) {                 // kasus dasar
+        return 0;
+    }
+    return banyakNode(root->left) + banyakNode(root->right) + 1;
+}
+
+int tinggi(Node* root) {
+    if (root == nullptr) {                 // kasus dasar
+        return -1;
+    }
+    return 1 + max(tinggi(root->left), tinggi(root->right));
+}
+
+int banyakDaun(Node* root) {
+    if (root == nullptr) {                 // kasus dasar
+        return 0;
+    }
+    if (root->left == nullptr && root->right == nullptr) {
+        return 1;
+    }
+    return banyakDaun(root->left) + banyakDaun(root->right);
+}
+
+void hapusTree(Node* root) {
+    if (root == nullptr) {                 // kasus dasar
+        return;
+    }
+    hapusTree(root->left);
+    hapusTree(root->right);
+    delete root;
+}
+
+int main() {
+    Node* root = bacaTree();
+
+    vector<int> hasil;
+    inorder(root, hasil);
+    cout << "Inorder:";
+    for (int x : hasil) {
+        cout << " " << x;
+    }
+    cout << endl;
+
+    cout << "Banyak node: " << banyakNode(root) << endl;
+    cout << "Tinggi: " << tinggi(root) << endl;
+    cout << "Banyak daun: " << banyakDaun(root) << endl;
+
+    hapusTree(root);
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.left = None
+        self.right = None
+
+
+def baca_tree():
+    n = int(input())
+    node = [None] * (n + 1)
+    for i in range(1, n + 1):
+        node[i] = Node(0)
+    for i in range(1, n + 1):
+        data, kiri, kanan = map(int, input().split())
+        node[i].data = data
+        node[i].left = node[kiri]
+        node[i].right = node[kanan]
+    return node[1]
+
+
+def inorder(root, hasil):
+    if root is None:                       # kasus dasar
+        return
+    inorder(root.left, hasil)
+    hasil.append(root.data)
+    inorder(root.right, hasil)
+
+
+def banyak_node(root):
+    if root is None:                       # kasus dasar
+        return 0
+    return banyak_node(root.left) + banyak_node(root.right) + 1
+
+
+def tinggi(root):
+    if root is None:                       # kasus dasar
+        return -1
+    return 1 + max(tinggi(root.left), tinggi(root.right))
+
+
+def banyak_daun(root):
+    if root is None:                       # kasus dasar
+        return 0
+    if root.left is None and root.right is None:
+        return 1
+    return banyak_daun(root.left) + banyak_daun(root.right)
+
+
+root = baca_tree()
+
+hasil = []
+inorder(root, hasil)
+print("Inorder:", *hasil)
+
+print("Banyak node:", banyak_node(root))
+print("Tinggi:", tinggi(root))
+print("Banyak daun:", banyak_daun(root))
+```
+
+Dengan input tree contoh di atas, output-nya:
+
+```txt title="Contoh output"
+Inorder: 3 7 40 25 12 30 18
+Banyak node: 7
+Tinggi: 3
+Banyak daun: 3
+```
+
+## Kesalahan yang sering terjadi
+
+### Mengakses `nullptr`
+
+`root->left->data` hanya aman jika `root` **dan** `root->left` sama-sama bukan `nullptr`. Pada tree, banyak node tidak punya anak kiri atau kanan, jadi kesalahan ini sangat mudah terjadi.
+
+```cpp
+// ✗ crash jika root tidak punya anak kiri
+if (root->left->data > root->data) {
+    // ...
+}
+
+// ✓ periksa dulu, short-circuit mencegah bagian kanan dijalankan
+if (root->left != nullptr && root->left->data > root->data) {
+    // ...
+}
+```
+
+Di C++ akibatnya _undefined behavior_ yang biasanya berakhir dengan `Segmentation fault`. Python berhenti dengan `AttributeError: 'NoneType' object has no attribute 'data'`. Hal yang sama terjadi jika `nilaiMaks` dipanggil untuk tree kosong.
+
+### Lupa kasus dasar tree kosong
+
+```cpp
+int banyakNode(Node* root) {
+    return banyakNode(root->left) + banyakNode(root->right) + 1;   // ✗ tanpa kasus dasar
+}
+```
+
+Rekursi ini terus turun sampai bertemu anak `nullptr` di bawah sebuah daun, lalu panggilan berikutnya membaca `nullptr->left`. Untungnya, `g++ -Wall` biasanya sudah curiga dan memberi peringatan `infinite recursion detected`. Jadikan tree kosong sebagai kasus dasar dan tulis paling awal. Dengan begitu, node yang hanya punya satu anak, daun, maupun tree yang benar-benar kosong semuanya tertangani.
+
+### Memory leak dan urutan `delete` yang salah
+
+Lupa memanggil `hapusTree` membuat semua node bocor (_memory leak_). Menghapus parent sebelum anak-anaknya membuat program membaca memori yang sudah dibebaskan. Keduanya tidak selalu terlihat saat program dicoba.
+
+<Callout title="Minta compiler membantu">
+  Kompilasi dengan `g++ -std=c++17 -fsanitize=address,undefined -g program.cpp`. Program akan berhenti dengan laporan yang jelas jika mengakses `nullptr`, memakai node yang sudah di-`delete`, atau lupa membebaskan node (dicek saat program selesai).
+</Callout>
+
+### Tree yang terlalu dalam
+
+Setiap panggilan rekursif memakai sedikit tempat di _call stack_. Tree yang miring, misalnya 100.000 node yang masing-masing hanya punya anak kanan, membuat rekursi sedalam 100.000 panggilan. Di C++ ini bisa menyebabkan _stack overflow_, dan Python menolak dengan `RecursionError` karena batas bawaannya sekitar 1000 panggilan. Untuk tree yang seimbang, kedalamannya jauh lebih kecil, sehingga masalah ini jarang muncul. Batasan `n` di soal Latihan dibuat cukup kecil agar aman.
+
+<DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call stack">
+  Apa yang terjadi di memori setiap kali fungsi dipanggil, kenapa rekursi yang terlalu dalam membuat program crash, dan cara mengganti rekursi dengan perulangan dan stack.
+</DeepDive>
+
+## Rangkuman
+
+- **Tree** menyimpan data bertingkat. Setiap node selain **root** punya tepat satu **parent**, dan node tanpa anak disebut **daun**. Tree dengan `n` node punya `n - 1` edge.
+- **Kedalaman** node adalah banyak edge dari root ke node itu. **Tinggi** node adalah banyak edge pada jalur terpanjang dari node itu turun ke daun. Tinggi tree adalah tinggi root-nya: satu node bertinggi 0, tree kosong bertinggi -1.
+- **Binary tree** punya paling banyak dua anak per node. Node-nya berisi `data`, `left`, dan `right`, dibuat dengan `new Node{x, nullptr, nullptr}` (Python: `Node(x)`).
+- Tiga penelusuran rekursif: **preorder** (root, kiri, kanan), **inorder** (kiri, root, kanan), dan **postorder** (kiri, kanan, root). **Level-order** memakai queue untuk mengunjungi node per level.
+- Banyak fungsi tree mengikuti pola **kasus dasar tree kosong, selesaikan kiri, selesaikan kanan, gabungkan**. Contohnya menghitung banyak node, jumlah, tinggi, dan banyak daun. Setiap fungsi ini O(n).
+- Bebaskan tree C++ dengan `hapusTree` yang berurutan postorder: kedua subtree dulu, baru node-nya sendiri.
+- Tree dari input dibaca dengan membuat semua node lebih dulu di `vector<Node*>`, lalu menyambungkan `left` dan `right` sesuai nomor node.
+- Sebelum menulis `p->...`, pastikan `p` bukan `nullptr`.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, tree dibaca dengan format di bagian [Membaca tree dari input](#membaca-tree-dari-input), dengan `1 ≤ n ≤ 100` dan data setiap node berbeda. Deretan bilangan dicetak dipisah satu spasi, tanpa spasi di akhir baris. Solusi C++ selalu membebaskan semua node dengan `hapusTree` sebelum program selesai.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Preorder dan postorder">
+  Baca sebuah tree, lalu cetak urutan preorder di baris pertama dan urutan postorder di baris kedua.
+
+  ```txt title="Contoh input"
+  5
+  8 2 3
+  1 0 4
+  6 5 0
+  9 0 0
+  2 0 0
+  ```
+
+  ```txt title="Contoh output"
+  8 1 9 6 2
+  9 1 2 6 8
+  ```
+
+  Tree pada contoh berbentuk seperti ini:
+
+  ```txt
+        8
+      /   \
+     1     6
+      \   /
+       9 2
+  ```
+
+  <Pembahasan>
+    Kedua penelusuran hanya berbeda pada posisi baris `push_back`/`append`. Urutan disimpan ke vector lebih dulu agar bisa dicetak tanpa spasi di akhir baris.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void preorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hasil.push_back(root->data);
+        preorder(root->left, hasil);
+        preorder(root->right, hasil);
+    }
+
+    void postorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        postorder(root->left, hasil);
+        postorder(root->right, hasil);
+        hasil.push_back(root->data);
+    }
+
+    void cetakVector(const vector<int>& v) {
+        for (int i = 0; i < (int)v.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << v[i];
+        }
+        cout << endl;
+    }
+
+    int main() {
+        Node* root = bacaTree();
+
+        vector<int> pre;
+        vector<int> post;
+        preorder(root, pre);
+        postorder(root, post);
+        cetakVector(pre);
+        cetakVector(post);
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    def preorder(root, hasil):
+        if root is None:                   # kasus dasar
+            return
+        hasil.append(root.data)
+        preorder(root.left, hasil)
+        preorder(root.right, hasil)
+
+
+    def postorder(root, hasil):
+        if root is None:                   # kasus dasar
+            return
+        postorder(root.left, hasil)
+        postorder(root.right, hasil)
+        hasil.append(root.data)
+
+
+    root = baca_tree()
+    pre = []
+    post = []
+    preorder(root, pre)
+    postorder(root, post)
+    print(*pre)
+    print(*post)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Membaca gambar tree">
+  Perhatikan binary tree berikut, lalu jawab tanpa menulis program.
+
+  ```txt
+              P
+            /   \
+           Q     R
+          /     / \
+         S     T   U
+          \         \
+           V         W
+                    /
+                   X
+  ```
+
+  1. Node mana yang menjadi root, dan node mana saja yang merupakan daun?
+  2. Siapa parent dari `T`? Siapa saudara dari `T`? Apakah `S` punya saudara?
+  3. Berapa kedalaman `V` dan kedalaman `X`?
+  4. Berapa tinggi tree ini, tinggi node `R`, dan tinggi node `Q`?
+  5. Ada berapa edge? Node mana saja yang berada di level 2?
+  6. Tuliskan urutan preorder dan inorder-nya.
+
+  <Pembahasan>
+    | No. | Jawaban |
+    | --- | --- |
+    | 1 | Root `P`. Daun: `V`, `T`, `X` |
+    | 2 | Parent `T` adalah `R`. Saudara `T` adalah `U`. `S` tidak punya saudara, karena `Q` hanya punya satu anak |
+    | 3 | Kedalaman `V` = 3 (`P → Q → S → V`), kedalaman `X` = 4 (`P → R → U → W → X`) |
+    | 4 | Tinggi tree = 4, sama dengan kedalaman node terdalam (`X`). Tinggi `R` = 3 (`R → U → W → X`). Tinggi `Q` = 2 (`Q → S → V`) |
+    | 5 | Ada 9 node, jadi 8 edge. Level 2 berisi `S`, `T`, `U` |
+    | 6 | Preorder: `P Q S V R T U W X`. Inorder: `S V Q P T R U X W` |
+
+    Kesalahan yang sering terjadi pada inorder adalah menempatkan `V` sebelum `S`. `V` adalah anak **kanan** `S`, jadi `S` dikunjungi lebih dulu. Hal yang sama berlaku untuk `X`: ia anak kiri `W`, jadi muncul sebelum `W`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Daun yang membuat crash">
+  Fungsi berikut dimaksudkan untuk menghitung banyak daun. Untuk tree A, hasilnya benar (3). Untuk tree B, programnya crash. Jelaskan penyebabnya dan perbaiki fungsinya.
+
+  ```txt
+  Tree A:     4            Tree B:     4
+             / \                      / \
+            2   6                    2   6
+               / \                        \
+              5   9                        9
+  ```
+
+  ```cpp tab="C++"
+  int banyakDaun(Node* root) {
+      if (root->left == nullptr && root->right == nullptr) {   // daun
+          return 1;
+      }
+      return banyakDaun(root->left) + banyakDaun(root->right);
+  }
+  ```
+
+  ```python tab="Python"
+  def banyak_daun(root):
+      if root.left is None and root.right is None:   # daun
+          return 1
+      return banyak_daun(root.left) + banyak_daun(root.right)
+  ```
+
+  <Petunjuk>
+    Ikuti panggilan untuk node 6 di tree B. Fungsi dipanggil dengan argumen apa untuk anak kirinya?
+  </Petunjuk>
+
+  <Pembahasan>
+    Satu-satunya kasus dasar adalah daun. Di tree A, setiap node punya nol atau dua anak, jadi rekursi selalu berhenti di daun tanpa pernah menerima `nullptr`. Di tree B, node 6 hanya punya anak kanan. Baris terakhir tetap memanggil `banyakDaun(root->left)` dengan `nullptr`, lalu panggilan itu membaca `root->left` dari `nullptr`. C++ biasanya berhenti dengan `Segmentation fault`, sedangkan Python berhenti dengan `AttributeError: 'NoneType' object has no attribute 'left'`. Fungsi ini juga crash untuk tree kosong.
+
+    Perbaikannya, tambahkan kasus dasar tree kosong **paling awal**:
+
+    ```cpp tab="C++"
+    int banyakDaun(Node* root) {
+        if (root == nullptr) {                                   // kasus dasar: tree kosong
+            return 0;
+        }
+        if (root->left == nullptr && root->right == nullptr) {   // kasus dasar: daun
+            return 1;
+        }
+        return banyakDaun(root->left) + banyakDaun(root->right);
+    }
+    ```
+
+    ```python tab="Python"
+    def banyak_daun(root):
+        if root is None:                                 # kasus dasar: tree kosong
+            return 0
+        if root.left is None and root.right is None:     # kasus dasar: daun
+            return 1
+        return banyak_daun(root.left) + banyak_daun(root.right)
+    ```
+
+    Dengan perbaikan ini, tree B menghasilkan 2 (daun `2` dan `9`).
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Satu level satu baris">
+  Baca sebuah tree, lalu cetak isinya per level: level 0 di baris pertama, level 1 di baris kedua, dan seterusnya. Di setiap baris, node dicetak dari kiri ke kanan.
+
+  ```txt title="Contoh input"
+  7
+  12 2 3
+  7 4 5
+  30 0 6
+  3 0 0
+  25 7 0
+  18 0 0
+  40 0 0
+  ```
+
+  ```txt title="Contoh output"
+  12
+  7 30
+  3 25 18
+  40
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  5 0 2
+  6 3 0
+  7 0 0
+  ```
+
+  ```txt title="Contoh output 2"
+  5
+  6
+  7
+  ```
+
+  <Petunjuk>
+    Pakai level-order dengan queue. Tepat saat sebuah level akan diproses, queue hanya berisi node-node level itu. Simpan dulu `banyak = q.size()`, lalu keluarkan tepat sebanyak itu. Anak-anak yang masuk selama proses ini adalah level berikutnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kuncinya adalah mencatat ukuran queue **sebelum** memproses sebuah level. Jika kondisi perulangan dalam memakai `q.size()` secara langsung, ukurannya ikut bertambah setiap kali anak dimasukkan, sehingga level berikutnya ikut tercetak di baris yang sama.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    #include <queue>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int main() {
+        Node* root = bacaTree();
+
+        queue<Node*> q;
+        q.push(root);
+        while (!q.empty()) {
+            int banyak = q.size();         // banyak node di level ini
+            for (int i = 0; i < banyak; i++) {
+                Node* p = q.front();
+                q.pop();
+                if (i > 0) {
+                    cout << " ";
+                }
+                cout << p->data;
+                if (p->left != nullptr) {
+                    q.push(p->left);
+                }
+                if (p->right != nullptr) {
+                    q.push(p->right);
+                }
+            }
+            cout << endl;                  // level ini selesai
+        }
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    root = baca_tree()
+
+    q = deque()
+    q.append(root)
+    while len(q) > 0:
+        banyak = len(q)                    # banyak node di level ini
+        level = []
+        for i in range(banyak):
+            p = q.popleft()
+            level.append(p.data)
+            if p.left is not None:
+                q.append(p.left)
+            if p.right is not None:
+                q.append(p.right)
+        print(*level)                      # level ini selesai
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Cermin tree">
+  Baca sebuah tree, lalu ubah menjadi **cerminannya**: di setiap node, anak kiri dan anak kanan ditukar. Jangan membuat node baru, cukup ubah pointer-nya. Cetak urutan preorder tree hasil di baris pertama dan urutan inorder-nya di baris kedua.
+
+  ```txt title="Contoh input"
+  7
+  12 2 3
+  7 4 5
+  30 0 6
+  3 0 0
+  25 7 0
+  18 0 0
+  40 0 0
+  ```
+
+  ```txt title="Contoh output"
+  12 30 18 7 25 40 3
+  18 30 12 25 40 7 3
+  ```
+
+  Tree contoh di materi berubah menjadi seperti ini:
+
+  ```txt
+            12
+          /    \
+        30      7
+       /       / \
+      18      25   3
+                \
+                 40
+  ```
+
+  <Petunjuk>
+    Tukar anak kiri dan anak kanan root, lalu cerminkan kedua subtree secara rekursif. Kasus dasarnya tree kosong.
+  </Petunjuk>
+
+  <Pembahasan>
+    Menukar dua pointer sama seperti menukar dua bilangan, jadi `swap` di C++ dan `a, b = b, a` di Python bisa dipakai langsung. Perhatikan bahwa inorder tree cermin adalah kebalikan inorder tree aslinya (`3 7 40 25 12 30 18` dibalik), karena urutan kiri dan kanan tertukar di setiap node.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    #include <utility>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void preorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hasil.push_back(root->data);
+        preorder(root->left, hasil);
+        preorder(root->right, hasil);
+    }
+
+    void inorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        inorder(root->left, hasil);
+        hasil.push_back(root->data);
+        inorder(root->right, hasil);
+    }
+
+    void cetakVector(const vector<int>& v) {
+        for (int i = 0; i < (int)v.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << v[i];
+        }
+        cout << endl;
+    }
+
+    void cermin(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        swap(root->left, root->right);     // tukar kedua anak
+        cermin(root->left);
+        cermin(root->right);
+    }
+
+    int main() {
+        Node* root = bacaTree();
+        cermin(root);
+
+        vector<int> hasilPre;
+        vector<int> hasilIn;
+        preorder(root, hasilPre);
+        inorder(root, hasilIn);
+        cetakVector(hasilPre);
+        cetakVector(hasilIn);
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    def preorder(root, hasil):
+        if root is None:                   # kasus dasar
+            return
+        hasil.append(root.data)
+        preorder(root.left, hasil)
+        preorder(root.right, hasil)
+
+
+    def inorder(root, hasil):
+        if root is None:                   # kasus dasar
+            return
+        inorder(root.left, hasil)
+        hasil.append(root.data)
+        inorder(root.right, hasil)
+
+
+    def cermin(root):
+        if root is None:                   # kasus dasar
+            return
+        root.left, root.right = root.right, root.left   # tukar kedua anak
+        cermin(root.left)
+        cermin(root.right)
+
+
+    root = baca_tree()
+    cermin(root)
+
+    hasil_pre = []
+    hasil_in = []
+    preorder(root, hasil_pre)
+    inorder(root, hasil_in)
+    print(*hasil_pre)
+    print(*hasil_in)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Tebak output">
+  Tanpa menjalankannya, tentukan output program berikut. Lalu jelaskan dengan kalimatmu sendiri: apa yang sebenarnya dihitung oleh `f`?
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  struct Node {
+      int data;
+      Node* left;
+      Node* right;
+  };
+
+  int f(Node* root) {
+      if (root == nullptr) {          // kasus dasar
+          return 0;
+      }
+      int a = f(root->left);
+      int b = f(root->right);
+      if (a > b) {
+          return root->data + a;
+      }
+      return root->data + b;
+  }
+
+  void hapusTree(Node* root) {
+      if (root == nullptr) {          // kasus dasar
+          return;
+      }
+      hapusTree(root->left);
+      hapusTree(root->right);
+      delete root;
+  }
+
+  int main() {
+      Node* root = new Node{5, nullptr, nullptr};
+      root->left = new Node{3, nullptr, nullptr};
+      root->right = new Node{8, nullptr, nullptr};
+      root->left->left = new Node{9, nullptr, nullptr};
+      root->left->right = new Node{1, nullptr, nullptr};
+      root->right->right = new Node{2, nullptr, nullptr};
+
+      cout << f(root) << endl;
+      cout << f(root->right) << endl;
+
+      hapusTree(root);
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Node:
+      def __init__(self, data):
+          self.data = data
+          self.left = None
+          self.right = None
+
+
+  def f(root):
+      if root is None:                # kasus dasar
+          return 0
+      a = f(root.left)
+      b = f(root.right)
+      if a > b:
+          return root.data + a
+      return root.data + b
+
+
+  root = Node(5)
+  root.left = Node(3)
+  root.right = Node(8)
+  root.left.left = Node(9)
+  root.left.right = Node(1)
+  root.right.right = Node(2)
+
+  print(f(root))
+  print(f(root.right))
+  ```
+
+  <Petunjuk>
+    Gambar dulu tree-nya. Lalu hitung `f` dari daun ke atas (postorder), seperti tabel `tinggi` di materi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Output-nya `17` lalu `10`.
+
+    ```txt
+          5
+        /   \
+       3     8
+      / \     \
+     9   1     2
+    ```
+
+    | Node | `a` (kiri) | `b` (kanan) | `f` node |
+    | --- | --- | --- | --- |
+    | 9 | 0 | 0 | 9 |
+    | 1 | 0 | 0 | 1 |
+    | 3 | 9 | 1 | 3 + 9 = 12 |
+    | 2 | 0 | 0 | 2 |
+    | 8 | 0 | 2 | 8 + 2 = 10 |
+    | 5 | 12 | 10 | 5 + 12 = 17 |
+
+    `f(node)` adalah jumlah terbesar dari data di sepanjang jalur yang dimulai dari node itu lalu turun sampai ke sebuah daun. Untuk root, jalur terbaiknya `5 → 3 → 9`. Jebakannya: anak kanan root (8) lebih besar daripada anak kiri (3), tetapi `f` membandingkan **jumlah jalur terbaik** kedua subtree (12 dan 10), bukan nilai anaknya saja. Memilih anak yang lebih besar di setiap langkah akan menghasilkan `5 → 8 → 2` = 15, yang salah.
+
+    Catatan: jika data boleh negatif, `f` bisa memilih sisi kosong (bernilai 0) sehingga jalurnya berhenti sebelum daun. Untuk data positif seperti di sini, hal itu tidak terjadi.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Kedalaman sebuah nilai">
+  Baca sebuah tree, lalu sebuah bilangan `x` di baris terakhir. Cetak kedalaman node yang berisi `x`, atau `-1` jika tidak ada node berisi `x`.
+
+  ```txt title="Contoh input"
+  7
+  12 2 3
+  7 4 5
+  30 0 6
+  3 0 0
+  25 7 0
+  18 0 0
+  40 0 0
+  40
+  ```
+
+  ```txt title="Contoh output"
+  3
+  ```
+
+  Untuk tree yang sama, `x = 12` menghasilkan `0` dan `x = 99` menghasilkan `-1`.
+
+  <Petunjuk>
+    Bawa kedalaman saat ini sebagai parameter tambahan: `kedalaman(root, x, d)`. Panggilan untuk anak memakai `d + 1`. Jika `x` ditemukan di subtree kiri, jawabannya sudah pasti dan subtree kanan tidak perlu diperiksa.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada dua kasus dasar: tree kosong (tidak ditemukan, `-1`) dan node yang berisi `x` (kembalikan `d`). Selain itu, cari di kiri dulu. Hanya jika hasil kiri `-1`, cari di kanan. Kesalahan yang sering terjadi adalah langsung menjumlahkan atau mengambil `max` dari hasil kiri dan kanan, padahal `-1` bukan kedalaman sungguhan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int kedalaman(Node* root, int x, int d) {
+        if (root == nullptr) {             // kasus dasar: tidak ditemukan
+            return -1;
+        }
+        if (root->data == x) {             // kasus dasar: ketemu di kedalaman d
+            return d;
+        }
+        int kiri = kedalaman(root->left, x, d + 1);
+        if (kiri != -1) {
+            return kiri;                   // sudah ketemu di kiri
+        }
+        return kedalaman(root->right, x, d + 1);
+    }
+
+    int main() {
+        Node* root = bacaTree();
+        int x;
+        cin >> x;
+
+        cout << kedalaman(root, x, 0) << endl;
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    def kedalaman(root, x, d):
+        if root is None:                   # kasus dasar: tidak ditemukan
+            return -1
+        if root.data == x:                 # kasus dasar: ketemu di kedalaman d
+            return d
+        kiri = kedalaman(root.left, x, d + 1)
+        if kiri != -1:
+            return kiri                    # sudah ketemu di kiri
+        return kedalaman(root.right, x, d + 1)
+
+
+    root = baca_tree()
+    x = int(input())
+    print(kedalaman(root, x, 0))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Diameter tree">
+  **Diameter** sebuah tree adalah banyak edge pada jalur terpanjang di antara **dua node mana pun**. Jalur itu boleh naik lalu turun, dan tidak harus melewati root. Baca sebuah tree, lalu cetak diameternya. Tree satu node berdiameter 0.
+
+  ```txt title="Contoh input"
+  7
+  12 2 3
+  7 4 5
+  30 0 6
+  3 0 0
+  25 7 0
+  18 0 0
+  40 0 0
+  ```
+
+  ```txt title="Contoh output"
+  5
+  ```
+
+  Jalur terpanjangnya `40 → 25 → 7 → 12 → 30 → 18`.
+
+  ```txt title="Contoh input 2"
+  7
+  10 2 0
+  20 3 4
+  30 5 0
+  40 0 6
+  50 0 0
+  60 0 7
+  70 0 0
+  ```
+
+  ```txt title="Contoh output 2"
+  5
+  ```
+
+  Pada contoh kedua, jalur terpanjangnya `50 → 30 → 20 → 40 → 60 → 70` dan tidak melewati root (10).
+
+  <Petunjuk>
+    Setiap jalur punya satu node "puncak", yaitu node tertinggi yang dilewatinya. Jalur terpanjang yang berpuncak di node `p` turun ke subtree kiri sejauh mungkin dan ke subtree kanan sejauh mungkin. Panjangnya bisa dihitung dari tinggi kedua subtree. Ingat bahwa tinggi tree kosong adalah -1. Jawabannya adalah nilai terbesar dari semua kemungkinan puncak.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jalur terpanjang yang berpuncak di `p` turun sejauh `tinggi(kiri) + 1` edge ke kiri dan `tinggi(kanan) + 1` edge ke kanan, jadi panjangnya `tinggi(kiri) + tinggi(kanan) + 2`. Rumus ini juga benar jika salah satu atau kedua sisinya kosong, berkat kesepakatan tinggi -1. Untuk daun hasilnya `-1 + -1 + 2 = 0`. Diameter tree adalah yang terbesar di antara jalur berpuncak di root, diameter subtree kiri, dan diameter subtree kanan. Kesalahan yang sering terjadi adalah hanya menghitung jalur yang melewati root, yang gagal pada contoh kedua (hasilnya 4).
+
+    Solusi ini menghitung ulang tinggi di setiap node, sehingga waktunya O(n²). Untuk `n ≤ 100` itu sangat cepat. Versi O(n) menghitung tinggi dan diameter sekaligus dalam satu penelusuran.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int tinggi(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return -1;
+        }
+        return 1 + max(tinggi(root->left), tinggi(root->right));
+    }
+
+    int diameter(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return 0;
+        }
+        int lewatRoot = tinggi(root->left) + tinggi(root->right) + 2;
+        int kiri = diameter(root->left);
+        int kanan = diameter(root->right);
+        return max(lewatRoot, max(kiri, kanan));
+    }
+
+    int main() {
+        Node* root = bacaTree();
+        cout << diameter(root) << endl;
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    def tinggi(root):
+        if root is None:                   # kasus dasar
+            return -1
+        return 1 + max(tinggi(root.left), tinggi(root.right))
+
+
+    def diameter(root):
+        if root is None:                   # kasus dasar
+            return 0
+        lewat_root = tinggi(root.left) + tinggi(root.right) + 2
+        kiri = diameter(root.left)
+        kanan = diameter(root.right)
+        return max(lewat_root, kiri, kanan)
+
+
+    root = baca_tree()
+    print(diameter(root))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Tree simetris">
+  Sebuah tree disebut **simetris** jika ia sama persis dengan cerminannya sendiri: bentuknya simetris terhadap garis tegak yang melewati root, dan data di posisi yang berhadapan juga sama. Baca sebuah tree (kali ini data boleh kembar), lalu cetak `YA` jika simetris dan `TIDAK` jika tidak. Tree satu node selalu simetris.
+
+  ```txt
+  Contoh 1 (YA):        Contoh 2 (TIDAK):
+        7                     7
+      /   \                 /   \
+     5     5               5     5
+      \   /                 \     \
+       9 9                   9     9
+  ```
+
+  ```txt title="Contoh input"
+  5
+  7 2 3
+  5 0 4
+  5 5 0
+  9 0 0
+  9 0 0
+  ```
+
+  ```txt title="Contoh output"
+  YA
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  7 2 3
+  5 0 4
+  5 0 5
+  9 0 0
+  9 0 0
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK
+  ```
+
+  <Petunjuk>
+    Tree simetris jika subtree kiri dan subtree kanan root saling bercermin. Tulis fungsi `salingCermin(a, b)` yang memeriksa dua tree sekaligus. Dua tree saling bercermin jika data root-nya sama, anak **kiri** `a` bercermin dengan anak **kanan** `b`, dan anak kanan `a` bercermin dengan anak kiri `b`. Pikirkan baik-baik kasus dasarnya: bagaimana jika salah satu atau keduanya kosong?
+  </Petunjuk>
+
+  <Pembahasan>
+    Fungsi `salingCermin` berjalan di dua tree secara bersamaan, mirip menelusuri dua linked list sekaligus. Ada dua kasus dasar. Jika keduanya kosong, keduanya bercermin. Jika hanya salah satu kosong, bentuknya berbeda. Pada contoh kedua, anak kiri `5` kiri (kosong) dibandingkan dengan anak kanan `5` kanan (berisi 9), jadi jawabannya `TIDAK`.
+
+    Cara pintas yang salah adalah memeriksa apakah urutan inorder berupa palindrom. Tree berisi `2` dengan satu anak kiri `2` punya inorder `2 2` yang palindrom, padahal tree itu jelas tidak simetris.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    bool salingCermin(Node* a, Node* b) {
+        if (a == nullptr && b == nullptr) {        // kasus dasar: keduanya kosong
+            return true;
+        }
+        if (a == nullptr || b == nullptr) {        // kasus dasar: hanya satu yang kosong
+            return false;
+        }
+        if (a->data != b->data) {
+            return false;
+        }
+        return salingCermin(a->left, b->right) && salingCermin(a->right, b->left);
+    }
+
+    int main() {
+        Node* root = bacaTree();
+
+        if (salingCermin(root->left, root->right)) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    def saling_cermin(a, b):
+        if a is None and b is None:        # kasus dasar: keduanya kosong
+            return True
+        if a is None or b is None:         # kasus dasar: hanya satu yang kosong
+            return False
+        if a.data != b.data:
+            return False
+        return saling_cermin(a.left, b.right) and saling_cermin(a.right, b.left)
+
+
+    root = baca_tree()
+    if saling_cermin(root.left, root.right):
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Bangun ulang dari dua urutan">
+  Sebuah binary tree berisi `n` data yang semuanya berbeda (`1 ≤ n ≤ 100`). Kamu tidak diberi tree-nya, hanya urutan preorder (baris kedua) dan urutan inorder-nya (baris ketiga). Bangun ulang tree tersebut, lalu cetak urutan postorder-nya.
+
+  ```txt title="Contoh input"
+  7
+  12 7 3 25 40 30 18
+  3 7 40 25 12 30 18
+  ```
+
+  ```txt title="Contoh output"
+  3 40 25 7 18 30 12
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  1 2 3 4
+  2 1 4 3
+  ```
+
+  ```txt title="Contoh output 2"
+  2 4 3 1
+  ```
+
+  <Petunjuk>
+    Elemen pertama preorder pasti root. Cari posisi root itu di inorder: semua elemen di kirinya adalah isi subtree kiri, dan semua di kanannya isi subtree kanan. Jika subtree kiri berisi `k` elemen, maka di preorder, `k` elemen sesudah root adalah preorder subtree kiri, dan sisanya preorder subtree kanan. Kedua bagian itu adalah soal yang sama dalam ukuran lebih kecil.
+  </Petunjuk>
+
+  <Pembahasan>
+    Fungsi `bangun` menerima posisi awal di kedua urutan dan banyak elemen bagian tree yang sedang dibangun. Kasus dasarnya bagian kosong (0 elemen), yang menghasilkan `nullptr`. Pada contoh pertama, root-nya 12. Di inorder, 12 berada di posisi 4, jadi subtree kiri berisi 4 elemen (`3 7 40 25`) dan subtree kanan berisi 2 elemen (`30 18`). Preorder subtree kiri adalah 4 elemen sesudah 12, yaitu `7 3 25 40`, dan sisanya `30 18` milik subtree kanan.
+
+    Syarat "semua data berbeda" penting. Jika ada data kembar, posisi root di inorder bisa ambigu, dan tree-nya tidak selalu bisa ditentukan secara pasti.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void postorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {             // kasus dasar
+            return;
+        }
+        postorder(root->left, hasil);
+        postorder(root->right, hasil);
+        hasil.push_back(root->data);
+    }
+
+    // bangun tree dari urutanPre[preAwal ...] dan urutanIn[inAwal ...] sebanyak `banyak` elemen
+    Node* bangun(const vector<int>& urutanPre, const vector<int>& urutanIn,
+                 int preAwal, int inAwal, int banyak) {
+        if (banyak == 0) {                         // kasus dasar: bagian kosong
+            return nullptr;
+        }
+        int nilaiRoot = urutanPre[preAwal];
+        int posisi = inAwal;
+        while (urutanIn[posisi] != nilaiRoot) {    // cari root di inorder
+            posisi++;
+        }
+        int banyakKiri = posisi - inAwal;
+        int banyakKanan = banyak - 1 - banyakKiri;
+
+        Node* root = new Node{nilaiRoot, nullptr, nullptr};
+        root->left = bangun(urutanPre, urutanIn, preAwal + 1, inAwal, banyakKiri);
+        root->right = bangun(urutanPre, urutanIn, preAwal + 1 + banyakKiri, posisi + 1, banyakKanan);
+        return root;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> urutanPre(n);
+        vector<int> urutanIn(n);
+        for (int i = 0; i < n; i++) {
+            cin >> urutanPre[i];
+        }
+        for (int i = 0; i < n; i++) {
+            cin >> urutanIn[i];
+        }
+
+        Node* root = bangun(urutanPre, urutanIn, 0, 0, n);
+
+        vector<int> hasil;
+        postorder(root, hasil);
+        for (int i = 0; i < (int)hasil.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << hasil[i];
+        }
+        cout << endl;
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def postorder(root, hasil):
+        if root is None:                   # kasus dasar
+            return
+        postorder(root.left, hasil)
+        postorder(root.right, hasil)
+        hasil.append(root.data)
+
+
+    # bangun tree dari urutan_pre[pre_awal ...] dan urutan_in[in_awal ...] sebanyak `banyak` elemen
+    def bangun(urutan_pre, urutan_in, pre_awal, in_awal, banyak):
+        if banyak == 0:                            # kasus dasar: bagian kosong
+            return None
+        nilai_root = urutan_pre[pre_awal]
+        posisi = in_awal
+        while urutan_in[posisi] != nilai_root:     # cari root di inorder
+            posisi += 1
+        banyak_kiri = posisi - in_awal
+        banyak_kanan = banyak - 1 - banyak_kiri
+
+        root = Node(nilai_root)
+        root.left = bangun(urutan_pre, urutan_in, pre_awal + 1, in_awal, banyak_kiri)
+        root.right = bangun(urutan_pre, urutan_in, pre_awal + 1 + banyak_kiri, posisi + 1, banyak_kanan)
+        return root
+
+
+    n = int(input())
+    urutan_pre = list(map(int, input().split()))
+    urutan_in = list(map(int, input().split()))
+
+    root = bangun(urutan_pre, urutan_in, 0, 0, n)
+    hasil = []
+    postorder(root, hasil)
+    print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>

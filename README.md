@@ -2,7 +2,7 @@
 
 Dokumentasi belajar pemrograman dan computer science dalam bahasa Indonesia.
 
-Seri pertama, **C++**, membahas dasar pemrograman dari nol sampai siap _vibe coding_: algoritma, input & output, tipe data, operator (termasuk bitwise), percabangan, perulangan, fungsi, struktur data (array, string, struct, stack, queue, linked list, map & set), dan cara membaca error. Setiap contoh kode C++ disertai padanan Python, dan setiap materi ditutup dengan 10 soal latihan beserta pembahasannya. Seri Kriptografi, Machine Learning, dan Deep Learning segera hadir.
+Seri pertama, **C++**, membahas dasar pemrograman dari nol sampai siap _vibe coding_: algoritma, input & output, tipe data, operator (termasuk bitwise), percabangan, perulangan, fungsi, struktur data (array, string, matriks, struct, stack, queue, linked list, map & set), rekursi, algoritma pengurutan dan pencarian, divide & conquer, tree dan binary search tree, graph beserta DFS dan BFS, serta cara membaca error. Setiap contoh kode C++ disertai padanan Python, dan setiap materi ditutup dengan 10 soal latihan beserta pembahasannya. Seri Kriptografi, Machine Learning, dan Deep Learning segera hadir.
 
 ## Menjalankan secara lokal
 
@@ -30,8 +30,8 @@ Fitur **Tanya AI** membutuhkan `OPENROUTER_API_KEY` di berkas `.env.local`. Mode
 | --- | --- |
 | `content/docs/cpp/` | Materi C++ dalam MDX. Urutan sidebar diatur oleh `meta.json`. |
 | `content/docs/cpp/(dasar)/`, `(struktur-data)/`, … | Modul materi. Nama folder dalam kurung tidak ikut masuk URL, jadi `(dasar)/input-dan-output.mdx` tampil di `/docs/cpp/input-dan-output`. Judul dan ikon modul ada di `meta.json` folder tersebut. |
-| `content/docs/cpp/pendalaman/` | Penjelasan lanjutan yang ditautkan dari materi utama, misalnya buffer, pointer, dan undefined behavior |
-| `content/docs/cpp/pustaka/` | Referensi pustaka standar, misalnya `getline`, `<cmath>`, dan `<vector>` |
+| `content/docs/cpp/pendalaman/` | Penjelasan lanjutan yang ditautkan dari materi utama, misalnya buffer, pointer, call stack, dan memoisasi |
+| `content/docs/cpp/pustaka/` | Referensi pustaka standar, misalnya `getline`, `<cmath>`, `<vector>`, dan `<algorithm>` |
 | `src/components/mdx/` | Komponen khusus materi: flowchart, diagram memori, `DeepDive`, soal latihan (`Soal`, `Petunjuk`, `Pembahasan`), dan lainnya |
 | `src/lib/references.ts` | Daftar sumber rujukan beserta lisensinya |
 | `src/app/(home)/lisensi/` | Halaman Lisensi & Atribusi |

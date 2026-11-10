@@ -10,6 +10,8 @@
     "pointer-dan-array",
     "memori-dinamis",
     "undefined-behavior",
-    "kompleksitas-waktu"
+    "kompleksitas-waktu",
+    "call-stack",
+    "memoisasi"
   ]
 }

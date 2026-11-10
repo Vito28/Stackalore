@@ -1,0 +1,1560 @@
+---
+title: Rekursi
+description: Fungsi yang memanggil dirinya sendiri. Kasus dasar dan kasus rekursif, jejak pemanggilan di call stack, Fibonacci, Menara Hanoi, mencoba semua kemungkinan, dan kesalahan yang sering terjadi.
+sumber:
+  - ref: cppreference
+    judul: Function declaration
+    url: https://en.cppreference.com/w/cpp/language/function
+  - ref: python-docs
+    judul: Tutorial, Defining Functions
+    url: https://docs.python.org/3/tutorial/controlflow.html#defining-functions
+  - ref: python-docs
+    judul: Built-in Exceptions, RecursionError
+    url: https://docs.python.org/3/library/exceptions.html#RecursionError
+  - ref: busbee
+  - ref: think-python
+---
+
+## Masalah: berapa orang di depanku?
+
+Bayangkan kamu berdiri di antrean panjang yang berkelok-kelok dan ingin tahu ada berapa orang di depanmu. Ujung antrean tidak terlihat, jadi kamu tidak bisa menghitung sendiri. Yang bisa kamu lakukan adalah bertanya kepada orang tepat di depanmu: "Ada berapa orang di depanmu?" Dia juga tidak tahu, jadi dia bertanya kepada orang di depannya, dan seterusnya.
+
+Pertanyaan itu berhenti di orang paling depan. Dia tidak perlu bertanya kepada siapa pun, karena di depannya kosong. Jawabannya langsung: 0. Jawaban itu lalu berjalan mundur. Setiap orang menerima jawaban dari depannya, menambahkan 1 (orang di depannya itu sendiri), lalu meneruskannya ke belakang.
+
+```txt
+pertanyaan berjalan ke depan:
+  kamu --> Ani --> Budi --> Citra      Citra paling depan, tidak perlu bertanya
+
+jawaban berjalan ke belakang:
+  kamu <-- Ani <-- Budi <-- Citra
+   3        2       1        0         setiap orang menambah 1
+```
+
+Tidak ada satu orang pun yang menghitung seluruh antrean. Setiap orang hanya mengerjakan bagian kecil: bertanya ke depan, lalu menambah 1. Masalah "berapa orang di depanku?" diselesaikan dengan menjawab **versi yang lebih kecil dari masalah yang sama**, yaitu "berapa orang di depan orang di depanku?".
+
+Di materi [Fungsi](/docs/cpp/fungsi), kamu sudah melihat fungsi memanggil fungsi lain, misalnya `kpk` yang memanggil `fpb`. Sebuah fungsi juga boleh memanggil **dirinya sendiri**. Teknik ini disebut **rekursi**, dan fungsinya disebut **fungsi rekursif**. Rekursi adalah cara menuliskan ide "selesaikan versi yang lebih kecil, lalu pakai hasilnya" langsung di dalam kode.
+
+## Anatomi fungsi rekursif
+
+Ingat faktorial: `n! = 1 × 2 × ... × n`. Perhatikan bahwa `5! = 5 × 4!`, dan `4! = 4 × 3!`. Faktorial bisa didefinisikan memakai faktorial yang lebih kecil:
+
+| Bagian | Aturan |
+| --- | --- |
+| Kasus dasar | `0! = 1` |
+| Kasus rekursif | `n! = n × (n − 1)!` untuk n ≥ 1 |
+
+Definisi ini bisa ditulis hampir apa adanya menjadi kode:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+long long faktorial(int n) {
+    if (n == 0) {
+        return 1;                       // kasus dasar
+    }
+    return n * faktorial(n - 1);        // kasus rekursif
+}
+
+int main() {
+    cout << faktorial(5) << endl;       // 120
+    cout << faktorial(20) << endl;      // 2432902008176640000
+    return 0;
+}
+```
+
+```python tab="Python"
+def faktorial(n):
+    if n == 0:
+        return 1                        # kasus dasar
+    return n * faktorial(n - 1)         # kasus rekursif
+
+
+print(faktorial(5))                     # 120
+print(faktorial(20))                    # 2432902008176640000
+```
+
+Setiap fungsi rekursif yang benar punya dua bagian:
+
+- **Kasus dasar** (_base case_): masalah yang cukup kecil untuk dijawab langsung, tanpa memanggil diri sendiri. Di sini `n == 0`. Kasus dasar berperan seperti orang paling depan di antrean.
+- **Kasus rekursif**: memanggil diri sendiri dengan masalah yang **lebih kecil**, lalu memakai hasilnya. Di sini `faktorial(n - 1)`, dan hasilnya dikalikan `n`.
+
+<Callout title="Tulis kasus dasar lebih dulu">
+  Di semua materi berikutnya, kasus dasar selalu ditulis di bagian paling atas fungsi dan diberi komentar `// kasus dasar` (Python: `# kasus dasar`). Pertanyaan pertama saat membaca fungsi rekursif adalah "kapan fungsi ini berhenti?". Jika kasus dasar ada di atas, jawabannya langsung terlihat, dan kamu tidak akan lupa menulisnya.
+</Callout>
+
+### Tiga pertanyaan sebelum menulis rekursi
+
+1. **Apa kasus terkecilnya, dan apa jawabannya?** Untuk faktorial: `n = 0`, jawabannya 1.
+2. **Jika jawaban untuk versi yang lebih kecil sudah ada, bagaimana memakainya?** Kalikan `faktorial(n - 1)` dengan `n`.
+3. **Apakah setiap panggilan pasti mendekati kasus dasar?** `n` berkurang 1 setiap kali, jadi untuk `n ≥ 0` pasti sampai ke 0.
+
+Pertanyaan kedua butuh sedikit keberanian. Saat menulis `faktorial(n - 1)`, **percayalah** bahwa panggilan itu memberi jawaban yang benar, tanpa menelusurinya sampai habis. Cukup pastikan kasus dasarnya benar dan satu langkah rekursifnya benar. Ini sama dengan setiap orang di antrean yang percaya pada jawaban dari depannya. Jika kamu pernah belajar induksi matematika, cara berpikirnya persis sama.
+
+## Cara rekursi berjalan
+
+Walaupun kita tidak perlu menelusurinya saat menulis, menelusuri sekali akan membantu memahami apa yang terjadi. Berikut jejak `faktorial(4)`:
+
+```txt
+panggil faktorial(4): butuh 4 * faktorial(3)
+  panggil faktorial(3): butuh 3 * faktorial(2)
+    panggil faktorial(2): butuh 2 * faktorial(1)
+      panggil faktorial(1): butuh 1 * faktorial(0)
+        panggil faktorial(0): kasus dasar, kembalikan 1
+      faktorial(1) kembali: 1 * 1 = 1
+    faktorial(2) kembali: 2 * 1 = 2
+  faktorial(3) kembali: 3 * 2 = 6
+faktorial(4) kembali: 4 * 6 = 24
+```
+
+Ada dua tahap. Saat **turun**, setiap panggilan berhenti di tengah perkalian karena masih menunggu hasil panggilan berikutnya. Saat **naik**, hasil dikembalikan satu per satu dan perkalian yang tertunda akhirnya dikerjakan. Perkalian pertama yang benar-benar dihitung adalah `1 * 1`, milik `faktorial(1)`.
+
+### Setiap panggilan punya `n` sendiri
+
+Saat `faktorial(0)` berjalan, ada lima `n` yang hidup bersamaan: 4, 3, 2, 1, dan 0. Bagaimana mungkin? Ingat bagian [ruang lingkup variabel](/docs/cpp/fungsi#ruang-lingkup-variabel-scope): parameter dan variabel lokal dibuat baru setiap kali fungsi dipanggil. Komputer menyimpan catatan untuk setiap panggilan yang belum selesai, berisi parameter, variabel lokal, dan tempat untuk kembali. Catatan ini disebut **frame**.
+
+Frame-frame itu disusun sebagai [stack](/docs/cpp/stack) yang disebut **call stack**. Memanggil fungsi berarti push frame baru. Fungsi yang selesai di-pop, lalu eksekusi kembali ke frame di bawahnya.
+
+```txt
+isi call stack saat faktorial(0) sedang berjalan:
+
+  +--------------------+
+  | faktorial   n = 0  |  <- puncak: sedang berjalan
+  +--------------------+
+  | faktorial   n = 1  |  menunggu hasil faktorial(0)
+  +--------------------+
+  | faktorial   n = 2  |  menunggu hasil faktorial(1)
+  +--------------------+
+  | faktorial   n = 3  |  menunggu hasil faktorial(2)
+  +--------------------+
+  | faktorial   n = 4  |  menunggu hasil faktorial(3)
+  +--------------------+
+  | main               |  menunggu hasil faktorial(4)
+  +--------------------+
+```
+
+Gambar berikut menunjukkan call stack dari waktu ke waktu untuk `faktorial(3)` (ditulis `f(3)` agar muat). Setiap kolom adalah satu saat, dan bagian atas kolom adalah puncak stack:
+
+```txt
+                            f(0)
+                     f(1)   f(1)   f(1)
+              f(2)   f(2)   f(2)   f(2)   f(2)
+       f(3)   f(3)   f(3)   f(3)   f(3)   f(3)   f(3)
+main   main   main   main   main   main   main   main   main
+1      2      3      4      5      6      7      8      9
+
+saat 1-5: memanggil, stack tumbuh     saat 5-9: kembali, stack menyusut
+```
+
+Panggilan yang **terakhir** dimulai, `f(0)`, adalah yang **pertama** selesai. Itulah aturan LIFO yang kamu kenal dari materi Stack.
+
+<DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call Stack & Rekursi">
+  Apa saja isi sebuah frame, kenapa ukuran call stack terbatas, apa yang terjadi saat penuh (_segmentation fault_ di C++, `RecursionError` di Python), dan cara mengubah rekursi menjadi perulangan dengan stack buatan sendiri.
+</DeepDive>
+
+## Contoh-contoh rekursi
+
+### Hitung mundur dan hitung naik
+
+Fungsi rekursif tidak harus mengembalikan nilai. Fungsi `void` juga bisa rekursif, dan kasus dasarnya cukup `return;`. Perhatikan posisi `cout` terhadap panggilan rekursif pada dua fungsi ini:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+void hitungMundur(int n) {
+    if (n == 0) {
+        cout << "Mulai!" << endl;       // kasus dasar
+        return;
+    }
+    cout << n << endl;                  // SEBELUM panggilan rekursif
+    hitungMundur(n - 1);
+}
+
+void hitungNaik(int n) {
+    if (n == 0) {
+        return;                         // kasus dasar: tidak ada yang dicetak
+    }
+    hitungNaik(n - 1);
+    cout << n << endl;                  // SESUDAH panggilan rekursif
+}
+
+int main() {
+    hitungMundur(3);
+    hitungNaik(3);
+    return 0;
+}
+```
+
+```python tab="Python"
+def hitung_mundur(n):
+    if n == 0:
+        print("Mulai!")                 # kasus dasar
+        return
+    print(n)                            # SEBELUM panggilan rekursif
+    hitung_mundur(n - 1)
+
+
+def hitung_naik(n):
+    if n == 0:
+        return                          # kasus dasar: tidak ada yang dicetak
+    hitung_naik(n - 1)
+    print(n)                            # SESUDAH panggilan rekursif
+
+
+hitung_mundur(3)
+hitung_naik(3)
+```
+
+```txt title="Output"
+3
+2
+1
+Mulai!
+1
+2
+3
+```
+
+Kode **sebelum** panggilan rekursif dijalankan saat turun, sehingga `n` tercetak dari besar ke kecil. Kode **sesudah** panggilan rekursif baru dijalankan saat naik, sehingga urutannya terbalik. `hitungNaik(3)` tidak bisa mencetak 3 sebelum `hitungNaik(2)` selesai, dan `hitungNaik(2)` menunggu `hitungNaik(1)`. Jadi rekursi bisa membalik urutan, persis seperti stack.
+
+### Jumlah digit dan pangkat
+
+Dua fungsi berikut mengikuti pola yang sama: kerjakan satu bagian kecil, serahkan sisanya ke panggilan rekursif.
+
+- Jumlah digit `4725` sama dengan jumlah digit `472` ditambah digit terakhir, `5`. Bilangan di bawah 10 hanya punya satu digit, jadi jumlah digitnya adalah dirinya sendiri.
+- `b` pangkat `e` sama dengan `b` dikali `b` pangkat `e − 1`. Bilangan apa pun pangkat 0 hasilnya 1.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int jumlahDigit(int n) {
+    if (n < 10) {
+        return n;                       // kasus dasar: tinggal satu digit
+    }
+    return jumlahDigit(n / 10) + n % 10;
+}
+
+long long pangkat(int b, int e) {
+    if (e == 0) {
+        return 1;                       // kasus dasar: b^0 = 1
+    }
+    return b * pangkat(b, e - 1);
+}
+
+int main() {
+    cout << jumlahDigit(4725) << endl;  // 18
+    cout << pangkat(2, 10) << endl;     // 1024
+    cout << pangkat(3, 4) << endl;      // 81
+    return 0;
+}
+```
+
+```python tab="Python"
+def jumlah_digit(n):
+    if n < 10:
+        return n                        # kasus dasar: tinggal satu digit
+    return jumlah_digit(n // 10) + n % 10
+
+
+def pangkat(b, e):
+    if e == 0:
+        return 1                        # kasus dasar: b^0 = 1
+    return b * pangkat(b, e - 1)
+
+
+print(jumlah_digit(4725))               # 18
+print(pangkat(2, 10))                   # 1024
+print(pangkat(3, 4))                    # 81
+```
+
+Jejak `jumlahDigit(4725)`: `jumlahDigit(472) + 5` → `(jumlahDigit(47) + 2) + 5` → `((jumlahDigit(4) + 7) + 2) + 5` → `4 + 7 + 2 + 5 = 18`.
+
+### Palindrom
+
+Sebuah kata adalah palindrom jika sama saat dibaca dari depan maupun dari belakang, seperti `katak` atau `kodok`. Cara rekursifnya: bandingkan huruf paling kiri dengan huruf paling kanan. Jika berbeda, jelas bukan palindrom. Jika sama, jawabannya bergantung pada **bagian dalamnya**, yaitu kata yang sama tanpa kedua ujung tadi. Bagian dalam itu lebih pendek dua huruf, jadi masalahnya mengecil.
+
+```txt
+k a t a k       k = k, periksa bagian dalam
+  a t a         a = a, periksa bagian dalam
+    t           tinggal satu huruf: palindrom
+```
+
+Daripada membuat string baru yang lebih pendek di setiap panggilan, cukup geser dua indeks, `kiri` dan `kanan`. String-nya dikirim sebagai `const string&` agar tidak disalin, seperti vector di bagian [Mengirim vector ke fungsi](/docs/cpp/array-dan-vector#mengirim-vector-ke-fungsi).
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+bool palindrom(const string& s, int kiri, int kanan) {
+    if (kiri >= kanan) {
+        return true;                    // kasus dasar: sisa 0 atau 1 huruf
+    }
+    if (s[kiri] != s[kanan]) {
+        return false;                   // kasus dasar: kedua ujung berbeda
+    }
+    return palindrom(s, kiri + 1, kanan - 1);
+}
+
+int main() {
+    string kata;
+    cin >> kata;
+    if (palindrom(kata, 0, (int)kata.length() - 1)) {
+        cout << "Palindrom" << endl;
+    } else {
+        cout << "Bukan palindrom" << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+def palindrom(s, kiri, kanan):
+    if kiri >= kanan:
+        return True                     # kasus dasar: sisa 0 atau 1 huruf
+    if s[kiri] != s[kanan]:
+        return False                    # kasus dasar: kedua ujung berbeda
+    return palindrom(s, kiri + 1, kanan - 1)
+
+
+kata = input()
+if palindrom(kata, 0, len(kata) - 1):
+    print("Palindrom")
+else:
+    print("Bukan palindrom")
+```
+
+```txt title="Contoh jalannya program (tiga kali)"
+katak
+Palindrom
+
+kodok
+Palindrom
+
+makan
+Bukan palindrom
+```
+
+Fungsi ini punya **dua** kasus dasar: satu untuk jawaban "ya" dan satu untuk jawaban "tidak". Itu wajar. Yang penting, setiap kemungkinan berakhir di salah satunya. Syaratnya `kiri >= kanan`, bukan `kiri == kanan`, karena untuk kata dengan jumlah huruf genap seperti `abba`, kedua indeks saling melewati tanpa pernah sama.
+
+### Jumlah isi vector dengan parameter indeks
+
+Untuk vector, "versi yang lebih kecil" biasanya berarti **sisa elemen mulai dari indeks tertentu**. Vector-nya sendiri tidak diubah. Yang bergerak hanya indeksnya:
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int jumlah(const vector<int>& data, int i) {
+    if (i == (int)data.size()) {
+        return 0;                       // kasus dasar: tidak ada elemen tersisa
+    }
+    return data[i] + jumlah(data, i + 1);
+}
+
+int main() {
+    vector<int> data = {4, 8, 15, 16, 23, 42};
+    cout << jumlah(data, 0) << endl;    // 108
+    return 0;
+}
+```
+
+```python tab="Python"
+def jumlah(data, i):
+    if i == len(data):
+        return 0                        # kasus dasar: tidak ada elemen tersisa
+    return data[i] + jumlah(data, i + 1)
+
+
+data = [4, 8, 15, 16, 23, 42]
+print(jumlah(data, 0))                  # 108
+```
+
+`jumlah(data, i)` berarti "jumlah `data[i]` sampai elemen terakhir". Kasus dasarnya adalah saat `i` sudah melewati elemen terakhir: tidak ada yang dijumlah, jadi hasilnya 0.
+
+<Callout type="warning" title="Jangan menyalin data di setiap panggilan">
+  Di C++, tanpa `const` dan `&`, setiap panggilan menyalin seluruh vector. Untuk 1.000 elemen, terjadi 1.000 panggilan yang masing-masing menyalin ratusan elemen. Di Python, list tidak disalin saat dikirim ke fungsi, tetapi potongan seperti `data[1:]` **membuat list baru**. Karena itu `jumlah(data[1:])` jauh lebih boros daripada `jumlah(data, i + 1)`.
+</Callout>
+
+## Fibonacci: rekursi bercabang
+
+Deret Fibonacci dimulai dari 0 dan 1, dan setiap suku berikutnya adalah jumlah dua suku sebelumnya: 0, 1, 1, 2, 3, 5, 8, 13, 21, ... Definisinya sudah berbentuk rekursif:
+
+| Bagian | Aturan |
+| --- | --- |
+| Kasus dasar | `fib(0) = 0` dan `fib(1) = 1` |
+| Kasus rekursif | `fib(n) = fib(n − 1) + fib(n − 2)` untuk n ≥ 2 |
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+long long fib(int n) {
+    if (n <= 1) {
+        return n;                       // kasus dasar: fib(0) = 0, fib(1) = 1
+    }
+    return fib(n - 1) + fib(n - 2);
+}
+
+int main() {
+    for (int i = 0; i <= 10; i++) {
+        cout << fib(i) << " ";
+    }
+    cout << endl;                       // 0 1 1 2 3 5 8 13 21 34 55
+    return 0;
+}
+```
+
+```python tab="Python"
+def fib(n):
+    if n <= 1:
+        return n                        # kasus dasar: fib(0) = 0, fib(1) = 1
+    return fib(n - 1) + fib(n - 2)
+
+
+for i in range(11):
+    print(fib(i), end=" ")
+print()                                 # 0 1 1 2 3 5 8 13 21 34 55
+```
+
+Berbeda dengan faktorial, setiap panggilan `fib` memanggil dirinya **dua kali**. Panggilannya tidak lagi membentuk satu garis lurus, melainkan bercabang seperti pohon. Berikut pohon panggilan `fib(5)`:
+
+```txt
+                          fib(5)
+                 /                    \
+            fib(4)                    fib(3)
+           /      \                  /      \
+      fib(3)      fib(2)        fib(2)      fib(1)
+      /    \      /    \        /    \
+  fib(2) fib(1) fib(1) fib(0) fib(1) fib(0)
+  /    \
+fib(1) fib(0)
+```
+
+Pohon ini dikerjakan dari kiri: seluruh cabang `fib(4)` selesai lebih dulu, baru cabang `fib(3)` di kanan dimulai. Pada setiap saat, call stack hanya berisi satu jalur dari `fib(5)` ke panggilan yang sedang berjalan, jadi kedalamannya paling banyak 5 frame walaupun pohonnya punya 15 panggilan. Cara menelusuri "habiskan satu cabang dulu" ini akan kamu temui lagi di materi [Tree](/docs/cpp/tree) dan [DFS](/docs/cpp/dfs).
+
+### Kenapa lambat?
+
+Perhatikan pohon di atas: `fib(3)` dihitung **dua kali** dan `fib(2)` **tiga kali**, padahal hasilnya selalu sama. Semakin besar `n`, semakin banyak perhitungan ulang:
+
+| `n` | Banyak panggilan `fib` |
+| --- | --- |
+| 5 | 15 |
+| 10 | 177 |
+| 20 | 21.891 |
+| 30 | 2.692.537 |
+| 40 | 331.160.281 |
+
+Setiap kali `n` naik 1, banyak panggilannya kira-kira dikali 1,6. Pertumbuhan seperti ini disebut **eksponensial**, dan jauh lebih buruk daripada O(n²) yang kamu kenal dari <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>. Saat dicoba, Python butuh sekitar 10 detik untuk `fib(40)`, dan C++ (tanpa opsi optimasi) hampir satu menit untuk `fib(50)`. Angka pastinya bergantung komputer, tetapi `fib(60)` sudah di luar jangkauan komputer mana pun dengan cara ini.
+
+Ada dua cara memperbaikinya. Yang pertama, pakai perulangan yang hanya menyimpan dua suku terakhir. Cara ini O(n):
+
+```cpp tab="C++"
+long long a = 0, b = 1;         // fib(0) dan fib(1)
+for (int i = 0; i < n; i++) {
+    long long c = a + b;
+    a = b;
+    b = c;
+}
+cout << a << endl;              // a = fib(n)
+```
+
+```python tab="Python"
+a, b = 0, 1                     # fib(0) dan fib(1)
+for i in range(n):
+    a, b = b, a + b
+print(a)                        # a = fib(n)
+```
+
+Yang kedua tetap memakai rekursi, tetapi **mencatat** setiap hasil yang sudah dihitung agar tidak dihitung ulang.
+
+<DeepDive href="/docs/cpp/pendalaman/memoisasi" kind="konsep" title="Memoisasi">
+  Menyimpan hasil panggilan rekursif di vector atau dict, sehingga Fibonacci turun dari ratusan juta panggilan menjadi kurang dari seratus. Termasuk `functools.cache` di Python dan pengantar pemrograman dinamis.
+</DeepDive>
+
+## Rekursi atau perulangan?
+
+Semua yang bisa ditulis dengan rekursi bisa juga ditulis dengan perulangan, kadang dengan bantuan stack buatan sendiri. Sebaliknya, setiap perulangan juga bisa ditulis sebagai rekursi. Jadi pilihannya soal mana yang lebih jelas dan lebih aman.
+
+| | Perulangan | Rekursi |
+| --- | --- | --- |
+| Cocok untuk | mengulang langkah yang sama secara berurutan: menjumlah, menghitung, menelusuri array | masalah yang bercabang atau bersarang: Menara Hanoi, mencoba semua kemungkinan, tree, graph |
+| Memori | tetap | satu frame untuk setiap panggilan yang belum selesai |
+| Batas kedalaman | tidak ada | C++: call stack berukuran beberapa MB. Python: sekitar 1000 panggilan |
+| Kecepatan | sedikit lebih cepat | ada biaya kecil untuk membuat frame di setiap panggilan |
+
+Untuk faktorial, jumlah digit, dan jumlah isi vector, **perulangan lebih sederhana dan lebih aman**. Contoh-contoh itu dipakai di sini karena mudah ditelusuri, bukan karena rekursi adalah cara terbaik. Di Python, rekursi sedalam lebih dari sekitar 1000 panggilan langsung gagal, sehingga `jumlah(data, 0)` tidak bisa dipakai untuk list berisi 5.000 elemen.
+
+Rekursi baru benar-benar unggul saat masalahnya **bercabang**: satu masalah pecah menjadi beberapa masalah kecil yang masing-masing pecah lagi. Menulisnya dengan perulangan berarti mengelola stack sendiri, sedangkan rekursi membiarkan call stack yang mengurusnya. Dua bagian berikut adalah contohnya, dan materi [Divide and Conquer](/docs/cpp/divide-and-conquer), [Tree](/docs/cpp/tree), serta [DFS](/docs/cpp/dfs) dibangun di atas ide yang sama.
+
+## Menara Hanoi
+
+Ada tiga tiang, A, B, dan C. Di tiang A tersusun `n` cakram dengan ukuran berbeda, yang terbesar di bawah. Cakram diberi nomor 1 (terkecil) sampai `n` (terbesar). Tujuannya memindahkan semua cakram ke tiang C dengan dua aturan:
+
+1. Setiap langkah, pindahkan **satu** cakram, yaitu cakram paling atas di suatu tiang.
+2. Cakram tidak boleh diletakkan di atas cakram yang **lebih kecil**.
+
+```txt
+       |              |              |
+      [1]             |              |
+     [ 2 ]            |              |
+    [  3  ]           |              |
+ ==============================================
+       A              B              C
+```
+
+Mencari urutan langkahnya dengan coba-coba cukup sulit, bahkan untuk 4 atau 5 cakram. Dengan cara berpikir rekursif, jawabannya muncul hampir dengan sendirinya. Fokus pada cakram **terbesar**, cakram `n`:
+
+- Cakram `n` hanya bisa pindah ke C jika tidak ada apa pun di atasnya, dan C kosong. Jadi `n − 1` cakram di atasnya harus pindah dulu ke B.
+- Setelah itu, pindahkan cakram `n` dari A ke C.
+- Terakhir, pindahkan `n − 1` cakram tadi dari B ke C, di atas cakram `n`.
+
+Memindahkan `n − 1` cakram adalah **masalah yang sama dengan ukuran lebih kecil**, hanya peran tiangnya yang bertukar. Selama memindahkan `n − 1` cakram itu, cakram `n` tidak pernah mengganggu, karena ia lebih besar dari semuanya. Kasus dasarnya: memindahkan 0 cakram, yaitu tidak melakukan apa pun.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+void hanoi(int n, char asal, char tujuan, char bantu) {
+    if (n == 0) {
+        return;                                 // kasus dasar: tidak ada cakram
+    }
+    hanoi(n - 1, asal, bantu, tujuan);          // 1. n-1 cakram ke tiang bantu
+    cout << "Pindahkan cakram " << n << " dari " << asal << " ke " << tujuan << endl;
+    hanoi(n - 1, bantu, tujuan, asal);          // 3. n-1 cakram ke tujuan
+}
+
+int main() {
+    int n;
+    cin >> n;
+    hanoi(n, 'A', 'C', 'B');
+    return 0;
+}
+```
+
+```python tab="Python"
+def hanoi(n, asal, tujuan, bantu):
+    if n == 0:
+        return                                  # kasus dasar: tidak ada cakram
+    hanoi(n - 1, asal, bantu, tujuan)           # 1. n-1 cakram ke tiang bantu
+    print(f"Pindahkan cakram {n} dari {asal} ke {tujuan}")
+    hanoi(n - 1, bantu, tujuan, asal)           # 3. n-1 cakram ke tujuan
+
+
+n = int(input())
+hanoi(n, "A", "C", "B")
+```
+
+```txt title="Contoh jalannya program"
+3
+Pindahkan cakram 1 dari A ke C
+Pindahkan cakram 2 dari A ke B
+Pindahkan cakram 1 dari C ke B
+Pindahkan cakram 3 dari A ke C
+Pindahkan cakram 1 dari B ke A
+Pindahkan cakram 2 dari B ke C
+Pindahkan cakram 1 dari A ke C
+```
+
+Tiga baris pertama memindahkan cakram 1 dan 2 ke B. Baris keempat memindahkan cakram terbesar. Tiga baris terakhir memindahkan cakram 1 dan 2 dari B ke C. Kita tidak pernah merencanakan langkah-langkah itu satu per satu. Rekursi yang mengurusnya.
+
+Berapa banyak langkahnya? Memindahkan `n` cakram butuh dua kali langkah untuk `n − 1` cakram, ditambah satu. Hasilnya `2ⁿ − 1` langkah:
+
+| Cakram | Langkah |
+| --- | --- |
+| 3 | 7 |
+| 10 | 1.023 |
+| 20 | 1.048.575 |
+| 64 | 18.446.744.073.709.551.615 |
+
+Ada legenda tentang pendeta yang memindahkan 64 cakram emas, dan dunia akan berakhir saat mereka selesai. Dengan kecepatan satu langkah per detik, mereka butuh sekitar 585 miliar tahun. Tidak ada cara yang lebih cepat: `2ⁿ − 1` adalah jumlah langkah paling sedikit yang mungkin.
+
+## Mencoba semua kemungkinan
+
+Sebagian masalah hanya bisa diselesaikan dengan mencoba **semua** kemungkinan, misalnya semua kombinasi PIN atau semua cara memilih barang. Jika banyak pilihannya tetap, misalnya 3 digit, kamu bisa memakai 3 [perulangan bersarang](/docs/cpp/perulangan-bersarang). Tetapi jika banyaknya baru diketahui dari input, kamu tidak bisa menulis `n` perulangan bersarang. Rekursi menyelesaikannya: **setiap tingkat rekursi mengambil satu keputusan**, lalu menyerahkan sisa keputusannya ke tingkat berikutnya.
+
+### Semua string biner
+
+Untuk membuat semua string biner sepanjang `n`, putuskan karakter satu per satu. Di setiap posisi ada dua pilihan, `0` atau `1`. Kasus dasarnya: string sudah sepanjang `n`, jadi cetak.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+void biner(int n, string sekarang) {
+    if ((int)sekarang.length() == n) {
+        cout << sekarang << endl;       // kasus dasar: string sudah lengkap
+        return;
+    }
+    biner(n, sekarang + "0");           // pilihan 1: tambahkan 0
+    biner(n, sekarang + "1");           // pilihan 2: tambahkan 1
+}
+
+int main() {
+    int n;
+    cin >> n;
+    biner(n, "");
+    return 0;
+}
+```
+
+```python tab="Python"
+def biner(n, sekarang):
+    if len(sekarang) == n:
+        print(sekarang)                 # kasus dasar: string sudah lengkap
+        return
+    biner(n, sekarang + "0")            # pilihan 1: tambahkan 0
+    biner(n, sekarang + "1")            # pilihan 2: tambahkan 1
+
+
+n = int(input())
+biner(n, "")
+```
+
+Untuk `n = 3`, program mencetak `000`, `001`, `010`, `011`, `100`, `101`, `110`, `111`, masing-masing di barisnya sendiri. Pohon keputusannya:
+
+```txt
+                       (kosong)
+              /                     \
+            "0"                     "1"
+          /     \                 /     \
+       "00"     "01"           "10"     "11"
+       /  \     /  \           /  \     /  \
+     000  001 010  011       100  101 110  111
+```
+
+Setiap daun adalah satu kemungkinan, dan rekursi mengunjungi semuanya dari kiri ke kanan.
+
+### Semua himpunan bagian: pilih, coba, batalkan
+
+Dari `{1, 2, 3}`, ada 8 himpunan bagian (_subset_): `{1, 2, 3}`, `{1, 2}`, `{1, 3}`, `{1}`, `{2, 3}`, `{2}`, `{3}`, dan himpunan kosong. Polanya sama: untuk setiap elemen, putuskan **ambil** atau **lewati**.
+
+Kali ini elemen yang dipilih disimpan di satu vector `dipilih` yang dipakai bersama oleh semua panggilan (dikirim dengan `&`). Karena dipakai bersama, setiap pilihan harus **dibatalkan** setelah selesai dicoba, agar cabang berikutnya mulai dari keadaan yang bersih:
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+void cetak(const vector<int>& dipilih) {
+    cout << "{";
+    for (int j = 0; j < (int)dipilih.size(); j++) {
+        if (j > 0) {
+            cout << ", ";
+        }
+        cout << dipilih[j];
+    }
+    cout << "}" << endl;
+}
+
+void subset(const vector<int>& data, int i, vector<int>& dipilih) {
+    if (i == (int)data.size()) {
+        cetak(dipilih);                 // kasus dasar: semua elemen sudah diputuskan
+        return;
+    }
+    dipilih.push_back(data[i]);         // pilih data[i] ...
+    subset(data, i + 1, dipilih);       // ... coba semua kelanjutannya ...
+    dipilih.pop_back();                 // ... lalu batalkan pilihan itu
+
+    subset(data, i + 1, dipilih);       // lewati data[i]
+}
+
+int main() {
+    vector<int> data = {1, 2, 3};
+    vector<int> dipilih;
+    subset(data, 0, dipilih);
+    return 0;
+}
+```
+
+```python tab="Python"
+def cetak(dipilih):
+    teks = ""
+    for j in range(len(dipilih)):
+        if j > 0:
+            teks += ", "
+        teks += str(dipilih[j])
+    print("{" + teks + "}")
+
+
+def subset(data, i, dipilih):
+    if i == len(data):
+        cetak(dipilih)                  # kasus dasar: semua elemen sudah diputuskan
+        return
+    dipilih.append(data[i])             # pilih data[i] ...
+    subset(data, i + 1, dipilih)        # ... coba semua kelanjutannya ...
+    dipilih.pop()                       # ... lalu batalkan pilihan itu
+
+    subset(data, i + 1, dipilih)        # lewati data[i]
+
+
+subset([1, 2, 3], 0, [])
+```
+
+```txt title="Output"
+{1, 2, 3}
+{1, 2}
+{1, 3}
+{1}
+{2, 3}
+{2}
+{3}
+{}
+```
+
+Pola **pilih, coba, batalkan** ini disebut **backtracking** (runut-balik): maju dengan sebuah pilihan, dan saat semua kelanjutannya sudah dicoba, mundur selangkah lalu coba pilihan lain. Tanpa `pop_back()`, angka dari cabang "ambil" akan terbawa ke cabang "lewati", dan hasilnya kacau. Fungsi `biner` tidak butuh pembatalan karena setiap panggilan menerima **salinan** string-nya sendiri. Harganya, string disalin di setiap panggilan.
+
+Banyaknya kemungkinan berlipat dua untuk setiap elemen: `n` elemen menghasilkan `2ⁿ` subset. Untuk `n = 20` ada sekitar sejuta, dan untuk `n = 30` sekitar satu miliar. Karena itu, mencoba semua kemungkinan hanya cocok untuk input kecil.
+
+## Kesalahan yang sering terjadi
+
+### Kasus dasar tidak pernah tercapai
+
+Jika kasus dasarnya lupa ditulis, fungsi memanggil dirinya terus-menerus. Setiap panggilan menambah satu frame, sampai call stack penuh:
+
+```cpp tab="C++"
+long long faktorial(int n) {
+    return n * faktorial(n - 1);    // ✗ tidak ada kasus dasar
+}
+```
+
+```python tab="Python"
+def faktorial(n):
+    return n * faktorial(n - 1)     # ✗ tidak ada kasus dasar
+```
+
+g++ 12 ke atas sudah memperingatkan saat kompilasi dengan `-Wall`:
+
+```txt title="Peringatan g++"
+warning: infinite recursion detected [-Winfinite-recursion]
+```
+
+Jika peringatan itu diabaikan, program C++ berhenti dengan `Segmentation fault (core dumped)` di Linux, tanpa nomor baris. Python berhenti dengan pesan yang jauh lebih jelas:
+
+```txt title="Error Python"
+  File "faktorial.py", line 2, in faktorial
+    return n * faktorial(n - 1)     # ✗ tidak ada kasus dasar
+               ^^^^^^^^^^^^^^^^
+  [Previous line repeated 996 more times]
+RecursionError: maximum recursion depth exceeded
+```
+
+Kasus dasar yang ada pun bisa **terlewati**. `faktorial(-1)` dengan kasus dasar `n == 0` akan turun ke −2, −3, dan seterusnya tanpa pernah menyentuh 0. Hal yang sama terjadi jika argumennya tidak mengecil, misalnya salah ketik `faktorial(n)` alih-alih `faktorial(n - 1)`. Kembali ke pertanyaan ketiga: pastikan setiap panggilan bergerak menuju kasus dasar untuk **semua** input yang diizinkan. Jika input bisa negatif, tolak di `main` atau perluas kasus dasarnya.
+
+### Lupa `return` pada panggilan rekursif
+
+```cpp tab="C++"
+bool palindrom(const string& s, int kiri, int kanan) {
+    if (kiri >= kanan) {
+        return true;                    // kasus dasar
+    }
+    if (s[kiri] != s[kanan]) {
+        return false;                   // kasus dasar
+    }
+    palindrom(s, kiri + 1, kanan - 1);  // ✗ hasilnya dibuang
+}
+```
+
+```python tab="Python"
+def palindrom(s, kiri, kanan):
+    if kiri >= kanan:
+        return True                     # kasus dasar
+    if s[kiri] != s[kanan]:
+        return False                    # kasus dasar
+    palindrom(s, kiri + 1, kanan - 1)   # ✗ hasilnya dibuang
+```
+
+Panggilan rekursifnya berjalan dan menghasilkan jawaban yang benar, tetapi jawaban itu tidak diteruskan ke pemanggil. Python lalu mengembalikan `None`, yang dianggap salah oleh `if`, sehingga `katak` dilaporkan "Bukan palindrom". C++ memberi peringatan `control reaches end of non-void function`, dan perilakunya saat berjalan tidak bisa ditebak ([_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior)). Saat dicoba dengan g++ 13, program langsung crash untuk input `katak`. Ingat: hasil panggilan rekursif harus **dikembalikan**, atau dipakai untuk menghitung nilai yang dikembalikan.
+
+### Hasil terlalu besar untuk `int`
+
+Kedalaman rekursi faktorial kecil, tetapi nilainya tumbuh sangat cepat. Dengan tipe `int`, hasilnya sudah salah mulai `13!`:
+
+| `n` | `n!` sebenarnya | Hasil dengan `int` |
+| --- | --- | --- |
+| 12 | 479.001.600 | 479001600 |
+| 13 | 6.227.020.800 | 1932053504 |
+| 14 | 87.178.291.200 | 1278945280 |
+
+Ini adalah [overflow](/docs/cpp/variabel-dan-tipe-data#batas-tipe-data-overflow). Pakai `long long` seperti di awal materi ini, yang cukup sampai `20!`. `21!` sudah melewati batas `long long` juga. Python tidak punya masalah ini karena bilangan bulatnya tidak berbatas.
+
+## Rangkuman
+
+- **Rekursi** adalah fungsi yang memanggil dirinya sendiri untuk menyelesaikan versi yang lebih kecil dari masalah yang sama.
+- Fungsi rekursif punya **kasus dasar** (dijawab langsung) dan **kasus rekursif** (memanggil diri dengan masalah lebih kecil). Tulis kasus dasar lebih dulu, dengan komentar `// kasus dasar`.
+- Sebelum menulis, jawab tiga pertanyaan: apa kasus terkecilnya, bagaimana memakai jawaban yang lebih kecil, dan apakah setiap panggilan pasti mendekati kasus dasar.
+- Setiap panggilan punya frame sendiri di **call stack**. Kode sebelum panggilan rekursif berjalan saat turun, kode sesudahnya berjalan saat naik dalam urutan terbalik.
+- Untuk vector dan string, kirim data dengan `const&` dan gerakkan **indeks** sebagai "versi yang lebih kecil".
+- Rekursi bercabang seperti Fibonacci bisa menjadi eksponensial karena menghitung hal yang sama berulang kali. Perbaiki dengan perulangan atau memoisasi.
+- Rekursi unggul untuk masalah bercabang: Menara Hanoi (`2ⁿ − 1` langkah) dan mencoba semua kemungkinan dengan pola **pilih, coba, batalkan** (backtracking).
+- Kasus dasar yang hilang atau terlewati membuat stack penuh: _segmentation fault_ di C++, `RecursionError` di Python. Jangan lupa `return` pada panggilan rekursif, dan pakai `long long` untuk hasil yang besar.
+- Untuk pengulangan yang lurus, perulangan biasanya lebih sederhana dan aman, apalagi di Python yang membatasi kedalaman sekitar 1000.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Pada soal menulis program, bagian utama perhitungannya harus memakai rekursi, walaupun sebagian soal bisa juga diselesaikan dengan perulangan. Batas input sengaja dibuat kecil agar kedalaman rekursi tetap jauh di bawah batas Python.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Banyak digit">
+  Baca sebuah bilangan bulat `n` (0 ≤ n ≤ 1.000.000.000), lalu tampilkan banyak digitnya. Tulis fungsi rekursif `banyakDigit(n)` tanpa perulangan.
+
+  | Input | Output |
+  | --- | --- |
+  | `2026` | `4` |
+  | `7` | `1` |
+  | `0` | `1` |
+
+  <Pembahasan>
+    Bilangan yang kurang dari 10 punya satu digit. Itulah kasus dasarnya. Bilangan lain punya satu digit lebih banyak daripada `n / 10`, yaitu bilangan yang sama tanpa digit terakhirnya. Kasus dasar `n < 10` sekaligus menangani input `0` dengan benar. Jika kasus dasarnya ditulis "`n == 0` hasilnya 0", input `0` akan menghasilkan 0, padahal angka 0 ditulis dengan satu digit.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int banyakDigit(int n) {
+        if (n < 10) {
+            return 1;                   // kasus dasar: satu digit
+        }
+        return 1 + banyakDigit(n / 10);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        cout << banyakDigit(n) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def banyak_digit(n):
+        if n < 10:
+            return 1                    # kasus dasar: satu digit
+        return 1 + banyak_digit(n // 10)
+
+
+    n = int(input())
+    print(banyak_digit(n))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output: turun lalu naik">
+  Tanpa menjalankannya, tebak output program berikut. Kedua versi menghasilkan output yang sama.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  void cetak(int n) {
+      if (n == 0) {
+          cout << "* ";                 // kasus dasar
+          return;
+      }
+      cout << n << " ";
+      cetak(n - 1);
+      cout << n << " ";
+  }
+
+  int main() {
+      cetak(3);
+      cout << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def cetak(n):
+      if n == 0:
+          print("*", end=" ")           # kasus dasar
+          return
+      print(n, end=" ")
+      cetak(n - 1)
+      print(n, end=" ")
+
+
+  cetak(3)
+  print()
+  ```
+
+  <Pembahasan>
+    Output-nya `3 2 1 * 1 2 3`. Setiap panggilan mencetak `n` dua kali: sekali sebelum memanggil (saat turun) dan sekali sesudah panggilan itu selesai (saat naik).
+
+    | Kejadian | Tercetak |
+    | --- | --- |
+    | `cetak(3)` mencetak sebelum memanggil | `3` |
+    | `cetak(2)` mencetak sebelum memanggil | `2` |
+    | `cetak(1)` mencetak sebelum memanggil | `1` |
+    | `cetak(0)`: kasus dasar | `*` |
+    | `cetak(1)` selesai menunggu, mencetak lagi | `1` |
+    | `cetak(2)` selesai menunggu, mencetak lagi | `2` |
+    | `cetak(3)` selesai menunggu, mencetak lagi | `3` |
+
+    Jebakannya adalah mengira program berhenti setelah `*`. Kasus dasar hanya mengakhiri **panggilan `cetak(0)`**. Panggilan-panggilan lain masih menunggu di call stack dan melanjutkan baris sesudah pemanggilannya.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Perbaiki lompatan dua-dua">
+  Program berikut seharusnya membaca `n` (1 ≤ n ≤ 100), lalu mencetak `n`, `n − 2`, `n − 4`, dan seterusnya selama bilangannya masih positif, satu per baris. Untuk input `8` hasilnya benar. Untuk input `7`, program mencetak banyak sekali bilangan negatif, lalu berhenti dengan error. Temukan kesalahannya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  void lompat(int n) {
+      if (n == 0) {
+          return;                       // kasus dasar
+      }
+      cout << n << endl;
+      lompat(n - 2);
+  }
+
+  int main() {
+      int n;
+      cin >> n;
+      lompat(n);
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def lompat(n):
+      if n == 0:
+          return                        # kasus dasar
+      print(n)
+      lompat(n - 2)
+
+
+  n = int(input())
+  lompat(n)
+  ```
+
+  Setelah diperbaiki:
+
+  ```txt title="Contoh input"
+  7
+  ```
+
+  ```txt title="Contoh output"
+  7
+  5
+  3
+  1
+  ```
+
+  ```txt title="Contoh input 2"
+  8
+  ```
+
+  ```txt title="Contoh output 2"
+  8
+  6
+  4
+  2
+  ```
+
+  <Pembahasan>
+    Untuk `n` ganjil, nilainya turun 7, 5, 3, 1, −1, −3, ... dan tidak pernah tepat 0. Argumennya memang mengecil, tetapi **melompati** kasus dasar. Rekursinya tidak berhenti sampai call stack penuh: C++ berhenti dengan _segmentation fault_, Python dengan `RecursionError`. Perbaikannya, ubah kasus dasar menjadi rentang, `n <= 0`. Kebiasaan yang baik: jika argumen bisa berkurang lebih dari 1, tulis kasus dasar dengan `<=`, bukan `==`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    void lompat(int n) {
+        if (n <= 0) {
+            return;                     // kasus dasar: sudah tidak positif
+        }
+        cout << n << endl;
+        lompat(n - 2);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        lompat(n);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def lompat(n):
+        if n <= 0:
+            return                      # kasus dasar: sudah tidak positif
+        print(n)
+        lompat(n - 2)
+
+
+    n = int(input())
+    lompat(n)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Nilai terbesar di vector">
+  Baca `n` (1 ≤ n ≤ 100), lalu `n` bilangan bulat. Tampilkan nilai terbesarnya. Tulis fungsi rekursif `terbesar(data, i)` yang mengembalikan nilai terbesar di antara `data[i]` sampai elemen terakhir. Perulangan hanya boleh dipakai untuk membaca input.
+
+  ```txt title="Contoh input"
+  5
+  4 17 -3 17 9
+  ```
+
+  ```txt title="Contoh output"
+  17
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  -8 -2 -5
+  ```
+
+  ```txt title="Contoh output 2"
+  -2
+  ```
+
+  <Petunjuk>
+    Kasus dasar: `i` adalah indeks terakhir, jadi jawabannya `data[i]` itu sendiri. Kasus rekursif: bandingkan `data[i]` dengan nilai terbesar dari sisanya, yaitu `terbesar(data, i + 1)`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kasus dasarnya adalah **satu** elemen tersisa, bukan nol elemen, karena "nilai terbesar dari nol elemen" tidak punya jawaban yang masuk akal. Jangan memakai 0 sebagai nilai awal: contoh 2 menunjukkan semua bilangan bisa negatif.
+
+    Simpan hasil panggilan rekursif di variabel `sisa`. Jika ditulis `if (data[i] > terbesar(data, i + 1)) return data[i]; else return terbesar(data, i + 1);`, setiap tingkat memanggil dirinya **dua kali** dengan argumen yang sama. Seperti Fibonacci, banyak panggilannya menjadi eksponensial. Untuk data yang terurut naik, panggilan kedua selalu terjadi: 20 elemen sudah butuh lebih dari sejuta panggilan, dan 100 elemen tidak akan pernah selesai.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int terbesar(const vector<int>& data, int i) {
+        if (i == (int)data.size() - 1) {
+            return data[i];             // kasus dasar: tinggal satu elemen
+        }
+        int sisa = terbesar(data, i + 1);   // terbesar dari data[i + 1] dst.
+        if (data[i] > sisa) {
+            return data[i];
+        }
+        return sisa;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+        cout << terbesar(data, 0) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def terbesar(data, i):
+        if i == len(data) - 1:
+            return data[i]              # kasus dasar: tinggal satu elemen
+        sisa = terbesar(data, i + 1)    # terbesar dari data[i + 1] dst.
+        if data[i] > sisa:
+            return data[i]
+        return sisa
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+    print(terbesar(data, 0))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Tebak output: dua panggilan">
+  Perhatikan program berikut. Kedua versi menghasilkan output yang sama.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  void g(int n) {
+      if (n == 0) {
+          return;                       // kasus dasar
+      }
+      g(n - 1);
+      cout << n << " ";
+      g(n - 1);
+  }
+
+  int main() {
+      g(3);
+      cout << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def g(n):
+      if n == 0:
+          return                        # kasus dasar
+      g(n - 1)
+      print(n, end=" ")
+      g(n - 1)
+
+
+  g(3)
+  print()
+  ```
+
+  1. Tanpa menjalankannya, tebak output program di atas.
+  2. Jika `g(3)` diganti `g(10)`, berapa banyak bilangan yang tercetak?
+
+  <Petunjuk>
+    Mulai dari yang kecil. `g(1)` mencetak apa? Lalu `g(2)` adalah "output `g(1)`, lalu 2, lalu output `g(1)` lagi".
+  </Petunjuk>
+
+  <Pembahasan>
+    1. Output-nya `1 2 1 3 1 2 1`. `g(1)` mencetak `1`. `g(2)` mencetak output `g(1)`, lalu `2`, lalu output `g(1)` lagi: `1 2 1`. `g(3)` mencetak `1 2 1`, lalu `3`, lalu `1 2 1` lagi.
+    2. Jika `c(n)` adalah banyak bilangan yang dicetak `g(n)`, maka `c(0) = 0` dan `c(n) = 2 × c(n − 1) + 1`. Hasilnya 1, 3, 7, 15, ..., yaitu `2ⁿ − 1`. Jadi `g(10)` mencetak 2¹⁰ − 1 = **1023** bilangan.
+
+    Bentuk fungsi ini sama persis dengan `hanoi`: dua panggilan untuk `n − 1` dengan satu aksi di tengahnya. Bahkan, deret `1 2 1 3 1 2 1` adalah nomor cakram yang dipindahkan pada setiap langkah Menara Hanoi 3 cakram. Bandingkan dengan output `hanoi` di materi ini.
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Ubah ke basis lain">
+  Baca dua bilangan bulat `n` dan `b` (0 ≤ n ≤ 1.000.000.000, 2 ≤ b ≤ 16). Tampilkan `n` dalam basis `b`. Untuk basis di atas 10, digit 10 sampai 15 ditulis `A` sampai `F`. Kerjakan dengan fungsi rekursif yang mengembalikan string.
+
+  | Input | Output |
+  | --- | --- |
+  | `13 2` | `1101` |
+  | `255 16` | `FF` |
+  | `0 7` | `0` |
+
+  <Petunjuk>
+    Digit **terakhir** `n` dalam basis `b` adalah `n % b`. Digit-digit sebelumnya adalah `n / b` yang ditulis dalam basis `b`. Jadi hasilnya adalah "`n / b` dalam basis `b`" disambung dengan digit terakhir. Kasus dasar: `n < b`, cukup satu digit. Simpan semua digit di string `"0123456789ABCDEF"` agar mudah diambil berdasarkan nilainya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Di materi [Stack](/docs/cpp/stack), sisa bagi dikumpulkan di stack karena keluar dari kanan ke kiri. Di sini call stack yang membalik urutannya: digit terakhir baru disambung **setelah** panggilan rekursif untuk digit-digit di depannya selesai. Kasus dasar `n < b` juga menangani `n = 0` tanpa kode khusus. Kedalamannya paling banyak sekitar 30 panggilan (untuk basis 2), jauh dari batas Python.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    const string DIGIT = "0123456789ABCDEF";
+
+    string ubahBasis(int n, int b) {
+        if (n < b) {
+            return DIGIT.substr(n, 1);  // kasus dasar: cukup satu digit
+        }
+        return ubahBasis(n / b, b) + DIGIT[n % b];
+    }
+
+    int main() {
+        int n, b;
+        cin >> n >> b;
+        cout << ubahBasis(n, b) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    DIGIT = "0123456789ABCDEF"
+
+
+    def ubah_basis(n, b):
+        if n < b:
+            return DIGIT[n]             # kasus dasar: cukup satu digit
+        return ubah_basis(n // b, b) + DIGIT[n % b]
+
+
+    n, b = map(int, input().split())
+    print(ubah_basis(n, b))
+    ```
+
+    `DIGIT.substr(n, 1)` mengambil satu karakter sebagai `string`, karena fungsi ini harus mengembalikan `string`, bukan `char`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Linked list dicetak mundur">
+  Baca `n` (1 ≤ n ≤ 100), lalu `n` bilangan bulat. Susun bilangan-bilangan itu menjadi [linked list](/docs/cpp/linked-list) sesuai urutan input. Lalu tampilkan isinya dari node **terakhir** ke node **pertama**, dipisah satu spasi, memakai fungsi rekursif `cetakMundur`. Pembalikan urutannya harus dikerjakan oleh rekursi: jangan mengubah sambungan antar-node, dan jangan menyalin isi list ke stack, vector, atau list lain. Solusi C++ harus membebaskan semua node sebelum program selesai.
+
+  ```txt title="Contoh input"
+  5
+  3 1 4 1 5
+  ```
+
+  ```txt title="Contoh output"
+  5 1 4 1 3
+  ```
+
+  ```txt title="Contoh input 2"
+  1
+  42
+  ```
+
+  ```txt title="Contoh output 2"
+  42
+  ```
+
+  <Petunjuk>
+    Mencetak mundur list yang dimulai dari node `p` berarti: cetak mundur dulu list yang dimulai dari `p->next`, **baru** cetak `p->data`. Kasus dasar: `p == nullptr`, tidak ada yang dicetak. Untuk spasi, cetak satu spasi sebelum `p->data` hanya jika `p->next` bukan `nullptr`, karena itu berarti sudah ada angka yang tercetak lebih dulu.
+  </Petunjuk>
+
+  <Pembahasan>
+    Node `p` dicetak **sesudah** panggilan rekursif, sama seperti `hitungNaik`, sehingga urutannya terbalik. Call stack di sini menggantikan stack tambahan yang dilarang soal.
+
+    Menghapus list juga bisa rekursif: hapus dulu sisa list, baru node ini. Urutan ini aman karena `p->next` dipakai sebelum `p` di-`delete`. Pola "kerjakan anak-anaknya dulu, baru diri sendiri" ini akan dipakai lagi untuk menghapus tree di materi [Tree](/docs/cpp/tree). Kedalaman rekursinya sama dengan panjang list. Untuk list berisi jutaan node, pakai perulangan, seperti `hapusSemua` di materi Linked List.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    void cetakMundur(Node* p) {
+        if (p == nullptr) {
+            return;                     // kasus dasar: list kosong
+        }
+        cetakMundur(p->next);           // cetak sisa list (mundur) lebih dulu
+        if (p->next != nullptr) {
+            cout << " ";                // sudah ada angka yang tercetak
+        }
+        cout << p->data;
+    }
+
+    void hapusSemua(Node* p) {
+        if (p == nullptr) {
+            return;                     // kasus dasar: list kosong
+        }
+        hapusSemua(p->next);            // hapus sisa list dulu
+        delete p;                       // baru node ini
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+
+        cetakMundur(head);
+        cout << endl;
+        hapusSemua(head);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def cetak_mundur(p):
+        if p is None:
+            return                      # kasus dasar: list kosong
+        cetak_mundur(p.next)            # cetak sisa list (mundur) lebih dulu
+        if p.next is not None:
+            print(" ", end="")          # sudah ada angka yang tercetak
+        print(p.data, end="")
+
+
+    n = int(input())
+    angka = list(map(int, input().split()))
+    head = None
+    tail = None
+    for x in angka:
+        baru = Node(x)
+        if head is None:
+            head = baru
+        else:
+            tail.next = baru
+        tail = baru
+
+    cetak_mundur(head)
+    print()
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Subset berjumlah K">
+  Baris pertama berisi `n` dan `K` (1 ≤ n ≤ 15, 1 ≤ K ≤ 1500). Baris kedua berisi `n` bilangan bulat positif, masing-masing paling besar 100. Hitung banyak cara memilih sebagian bilangan (setiap bilangan paling banyak dipilih sekali) yang jumlahnya **tepat** `K`. Bilangan di posisi berbeda dianggap berbeda walaupun nilainya sama.
+
+  ```txt title="Contoh input"
+  4 5
+  1 2 3 4
+  ```
+
+  ```txt title="Contoh output"
+  2
+  ```
+
+  ```txt title="Contoh input 2"
+  3 4
+  2 2 2
+  ```
+
+  ```txt title="Contoh output 2"
+  3
+  ```
+
+  Pada contoh 1, pilihannya `1 + 4` dan `2 + 3`. Pada contoh 2, ada tiga cara memilih dua dari tiga angka 2.
+
+  <Petunjuk>
+    Untuk setiap bilangan `a[i]`, ada dua pilihan: **ambil** (sisa target berkurang `a[i]`) atau **lewati**. Tulis `hitung(a, i, sisa)`: banyak cara memakai `a[i]` sampai elemen terakhir untuk mencapai tepat `sisa`. Jawabannya adalah jumlah dari kedua pilihan. Pikirkan dua kasus dasar: semua elemen sudah diputuskan, dan `sisa` sudah negatif.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ini adalah pola subset dari materi, tetapi alih-alih mencetak setiap subset, fungsi mengembalikan **banyaknya**: `hitung(ambil) + hitung(lewati)`. Jika semua elemen sudah diputuskan, subset itu dihitung hanya jika `sisa` tepat 0. Karena semua bilangan positif, `sisa` yang sudah negatif tidak mungkin kembali ke 0, sehingga cabang itu bisa langsung dihentikan. Penghentian lebih awal ini disebut **pemangkasan** (_pruning_). Tanpa pemangkasan pun jawabannya tetap benar, hanya lebih lambat.
+
+    Dengan `n = 15` ada `2¹⁵ = 32.768` kemungkinan, masih sangat kecil. Karena `K ≥ 1`, subset kosong tidak pernah ikut terhitung. Pada contoh 2, angka 2 di posisi 0, 1, dan 2 dianggap berbeda, sehingga pasangan (0, 1), (0, 2), dan (1, 2) adalah tiga cara yang berbeda.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int hitung(const vector<int>& a, int i, int sisa) {
+        if (sisa < 0) {
+            return 0;                   // kasus dasar: sudah kelebihan
+        }
+        if (i == (int)a.size()) {
+            if (sisa == 0) {
+                return 1;               // kasus dasar: jumlahnya pas
+            }
+            return 0;                   // kasus dasar: masih kurang
+        }
+        int ambil = hitung(a, i + 1, sisa - a[i]);
+        int lewati = hitung(a, i + 1, sisa);
+        return ambil + lewati;
+    }
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        cout << hitung(a, 0, k) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def hitung(a, i, sisa):
+        if sisa < 0:
+            return 0                    # kasus dasar: sudah kelebihan
+        if i == len(a):
+            if sisa == 0:
+                return 1                # kasus dasar: jumlahnya pas
+            return 0                    # kasus dasar: masih kurang
+        ambil = hitung(a, i + 1, sisa - a[i])
+        lewati = hitung(a, i + 1, sisa)
+        return ambil + lewati
+
+
+    n, k = map(int, input().split())
+    a = list(map(int, input().split()))
+    print(hitung(a, 0, k))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Semua susunan angka">
+  Baca `n` (1 ≤ n ≤ 6). Tampilkan semua susunan berbeda dari angka 1 sampai `n` (setiap angka muncul tepat sekali), satu susunan per baris dengan angka dipisah spasi. Urutkan seperti kamus: bandingkan angka pertama, jika sama bandingkan angka kedua, dan seterusnya. Di baris terakhir, tampilkan `Total: X`.
+
+  ```txt title="Contoh input"
+  3
+  ```
+
+  ```txt title="Contoh output"
+  1 2 3
+  1 3 2
+  2 1 3
+  2 3 1
+  3 1 2
+  3 2 1
+  Total: 6
+  ```
+
+  ```txt title="Contoh input 2"
+  1
+  ```
+
+  ```txt title="Contoh output 2"
+  1
+  Total: 1
+  ```
+
+  <Petunjuk>
+    Isi posisi satu per satu. Di setiap posisi, coba semua angka 1 sampai `n` yang **belum dipakai**, dari yang terkecil. Catat angka yang sedang dipakai di `vector<bool> dipakai(n + 1)`. Setelah sebuah pilihan selesai dicoba, batalkan: buang dari susunan **dan** tandai belum dipakai. Agar bisa mencetak total, buat fungsinya mengembalikan banyak susunan yang dicetak.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ini pola **pilih, coba, batalkan** dengan lebih dari dua pilihan di setiap tingkat. Urutan kamus muncul dengan sendirinya karena di setiap posisi angka dicoba dari yang terkecil. Banyak susunannya `n!`, jadi untuk `n = 6` ada 720 baris, sedangkan kedalaman rekursinya hanya `n`.
+
+    Kesalahan yang paling sering adalah lupa `dipakai[x] = false` saat membatalkan. Akibatnya, setelah susunan pertama selesai, semua angka tetap tercatat "dipakai", sehingga hanya `1 2 3` yang tercetak.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int susun(int n, vector<int>& susunan, vector<bool>& dipakai) {
+        if ((int)susunan.size() == n) {
+            // kasus dasar: susunan lengkap, cetak lalu hitung satu
+            for (int i = 0; i < n; i++) {
+                if (i > 0) {
+                    cout << " ";
+                }
+                cout << susunan[i];
+            }
+            cout << endl;
+            return 1;
+        }
+        int total = 0;
+        for (int x = 1; x <= n; x++) {
+            if (!dipakai[x]) {
+                dipakai[x] = true;          // pilih x
+                susunan.push_back(x);
+                total += susun(n, susunan, dipakai);    // coba kelanjutannya
+                susunan.pop_back();         // batalkan
+                dipakai[x] = false;
+            }
+        }
+        return total;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> susunan;
+        vector<bool> dipakai(n + 1, false);
+        int total = susun(n, susunan, dipakai);
+        cout << "Total: " << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def susun(n, susunan, dipakai):
+        if len(susunan) == n:
+            # kasus dasar: susunan lengkap, cetak lalu hitung satu
+            teks = str(susunan[0])
+            for i in range(1, n):
+                teks += " " + str(susunan[i])
+            print(teks)
+            return 1
+        total = 0
+        for x in range(1, n + 1):
+            if not dipakai[x]:
+                dipakai[x] = True           # pilih x
+                susunan.append(x)
+                total += susun(n, susunan, dipakai)     # coba kelanjutannya
+                susunan.pop()               # batalkan
+                dipakai[x] = False
+        return total
+
+
+    n = int(input())
+    total = susun(n, [], [False] * (n + 1))
+    print("Total:", total)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Semua kurung seimbang">
+  Baca `n` (1 ≤ n ≤ 6). Tampilkan semua string yang terdiri dari `n` kurung buka `(` dan `n` kurung tutup `)` yang **seimbang**, seperti di materi [Stack](/docs/cpp/stack). Satu string per baris, urut seperti kamus dengan `(` dianggap lebih kecil daripada `)`.
+
+  ```txt title="Contoh input"
+  3
+  ```
+
+  ```txt title="Contoh output"
+  ((()))
+  (()())
+  (())()
+  ()(())
+  ()()()
+  ```
+
+  ```txt title="Contoh input 2"
+  1
+  ```
+
+  ```txt title="Contoh output 2"
+  ()
+  ```
+
+  <Petunjuk>
+    Jangan membuat semua `2²ⁿ` string lalu menyaringnya. Bangun string dari kiri sambil mencatat banyak `(` dan `)` yang sudah dipakai. Kurung buka boleh ditambahkan selama banyaknya masih kurang dari `n`. Kurung tutup boleh ditambahkan hanya jika masih ada kurung buka yang belum ditutup. Coba `(` lebih dulu agar hasilnya urut kamus.
+  </Petunjuk>
+
+  <Pembahasan>
+    Seperti `biner`, setiap tingkat memutuskan satu karakter. Bedanya, pilihan yang pasti gagal **tidak pernah dicoba**. Aturan "kurung tutup hanya jika `tutup < buka`" menjamin bahwa di setiap awalan string, kurung tutup tidak pernah lebih banyak daripada kurung buka. Jadi pemeriksaan dengan stack tidak akan pernah menemukan `)` tanpa pasangan. Aturan "kurung buka hanya jika `buka < n`" menjamin jumlah keduanya pas di akhir.
+
+    Kasus dasarnya `tutup == n`. Pada saat itu `buka` pasti juga `n`, karena `tutup` tidak pernah melebihi `buka`. Banyak hasilnya untuk `n` = 1 sampai 6 adalah 1, 2, 5, 14, 42, dan 132. Untuk `n = 6`, cara menyaring semua kemungkinan harus memeriksa 4.096 string, sedangkan cara ini langsung menghasilkan 132 string yang benar.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    void bangun(int n, int buka, int tutup, string sekarang) {
+        if (tutup == n) {
+            cout << sekarang << endl;   // kasus dasar: n pasang lengkap
+            return;
+        }
+        if (buka < n) {
+            bangun(n, buka + 1, tutup, sekarang + "(");
+        }
+        if (tutup < buka) {
+            bangun(n, buka, tutup + 1, sekarang + ")");
+        }
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        bangun(n, 0, 0, "");
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def bangun(n, buka, tutup, sekarang):
+        if tutup == n:
+            print(sekarang)             # kasus dasar: n pasang lengkap
+            return
+        if buka < n:
+            bangun(n, buka + 1, tutup, sekarang + "(")
+        if tutup < buka:
+            bangun(n, buka, tutup + 1, sekarang + ")")
+
+
+    n = int(input())
+    bangun(n, 0, 0, "")
+    ```
+  </Pembahasan>
+</Soal>

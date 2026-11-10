@@ -1,0 +1,1655 @@
+---
+title: Divide & Conquer
+description: Memecah masalah menjadi bagian-bagian kecil yang sejenis, menyelesaikannya secara rekursif, lalu menggabungkan hasilnya. Dipakai pada binary search, merge sort, quick sort, dan pangkat cepat.
+sumber:
+  - ref: cppreference
+    judul: std::sort
+    url: https://en.cppreference.com/w/cpp/algorithm/sort
+  - ref: cppreference
+    judul: std::stable_sort
+    url: https://en.cppreference.com/w/cpp/algorithm/stable_sort
+  - ref: cppreference
+    judul: std::swap
+    url: https://en.cppreference.com/w/cpp/algorithm/swap
+  - ref: python-docs
+    judul: Sorting Techniques
+    url: https://docs.python.org/3/howto/sorting.html
+  - ref: python-docs
+    judul: Built-in Functions, pow
+    url: https://docs.python.org/3/library/functions.html#pow
+---
+
+## Masalah: mengurutkan sejuta data
+
+Di [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan) kamu sudah mengenal bubble sort, selection sort, dan insertion sort. Ketiganya mudah dipahami, tetapi untuk `n` data butuh sekitar n² langkah. Padahal `sort` di C++ dan `sorted()` di Python bisa mengurutkan sejuta data dalam sepersekian detik.
+
+| `n` | n² (bubble, selection, insertion) | n log₂ n |
+| --- | --- | --- |
+| 1.000 | 1.000.000 | ≈ 10.000 |
+| 1.000.000 | 1.000.000.000.000 | ≈ 20.000.000 |
+
+Dengan perkiraan 100 juta langkah per detik, 10¹² langkah berarti hampir tiga jam, sedangkan 20 juta langkah hanya sekitar 0,2 detik. Cara membaca angka-angka ini dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+Bagaimana caranya? Bayangkan panitia lomba harus mengurutkan 1.000 formulir berdasarkan nomor peserta. Ketua membagi tumpukan menjadi dua dan menyerahkan masing-masing ke seorang anggota. Kedua anggota itu melakukan hal yang sama: membagi dua dan menyerahkannya ke orang lain, terus begitu sampai setiap orang hanya memegang satu formulir, yang tentu saja sudah urut. Setelah itu, setiap dua tumpukan urut **digabung** menjadi satu tumpukan urut, naik terus sampai kembali ke tangan ketua.
+
+Strategi ini disebut **divide & conquer** (bagi dan taklukkan). Bahan utamanya sudah kamu punya: [Rekursi](/docs/cpp/rekursi).
+
+## Tiga langkah: bagi, selesaikan, gabungkan
+
+Setiap algoritma divide & conquer terdiri dari tiga langkah:
+
+1. **Bagi** (_divide_): pecah masalah menjadi beberapa submasalah yang **sejenis** tetapi lebih kecil.
+2. **Selesaikan** (_conquer_): selesaikan setiap submasalah secara rekursif. Submasalah yang sudah cukup kecil (kasus dasar) langsung dijawab.
+3. **Gabungkan** (_combine_): susun jawaban submasalah menjadi jawaban masalah semula.
+
+Contoh pertama yang sederhana: mencari nilai terbesar di sebuah vector. Di sepanjang materi ini, bagian vector ditulis sebagai rentang `[kiri, kanan]`, yaitu indeks `kiri` sampai `kanan`, **keduanya ikut**.
+
+- **Bagi:** potong rentang di tengah menjadi `[kiri, tengah]` dan `[tengah + 1, kanan]`.
+- **Selesaikan:** cari nilai terbesar di masing-masing bagian secara rekursif. Rentang berisi satu elemen adalah kasus dasar.
+- **Gabungkan:** jawabannya adalah yang lebih besar dari kedua hasil.
+
+Indeks tengahnya dihitung dengan `kiri + (kanan - kiri) / 2`, rumus aman dari [Algoritma Pencarian](/docs/cpp/algoritma-pencarian). Hasilnya sama dengan `(kiri + kanan) / 2`, tetapi tidak bisa _overflow_.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int maksimum(const vector<int>& a, int kiri, int kanan) {
+    if (kiri == kanan) {                            // kasus dasar: satu elemen
+        return a[kiri];
+    }
+    int tengah = kiri + (kanan - kiri) / 2;         // bagi
+    int mKiri = maksimum(a, kiri, tengah);          // selesaikan bagian kiri
+    int mKanan = maksimum(a, tengah + 1, kanan);    // selesaikan bagian kanan
+    if (mKiri > mKanan) {                           // gabungkan
+        return mKiri;
+    }
+    return mKanan;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+    cout << maksimum(a, 0, n - 1) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def maksimum(a, kiri, kanan):
+    if kiri == kanan:                          # kasus dasar: satu elemen
+        return a[kiri]
+    tengah = kiri + (kanan - kiri) // 2        # bagi
+    m_kiri = maksimum(a, kiri, tengah)         # selesaikan bagian kiri
+    m_kanan = maksimum(a, tengah + 1, kanan)   # selesaikan bagian kanan
+    if m_kiri > m_kanan:                       # gabungkan
+        return m_kiri
+    return m_kanan
+
+
+n = int(input())
+a = list(map(int, input().split()))
+print(maksimum(a, 0, n - 1))
+```
+
+```txt title="Contoh jalannya program"
+8
+3 8 2 5 9 1 7 4
+9
+```
+
+Semua panggilan rekursifnya bisa digambar sebagai **pohon rekursi**. Setiap simpul adalah satu panggilan, ditulis dengan rentang dan hasilnya. Panggilan dari atas membagi ke bawah, lalu hasilnya naik kembali ke atas:
+
+```txt
+                          maks[0..7] = 9
+                 /                           \
+         maks[0..3] = 8                  maks[4..7] = 9
+          /          \                     /          \
+  maks[0..1] = 8  maks[2..3] = 5   maks[4..5] = 9  maks[6..7] = 7
+     /     \         /     \          /     \         /     \
+    3       8       2       5        9       1       7       4
+```
+
+Daun-daun di bawah adalah kasus dasar. Dari 8 elemen, rentangnya menjadi 4, 2, lalu 1, jadi pohonnya hanya punya 4 tingkat. Secara umum, membagi dua berulang kali dari `n` sampai 1 butuh sekitar log₂ n langkah, sehingga kedalaman rekursinya sekitar log₂ n. Untuk sejuta elemen, kedalamannya hanya sekitar 20.
+
+Panggilan-panggilan ini tidak berjalan bersamaan. `maksimum(a, 0, 3)` dan seluruh panggilan di bawahnya selesai lebih dulu, baru `maksimum(a, 4, 7)` dimulai. Urutan ini diatur oleh _call stack_.
+
+<DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call stack">
+  Bagaimana setiap panggilan fungsi disimpan di call stack, kenapa rekursi yang terlalu dalam membuat program crash (_stack overflow_ di C++, `RecursionError` di Python), dan cara mengubah rekursi menjadi perulangan.
+</DeepDive>
+
+Untuk mencari nilai terbesar, cara ini sebenarnya tidak lebih cepat daripada satu perulangan biasa. Keduanya sama-sama membandingkan `n - 1` kali. Contoh ini hanya untuk melihat polanya. Keuntungan divide & conquer baru terasa saat menggabungkan dua jawaban **jauh lebih murah** daripada menyelesaikan masalahnya langsung. Itulah yang terjadi pada merge sort.
+
+## Binary search sebagai divide & conquer
+
+Di [Algoritma Pencarian](/docs/cpp/algoritma-pencarian) kamu menulis binary search dengan perulangan, memakai `lo`, `hi`, dan `mid`. Di sini peran yang sama dipegang `kiri`, `kanan`, dan `tengah`. Binary search juga bisa dilihat sebagai divide & conquer:
+
+- **Bagi:** bandingkan nilai yang dicari dengan elemen tengah.
+- **Selesaikan:** cari di **satu** bagian saja. Bagian lainnya pasti tidak berisi jawaban, jadi dibuang.
+- **Gabungkan:** tidak ada yang perlu digabung. Jawaban dari bagian itu langsung menjadi jawaban akhir.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int cariBiner(const vector<int>& a, int kiri, int kanan, int x) {
+    if (kiri > kanan) {                             // kasus dasar: rentang kosong
+        return -1;
+    }
+    int tengah = kiri + (kanan - kiri) / 2;
+    if (a[tengah] == x) {                           // ketemu
+        return tengah;
+    }
+    if (a[tengah] < x) {
+        return cariBiner(a, tengah + 1, kanan, x);  // buang bagian kiri
+    }
+    return cariBiner(a, kiri, tengah - 1, x);       // buang bagian kanan
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+    int x;
+    cin >> x;
+    cout << cariBiner(a, 0, n - 1, x) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def cari_biner(a, kiri, kanan, x):
+    if kiri > kanan:                            # kasus dasar: rentang kosong
+        return -1
+    tengah = kiri + (kanan - kiri) // 2
+    if a[tengah] == x:                          # ketemu
+        return tengah
+    if a[tengah] < x:
+        return cari_biner(a, tengah + 1, kanan, x)   # buang bagian kiri
+    return cari_biner(a, kiri, tengah - 1, x)        # buang bagian kanan
+
+
+n = int(input())
+a = list(map(int, input().split()))
+x = int(input())
+print(cari_biner(a, 0, n - 1, x))
+```
+
+```txt title="Contoh jalannya program (dua kali)"
+8
+3 8 15 21 30 42 57 64
+57
+6
+
+8
+3 8 15 21 30 42 57 64
+10
+-1
+```
+
+Karena setiap panggilan hanya melahirkan **satu** panggilan baru dengan rentang separuhnya, banyak panggilannya sekitar log₂ n. Divide & conquer dengan satu submasalah seperti ini mudah diubah kembali menjadi perulangan, dan itulah versi yang kamu tulis di Algoritma Pencarian.
+
+Perhatikan kasus dasarnya: `kiri > kanan`, yaitu rentang **kosong**. Rentang kosong benar-benar bisa terjadi di sini, misalnya saat mencari `10`: setelah beberapa kali membuang, `kanan` menjadi lebih kecil dari `kiri`.
+
+## Merge sort
+
+Merge sort adalah algoritma dari cerita panitia lomba tadi:
+
+- **Bagi:** potong rentang menjadi dua bagian sama besar.
+- **Selesaikan:** urutkan setiap bagian secara rekursif. Rentang berisi 0 atau 1 elemen sudah pasti urut.
+- **Gabungkan:** gabungkan dua bagian yang sudah urut menjadi satu rentang urut.
+
+Bagian terpentingnya adalah langkah gabung, jadi kita mulai dari sana.
+
+### Langkah gabung
+
+Dua bagian yang masing-masing sudah urut bisa digabung dengan cepat. Pasang satu penunjuk di awal setiap bagian. Di setiap langkah, bandingkan kedua elemen yang ditunjuk, ambil yang lebih kecil, lalu majukan penunjuknya. Jika satu bagian habis, sisa bagian lainnya tinggal disalin. Kalau kamu sudah mengerjakan [latihan menggabung dua data terurut](/docs/cpp/array-dan-vector#soal-8), teknik ini sudah kamu kenal.
+
+Jejak penggabungan `2 4 7 9` dengan `1 3 6 8`:
+
+| Bandingkan | Diambil | Hasil sejauh ini |
+| --- | --- | --- |
+| 2 dan 1 | 1 | `1` |
+| 2 dan 3 | 2 | `1 2` |
+| 4 dan 3 | 3 | `1 2 3` |
+| 4 dan 6 | 4 | `1 2 3 4` |
+| 7 dan 6 | 6 | `1 2 3 4 6` |
+| 7 dan 8 | 7 | `1 2 3 4 6 7` |
+| 9 dan 8 | 8 | `1 2 3 4 6 7 8` |
+| bagian kanan habis | 9 | `1 2 3 4 6 7 8 9` |
+
+Setiap perbandingan memindahkan satu elemen ke hasil, jadi menggabung `n` elemen butuh paling banyak `n - 1` perbandingan. Fungsi `gabung` berikut menggabungkan `a[kiri..tengah]` dan `a[tengah+1..kanan]`. Hasilnya ditampung dulu di vector sementara, lalu disalin kembali ke tempat asalnya.
+
+```cpp tab="C++"
+void gabung(vector<int>& a, int kiri, int tengah, int kanan) {
+    vector<int> sementara;
+    int i = kiri;            // penunjuk bagian kiri
+    int j = tengah + 1;      // penunjuk bagian kanan
+    while (i <= tengah && j <= kanan) {
+        if (a[i] <= a[j]) {
+            sementara.push_back(a[i]);
+            i++;
+        } else {
+            sementara.push_back(a[j]);
+            j++;
+        }
+    }
+    while (i <= tengah) {    // sisa bagian kiri
+        sementara.push_back(a[i]);
+        i++;
+    }
+    while (j <= kanan) {     // sisa bagian kanan
+        sementara.push_back(a[j]);
+        j++;
+    }
+    for (int t = 0; t < (int)sementara.size(); t++) {
+        a[kiri + t] = sementara[t];      // salin kembali ke tempat asal
+    }
+}
+```
+
+```python tab="Python"
+def gabung(a, kiri, tengah, kanan):
+    sementara = []
+    i = kiri                 # penunjuk bagian kiri
+    j = tengah + 1           # penunjuk bagian kanan
+    while i <= tengah and j <= kanan:
+        if a[i] <= a[j]:
+            sementara.append(a[i])
+            i += 1
+        else:
+            sementara.append(a[j])
+            j += 1
+    while i <= tengah:       # sisa bagian kiri
+        sementara.append(a[i])
+        i += 1
+    while j <= kanan:        # sisa bagian kanan
+        sementara.append(a[j])
+        j += 1
+    for t in range(len(sementara)):
+        a[kiri + t] = sementara[t]       # salin kembali ke tempat asal
+```
+
+### Algoritma lengkap
+
+Dengan `gabung` di tangan, merge sort sendiri sangat pendek:
+
+```cpp tab="C++"
+void mergeSort(vector<int>& a, int kiri, int kanan) {
+    if (kiri >= kanan) {                 // kasus dasar: 0 atau 1 elemen
+        return;
+    }
+    int tengah = kiri + (kanan - kiri) / 2;
+    mergeSort(a, kiri, tengah);          // urutkan bagian kiri
+    mergeSort(a, tengah + 1, kanan);     // urutkan bagian kanan
+    gabung(a, kiri, tengah, kanan);      // gabungkan dua bagian yang sudah urut
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    mergeSort(a, 0, n - 1);
+
+    for (int i = 0; i < n; i++) {
+        if (i > 0) {
+            cout << " ";
+        }
+        cout << a[i];
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def merge_sort(a, kiri, kanan):
+    if kiri >= kanan:                    # kasus dasar: 0 atau 1 elemen
+        return
+    tengah = kiri + (kanan - kiri) // 2
+    merge_sort(a, kiri, tengah)          # urutkan bagian kiri
+    merge_sort(a, tengah + 1, kanan)     # urutkan bagian kanan
+    gabung(a, kiri, tengah, kanan)       # gabungkan dua bagian yang sudah urut
+
+
+n = int(input())
+a = list(map(int, input().split()))
+merge_sort(a, 0, n - 1)
+print(*a)
+```
+
+```txt title="Contoh jalannya program"
+8
+7 2 9 4 3 8 6 1
+1 2 3 4 6 7 8 9
+```
+
+Program lengkapnya adalah `#include <iostream>`, `#include <vector>`, `using namespace std;`, fungsi `gabung`, lalu kode di atas. Pohon rekursinya untuk contoh ini, pertama saat membagi, lalu saat menggabung:
+
+```txt
+membagi:
+                 [7 2 9 4 3 8 6 1]
+               /                   \
+        [7 2 9 4]                 [3 8 6 1]
+        /       \                 /       \
+    [7 2]       [9 4]         [3 8]       [6 1]
+    /   \       /   \         /   \       /   \
+  [7]   [2]   [9]   [4]     [3]   [8]   [6]   [1]
+
+menggabung:
+  [7]   [2]   [9]   [4]     [3]   [8]   [6]   [1]
+    \   /       \   /         \   /       \   /
+    [2 7]       [4 9]         [3 8]       [1 6]
+        \       /                 \       /
+        [2 4 7 9]                 [1 3 6 8]
+               \                   /
+                 [1 2 3 4 6 7 8 9]
+```
+
+### Kenapa O(n log n)?
+
+Lihat pekerjaan menggabung di setiap **tingkat** pohon:
+
+```txt
+tingkat 1:  [2 7] [4 9] [3 8] [1 6]   empat gabungan @ 2 elemen = 8 elemen dipindah
+tingkat 2:  [2 4 7 9]  [1 3 6 8]      dua gabungan @ 4 elemen   = 8 elemen dipindah
+tingkat 3:  [1 2 3 4 6 7 8 9]         satu gabungan @ 8 elemen  = 8 elemen dipindah
+```
+
+Di setiap tingkat, semua elemen dipindah tepat sekali, jadi pekerjaannya sebanding dengan `n`. Banyak tingkatnya sekitar log₂ n, karena rentangnya dibagi dua terus sampai tersisa satu. Total pekerjaannya sekitar n × log₂ n, ditulis **O(n log n)**. Untuk sejuta data, itu sekitar 20 tingkat × sejuta = 20 juta langkah, bukan 10¹².
+
+Hebatnya, angka ini tidak bergantung pada isi data. Data acak, data terbalik, maupun data yang sudah urut sama-sama butuh O(n log n).
+
+### Memori tambahan
+
+Harga yang dibayar merge sort adalah **memori**. Langkah gabung butuh vector sementara yang bisa sebesar seluruh data. Mengurutkan sejuta `int` berarti butuh sekitar 4 MB memori tambahan. Bubble sort, selection sort, dan insertion sort tidak butuh memori tambahan sama sekali, karena hanya menukar elemen di tempat.
+
+Ada satu sifat lain yang berguna. Pada `gabung`, saat dua elemen bernilai **sama**, syarat `a[i] <= a[j]` mengambil elemen dari bagian kiri lebih dulu. Akibatnya, elemen-elemen yang nilainya sama tetap dalam urutan aslinya. Jadi merge sort **stabil**, sifat yang sudah kamu kenal di [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan). Jika `<=` diganti `<`, merge sort tetap mengurutkan dengan benar, tetapi tidak lagi stabil.
+
+## Quick sort
+
+Quick sort membagi pekerjaan dengan cara terbalik dari merge sort. Merge sort membagi dengan mudah (potong di tengah) lalu bekerja keras saat menggabung. Quick sort bekerja keras saat membagi, sehingga tidak perlu menggabung apa pun.
+
+- **Bagi:** pilih satu elemen sebagai **pivot**. Susun ulang rentang sehingga semua elemen yang lebih kecil dari pivot berada di kiri pivot, dan sisanya di kanan. Langkah ini disebut **partisi**. Setelah partisi, pivot sudah berada di posisi akhirnya.
+- **Selesaikan:** urutkan bagian kiri dan bagian kanan secara rekursif.
+- **Gabungkan:** tidak perlu. Semua di kiri pivot lebih kecil dari semua di kanan pivot, jadi begitu kedua bagian urut, seluruh rentang urut.
+
+### Partisi Lomuto
+
+Cara partisi yang paling mudah ditulis adalah **partisi Lomuto**, dengan elemen paling kanan sebagai pivot. Variabel `i` menandai batas: semua elemen di `a[kiri..i-1]` sudah dipastikan lebih kecil dari pivot. Setiap kali `j` menemukan elemen yang lebih kecil dari pivot, elemen itu ditukar ke posisi `i` dan batasnya maju satu.
+
+```cpp tab="C++"
+int partisi(vector<int>& a, int kiri, int kanan) {
+    int pivot = a[kanan];               // pivot: elemen paling kanan
+    int i = kiri;                       // a[kiri..i-1] semuanya < pivot
+    for (int j = kiri; j < kanan; j++) {
+        if (a[j] < pivot) {
+            swap(a[i], a[j]);
+            i++;
+        }
+    }
+    swap(a[i], a[kanan]);               // pivot pindah ke posisi akhirnya
+    return i;
+}
+```
+
+```python tab="Python"
+def partisi(a, kiri, kanan):
+    pivot = a[kanan]                    # pivot: elemen paling kanan
+    i = kiri                            # a[kiri..i-1] semuanya < pivot
+    for j in range(kiri, kanan):
+        if a[j] < pivot:
+            a[i], a[j] = a[j], a[i]
+            i += 1
+    a[i], a[kanan] = a[kanan], a[i]     # pivot pindah ke posisi akhirnya
+    return i
+```
+
+`swap(x, y)` menukar isi dua variabel. Di Python, pertukaran ditulis `x, y = y, x`. Jejak partisi pada `6 3 8 1 9 2 5`, dengan pivot `5`:
+
+| `j` | `a[j]` | `a[j] < 5`? | Tindakan | Isi sesudahnya | `i` |
+| --- | --- | --- | --- | --- | --- |
+| | | | awal | `6 3 8 1 9 2 5` | 0 |
+| 0 | 6 | tidak | | `6 3 8 1 9 2 5` | 0 |
+| 1 | 3 | ya | tukar `a[0]` dan `a[1]` | `3 6 8 1 9 2 5` | 1 |
+| 2 | 8 | tidak | | `3 6 8 1 9 2 5` | 1 |
+| 3 | 1 | ya | tukar `a[1]` dan `a[3]` | `3 1 8 6 9 2 5` | 2 |
+| 4 | 9 | tidak | | `3 1 8 6 9 2 5` | 2 |
+| 5 | 2 | ya | tukar `a[2]` dan `a[5]` | `3 1 2 6 9 8 5` | 3 |
+| | | | tukar pivot ke `a[3]` | `3 1 2 5 9 8 6` | |
+
+Pivot `5` kini di indeks 3, posisi akhirnya. Di kirinya `3 1 2` (semua lebih kecil), di kanannya `9 8 6` (semua lebih besar). Kedua bagian itu belum urut, dan itulah tugas rekursi.
+
+### Algoritma lengkap
+
+```cpp tab="C++"
+#include <iostream>
+#include <utility>       // swap
+#include <vector>
+using namespace std;
+
+// ... fungsi partisi di atas ...
+
+void quickSort(vector<int>& a, int kiri, int kanan) {
+    if (kiri >= kanan) {                // kasus dasar: 0 atau 1 elemen
+        return;
+    }
+    int p = partisi(a, kiri, kanan);    // bagi: pivot sudah di tempatnya
+    quickSort(a, kiri, p - 1);          // urutkan bagian kiri pivot
+    quickSort(a, p + 1, kanan);         // urutkan bagian kanan pivot
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    quickSort(a, 0, n - 1);
+
+    for (int i = 0; i < n; i++) {
+        if (i > 0) {
+            cout << " ";
+        }
+        cout << a[i];
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+# ... fungsi partisi di atas ...
+
+def quick_sort(a, kiri, kanan):
+    if kiri >= kanan:                   # kasus dasar: 0 atau 1 elemen
+        return
+    p = partisi(a, kiri, kanan)         # bagi: pivot sudah di tempatnya
+    quick_sort(a, kiri, p - 1)          # urutkan bagian kiri pivot
+    quick_sort(a, p + 1, kanan)         # urutkan bagian kanan pivot
+
+
+n = int(input())
+a = list(map(int, input().split()))
+quick_sort(a, 0, n - 1)
+print(*a)
+```
+
+```txt title="Contoh jalannya program"
+7
+6 3 8 1 9 2 5
+1 2 3 5 6 8 9
+```
+
+Berbeda dengan merge sort, quick sort tidak butuh vector sementara. Semua pertukaran terjadi di dalam vector itu sendiri.
+
+### Cepat rata-rata, lambat di kasus terburuk
+
+Kecepatan quick sort bergantung pada pivot. Jika pivot kira-kira membagi rentang menjadi dua bagian yang sama besar, pohon rekursinya punya sekitar log₂ n tingkat, sama seperti merge sort, dan totalnya O(n log n). Pada data acak, hal ini terjadi rata-rata: untuk 1.000 data acak, quick sort di atas melakukan sekitar 11 ribu perbandingan `a[j] < pivot`.
+
+Sekarang coba data yang **sudah urut**, misalnya `1 2 3 4 5 6 7 8`. Pivot paling kanan selalu elemen terbesar, sehingga setiap partisi menghasilkan bagian kiri berisi semua sisa elemen dan bagian kanan kosong:
+
+```txt
+[1 2 3 4 5 6 7 8]   pivot 8  ->  [1 2 3 4 5 6 7]  8  []     7 perbandingan
+[1 2 3 4 5 6 7]     pivot 7  ->  [1 2 3 4 5 6]  7  []       6 perbandingan
+[1 2 3 4 5 6]       pivot 6  ->  [1 2 3 4 5]  6  []         5 perbandingan
+...
+[1 2]               pivot 2  ->  [1]  2  []                 1 perbandingan
+```
+
+Rentangnya hanya berkurang satu di setiap tingkat, jadi ada `n` tingkat dan totalnya 7 + 6 + ... + 1 = 28 perbandingan. Untuk 1.000 data urut, totalnya 999 + 998 + ... + 1 = 499.500 perbandingan, sekitar 45 kali lebih banyak daripada data acak. Inilah kasus terburuk quick sort: **O(n²)**, tidak lebih baik dari bubble sort.
+
+Masalahnya tidak hanya waktu. Kedalaman rekursinya juga menjadi `n`. Python sudah berhenti dengan `RecursionError` untuk 1.000 data urut, dan C++ bisa crash karena _stack overflow_ untuk data yang lebih besar (lihat [Call Stack](/docs/cpp/pendalaman/call-stack)).
+
+Ironisnya, data yang sudah (hampir) urut sangat sering muncul di dunia nyata. Karena itu, implementasi sungguhan tidak memakai elemen paling kanan begitu saja. Pivot diambil dari tengah rentang, dipilih secara acak, atau diambil nilai tengah dari tiga kandidat. Caranya mudah: tukar elemen pilihan itu ke posisi `kanan` dulu, lalu jalankan partisi yang sama. Kamu akan memakai trik ini di Soal 10.
+
+## Pangkat cepat
+
+Menghitung `a` pangkat `b` dengan perulangan butuh `b` kali perkalian. Untuk b = 10¹⁸, perulangan itu tidak akan pernah selesai. Divide & conquer memakai sifat berikut (di sini `^` berarti pangkat, bukan operator XOR):
+
+```txt
+b genap:   a^b = a^(b/2) × a^(b/2)
+b ganjil:  a^b = a^(b/2) × a^(b/2) × a        (b/2 dibulatkan ke bawah)
+```
+
+Contohnya, 3^13 = 3^6 × 3^6 × 3, dan 3^6 = 3^3 × 3^3. Kuncinya, `a^(b/2)` cukup dihitung **sekali**, lalu hasilnya dipakai dua kali.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+long long pangkat(long long a, long long b) {
+    if (b == 0) {                           // kasus dasar: a^0 = 1
+        return 1;
+    }
+    long long setengah = pangkat(a, b / 2); // cukup SATU panggilan rekursif
+    if (b % 2 == 0) {
+        return setengah * setengah;
+    }
+    return setengah * setengah * a;
+}
+
+int main() {
+    long long a, b;
+    cin >> a >> b;
+    cout << pangkat(a, b) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def pangkat(a, b):
+    if b == 0:                              # kasus dasar: a^0 = 1
+        return 1
+    setengah = pangkat(a, b // 2)           # cukup SATU panggilan rekursif
+    if b % 2 == 0:
+        return setengah * setengah
+    return setengah * setengah * a
+
+
+a, b = map(int, input().split())
+print(pangkat(a, b))
+```
+
+```txt title="Contoh jalannya program"
+3 13
+1594323
+```
+
+Jejak `pangkat(3, 13)`, dibaca dari bawah ke atas karena hasilnya naik dari kasus dasar:
+
+| `b` | `setengah` | Hitungan | Hasil |
+| --- | --- | --- | --- |
+| 13 | 729 | 729 × 729 × 3 (ganjil) | 1594323 |
+| 6 | 27 | 27 × 27 (genap) | 729 |
+| 3 | 3 | 3 × 3 × 3 (ganjil) | 27 |
+| 1 | 1 | 1 × 1 × 3 (ganjil) | 3 |
+| 0 | | kasus dasar | 1 |
+
+Hanya 5 panggilan, bukan 13 perkalian satu per satu. Karena `b` dibagi dua di setiap panggilan, banyak panggilannya sekitar log₂ b. Untuk b = 10¹⁸ cukup 61 panggilan.
+
+<Callout type="warning" title="Hasilnya cepat meluap">
+  `long long` hanya muat sampai sekitar 9,2 × 10¹⁸, jadi `pangkat(2, 63)` di C++ sudah meluap (_overflow_). Python tidak punya batas ini karena bilangan bulatnya bisa sebesar apa pun. Karena hasilnya sangat besar, soal-soal pangkat biasanya meminta **sisa bagi** hasilnya dengan suatu `m`. Kuncinya adalah sifat (x × y) mod m = ((x mod m) × (y mod m)) mod m: ambil sisa bagi setelah **setiap** perkalian, sehingga angkanya tidak pernah lebih besar dari m². Kamu akan menulisnya di Soal 5. Python bahkan sudah menyediakannya: `pow(a, b, m)`.
+</Callout>
+
+## Kapan divide & conquer cocok?
+
+Divide & conquer cocok jika:
+
+- masalahnya bisa dipecah menjadi submasalah **sejenis** yang jauh lebih kecil, idealnya separuhnya;
+- submasalahnya **tidak saling bergantung**, sehingga bagian kiri bisa diselesaikan tanpa tahu jawaban bagian kanan;
+- jawaban submasalah bisa **digabung dengan murah**, misalnya sebanding dengan `n` seperti pada merge sort, atau malah tanpa penggabungan seperti pada binary search dan quick sort.
+
+Jika submasalahnya saling **tumpang tindih**, divide & conquer bisa sangat boros. Fibonacci rekursif adalah contohnya: `fib(5)` memanggil `fib(4)` dan `fib(3)`, padahal `fib(4)` juga memanggil `fib(3)` lagi. Nilai yang sama dihitung berkali-kali. Untuk masalah seperti ini, simpan hasil yang sudah dihitung, seperti dijelaskan di [Memoisasi](/docs/cpp/pendalaman/memoisasi).
+
+Perbandingan cara mengurutkan yang sudah kamu kenal:
+
+| | Merge sort | Quick sort (pivot paling kanan) | `sort` di C++ | `sorted()` di Python |
+| --- | --- | --- | --- | --- |
+| Waktu rata-rata | O(n log n) | O(n log n) | O(n log n) | O(n log n) |
+| Waktu terburuk | O(n log n) | O(n²), misalnya data urut | O(n log n) | O(n log n) |
+| Memori tambahan | sebanding `n` | hanya untuk rekursi | hanya untuk rekursi | sebanding `n` |
+| Stabil | ya | tidak | tidak (`stable_sort` stabil) | ya |
+
+`sort` di g++ memakai **introsort**: quick sort yang beralih ke cara lain (heap sort) jika rekursinya mulai terlalu dalam, ditambah insertion sort untuk bagian-bagian yang kecil. Standar C++ menjamin `sort` tetap O(n log n) bahkan pada kasus terburuk. Python memakai **Timsort**, perpaduan merge sort dan insertion sort yang memanfaatkan bagian data yang sudah urut.
+
+Dalam program sehari-hari, pakai `sort` atau `sorted()` (lihat [Pustaka algorithm](/docs/cpp/pustaka/algorithm)). Merge sort dan quick sort dipelajari karena idenya, yaitu menggabung dan mempartisi, juga memecahkan banyak masalah lain. Beberapa di antaranya ada di Latihan.
+
+## Kesalahan yang sering terjadi
+
+### Kasus dasar yang tidak lengkap
+
+Kasus dasar harus menangkap **semua** rentang yang terlalu kecil untuk dibagi. Lihat quick sort dengan kasus dasar yang hanya menangkap rentang satu elemen:
+
+```cpp tab="C++"
+void quickSort(vector<int>& a, int kiri, int kanan) {
+    if (kiri == kanan) {                // ✗ rentang kosong lolos
+        return;
+    }
+    int p = partisi(a, kiri, kanan);
+    quickSort(a, kiri, p - 1);
+    quickSort(a, p + 1, kanan);
+}
+```
+
+```python tab="Python"
+def quick_sort(a, kiri, kanan):
+    if kiri == kanan:                   # ✗ rentang kosong lolos
+        return
+    p = partisi(a, kiri, kanan)
+    quick_sort(a, kiri, p - 1)
+    quick_sort(a, p + 1, kanan)
+```
+
+Jika pivot berakhir di ujung rentang, salah satu panggilan rekursif menerima rentang **kosong**. Pada contoh `6 3 8 1 9 2 5`, ini terjadi saat mengurutkan bagian kanan `9 8 6`: pivotnya (`6`) yang terkecil, sehingga berakhir di indeks 4 dan bagian kirinya adalah `quickSort(a, 4, 3)`. Kasus dasar tidak menangkap rentang kosong ini, jadi `partisi(a, 4, 3)` tetap dijalankan. Perulangannya tidak berjalan sama sekali, lalu pertukaran terakhir menukar dua elemen di luar rentang dan merusak urutan yang sudah benar. Lebih parah lagi, `partisi` mengembalikan 4, sehingga `quickSort(a, 4, 3)` dipanggil lagi dan lagi tanpa akhir. C++ crash karena _stack overflow_, dan Python berhenti dengan `RecursionError`. Jika rentang kosongnya `[0, -1]`, C++ bahkan membaca `a[-1]` di luar vector.
+
+Perbaikannya: `kiri >= kanan`, yang menangkap rentang berisi 0 **dan** 1 elemen.
+
+### Bagian yang tidak mengecil
+
+Setiap panggilan rekursif harus menerima rentang yang **lebih kecil** dari rentang pemanggilnya. Jika tidak, rekursinya berputar di tempat sampai program crash. Contohnya `maksimum` yang dibagi menjadi `[kiri, tengah - 1]` dan `[tengah, kanan]`:
+
+| Rentang | `tengah` | Bagian kiri | Bagian kanan |
+| --- | --- | --- | --- |
+| `[0, 7]` | 3 | `[0, 2]` | `[3, 7]` |
+| `[0, 1]` | 0 | `[0, -1]`, kosong | `[0, 1]`, **sama persis** |
+
+Rentang berisi dua elemen menghasilkan bagian kanan yang sama dengan rentang semula, jadi `maksimum(a, 0, 1)` memanggil `maksimum(a, 0, 1)` lagi, dan seterusnya. Program C++ berhenti dengan `Segmentation fault`, sedangkan Python berhenti dengan `RecursionError: maximum recursion depth exceeded`. Pembagian `[kiri, tengah]` dan `[tengah + 1, kanan]` selalu aman, karena `tengah` dibulatkan ke bawah sehingga selalu lebih kecil dari `kanan`.
+
+Cara memeriksanya: ambil rentang **terkecil yang bukan kasus dasar**, biasanya dua elemen, lalu hitung kedua bagiannya dengan tangan. Keduanya harus lebih kecil.
+
+### Salah hitung batas
+
+Rentang di materi ini selalu `[kiri, kanan]` dengan kedua ujung ikut. Kesalahan yang sering muncul:
+
+- Memanggil `mergeSort(a, 0, n)` alih-alih `mergeSort(a, 0, n - 1)`, sehingga `a[n]` ikut dibaca.
+- Di `gabung`, menyalin kembali ke `a[t]` alih-alih `a[kiri + t]`, sehingga hasil gabungan bagian kanan menimpa bagian kiri yang sudah urut.
+- Mencampur gaya rentang. Sebagian buku dan pustaka memakai rentang setengah terbuka `[kiri, kanan)`, dengan `kanan` tidak ikut. Keduanya benar, asalkan satu program memakai gaya yang sama dari awal sampai akhir.
+
+### Memanggil rekursi yang sama dua kali
+
+```cpp tab="C++"
+// ✗ hasilnya benar, tetapi tidak lebih cepat dari perulangan biasa
+if (b % 2 == 0) {
+    return pangkat(a, b / 2) * pangkat(a, b / 2);
+}
+```
+
+```python tab="Python"
+# ✗ hasilnya benar, tetapi tidak lebih cepat dari perulangan biasa
+if b % 2 == 0:
+    return pangkat(a, b // 2) * pangkat(a, b // 2)
+```
+
+Dua panggilan dengan argumen yang sama menghitung hal yang sama dua kali. Setiap tingkat menggandakan banyak panggilan, sehingga penghematannya hilang. Untuk b = 1.000.000, versi dengan satu panggilan hanya butuh 21 panggilan, sedangkan versi ini butuh 2.097.151 panggilan. Simpan hasilnya di variabel (`setengah`), lalu pakai dua kali.
+
+## Rangkuman
+
+- Divide & conquer terdiri dari tiga langkah: **bagi** menjadi submasalah sejenis yang lebih kecil, **selesaikan** secara rekursif, lalu **gabungkan** jawabannya.
+- Membagi dua berulang kali menghasilkan pohon rekursi dengan sekitar log₂ n tingkat.
+- Binary search adalah divide & conquer dengan satu submasalah dan tanpa penggabungan: O(log n).
+- Merge sort membagi di tengah lalu menggabung dua bagian urut. Selalu O(n log n), stabil, tetapi butuh memori tambahan sebanding `n`.
+- Quick sort mempartisi di sekitar pivot dan tidak perlu menggabung. Rata-rata O(n log n) tanpa vector sementara, tetapi O(n²) jika pivotnya selalu terkecil atau terbesar, misalnya data urut dengan pivot paling kanan.
+- Pangkat cepat menghitung `a` pangkat `b` dengan sekitar log₂ b panggilan, asalkan `a^(b/2)` dihitung sekali saja.
+- Kasus dasar harus menangkap rentang berisi 0 dan 1 elemen, dan setiap panggilan rekursif harus menerima rentang yang lebih kecil.
+- Dalam praktik, pakai `sort`/`sorted()`. Ide menggabung dan mempartisi tetap berguna untuk banyak masalah lain.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, input diawali `n`, lalu `n` bilangan bulat dalam satu baris. Soal yang meminta divide & conquer harus dikerjakan dengan fungsi rekursif, bukan dengan `sort`.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Jumlah dengan membagi dua">
+  Baca `n` bilangan (1 ≤ n ≤ 1.000, setiap bilangan di antara -1.000 dan 1.000), lalu tampilkan jumlahnya. Hitung jumlahnya dengan fungsi rekursif `jumlah(a, kiri, kanan)` yang membagi rentang menjadi dua bagian, seperti `maksimum` di materi.
+
+  ```txt title="Contoh input"
+  5
+  4 -2 7 1 3
+  ```
+
+  ```txt title="Contoh output"
+  13
+  ```
+
+  ```txt title="Contoh input 2"
+  1
+  -8
+  ```
+
+  ```txt title="Contoh output 2"
+  -8
+  ```
+
+  <Pembahasan>
+    Polanya sama persis dengan `maksimum`. Hanya langkah gabungnya yang berbeda: kedua hasil dijumlahkan, bukan dipilih yang terbesar. Kasus dasarnya adalah rentang satu elemen, yang jumlahnya adalah elemen itu sendiri.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int jumlah(const vector<int>& a, int kiri, int kanan) {
+        if (kiri == kanan) {                          // kasus dasar: satu elemen
+            return a[kiri];
+        }
+        int tengah = kiri + (kanan - kiri) / 2;
+        return jumlah(a, kiri, tengah) + jumlah(a, tengah + 1, kanan);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        cout << jumlah(a, 0, n - 1) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def jumlah(a, kiri, kanan):
+        if kiri == kanan:                             # kasus dasar: satu elemen
+            return a[kiri]
+        tengah = kiri + (kanan - kiri) // 2
+        return jumlah(a, kiri, tengah) + jumlah(a, tengah + 1, kanan)
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+    print(jumlah(a, 0, n - 1))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output: urutan panggilan">
+  Tentukan output program berikut tanpa menjalankannya. Setelah itu, tanpa menjalankannya juga, tentukan berapa baris yang tercetak jika `main` memanggil `bagi(0, 99)`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  void bagi(int kiri, int kanan) {
+      cout << kiri << "-" << kanan << endl;
+      if (kiri == kanan) {                // kasus dasar
+          return;
+      }
+      int tengah = kiri + (kanan - kiri) / 2;
+      bagi(kiri, tengah);
+      bagi(tengah + 1, kanan);
+  }
+
+  int main() {
+      bagi(0, 4);
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def bagi(kiri, kanan):
+      print(f"{kiri}-{kanan}")
+      if kiri == kanan:                   # kasus dasar
+          return
+      tengah = kiri + (kanan - kiri) // 2
+      bagi(kiri, tengah)
+      bagi(tengah + 1, kanan)
+
+
+  bagi(0, 4)
+  ```
+
+  <Pembahasan>
+    ```txt
+    0-4
+    0-2
+    0-1
+    0-0
+    1-1
+    2-2
+    3-4
+    3-3
+    4-4
+    ```
+
+    Setiap panggilan mencetak rentangnya **sebelum** membagi, lalu bagian kiri diselesaikan seluruhnya sebelum bagian kanan dimulai. Pohon rekursinya:
+
+    ```txt
+                [0-4]
+               /     \
+           [0-2]     [3-4]
+           /   \     /   \
+       [0-1] [2-2] [3-3] [4-4]
+       /   \
+    [0-0] [1-1]
+    ```
+
+    Untuk `bagi(0, 99)` ada 100 elemen. Setiap elemen menjadi satu daun (kasus dasar), jadi ada 100 daun. Setiap panggilan yang bukan daun membagi menjadi tepat dua, dan pohon seperti ini selalu punya simpul bukan-daun sebanyak daun dikurangi satu. Totalnya 100 + 99 = **199** baris. Pada contoh di atas: 5 daun + 4 bukan-daun = 9 baris.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Perbaiki binary search rekursif">
+  Program berikut mencari `x` di dalam data yang sudah urut naik, lalu menampilkan indeksnya atau `-1`. Untuk banyak input hasilnya benar, tetapi untuk contoh di bawah versi Python berhenti dengan `RecursionError`, dan versi C++ crash atau tidak pernah selesai. Temukan kesalahannya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int cariBiner(const vector<int>& a, int kiri, int kanan, int x) {
+      if (kiri > kanan) {                       // kasus dasar: rentang kosong
+          return -1;
+      }
+      int tengah = kiri + (kanan - kiri) / 2;
+      if (a[tengah] == x) {
+          return tengah;
+      }
+      if (a[tengah] < x) {
+          return cariBiner(a, tengah, kanan, x);
+      }
+      return cariBiner(a, kiri, tengah - 1, x);
+  }
+
+  int main() {
+      int n;
+      cin >> n;
+      vector<int> a(n);
+      for (int i = 0; i < n; i++) {
+          cin >> a[i];
+      }
+      int x;
+      cin >> x;
+      cout << cariBiner(a, 0, n - 1, x) << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def cari_biner(a, kiri, kanan, x):
+      if kiri > kanan:                          # kasus dasar: rentang kosong
+          return -1
+      tengah = kiri + (kanan - kiri) // 2
+      if a[tengah] == x:
+          return tengah
+      if a[tengah] < x:
+          return cari_biner(a, tengah, kanan, x)
+      return cari_biner(a, kiri, tengah - 1, x)
+
+
+  n = int(input())
+  a = list(map(int, input().split()))
+  x = int(input())
+  print(cari_biner(a, 0, n - 1, x))
+  ```
+
+  ```txt title="Contoh input"
+  6
+  2 5 8 12 16 23
+  23
+  ```
+
+  ```txt title="Contoh output"
+  5
+  ```
+
+  <Petunjuk>
+    Telusuri rentangnya dengan tangan: `[0, 5]`, lalu? Perhatikan apa yang terjadi saat rentangnya tinggal dua elemen.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jejaknya: `[0, 5]` → `[2, 5]` → `[3, 5]` → `[4, 5]` → `[4, 5]` → ... Saat rentangnya `[4, 5]`, `tengah` = 4 dan `a[4]` = 16 lebih kecil dari 23, sehingga panggilan berikutnya menerima `[tengah, kanan]` = `[4, 5]` lagi. Rentangnya tidak mengecil. `a[tengah]` sudah terbukti bukan `x`, jadi tidak perlu diperiksa lagi: bagian kanan harus dimulai dari `tengah + 1`. Bagian kiri sudah benar memakai `tengah - 1`. Kesalahan ini tersembunyi untuk banyak input, misalnya mencari `16` atau `2`, karena nilainya ketemu sebelum rentangnya tinggal dua elemen.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int cariBiner(const vector<int>& a, int kiri, int kanan, int x) {
+        if (kiri > kanan) {                       // kasus dasar: rentang kosong
+            return -1;
+        }
+        int tengah = kiri + (kanan - kiri) / 2;
+        if (a[tengah] == x) {
+            return tengah;
+        }
+        if (a[tengah] < x) {
+            return cariBiner(a, tengah + 1, kanan, x);
+        }
+        return cariBiner(a, kiri, tengah - 1, x);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        int x;
+        cin >> x;
+        cout << cariBiner(a, 0, n - 1, x) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def cari_biner(a, kiri, kanan, x):
+        if kiri > kanan:                          # kasus dasar: rentang kosong
+            return -1
+        tengah = kiri + (kanan - kiri) // 2
+        if a[tengah] == x:
+            return tengah
+        if a[tengah] < x:
+            return cari_biner(a, tengah + 1, kanan, x)
+        return cari_biner(a, kiri, tengah - 1, x)
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+    x = int(input())
+    print(cari_biner(a, 0, n - 1, x))
+    ```
+
+    Kenapa versi C++ kadang crash dan kadang berputar selamanya? Tanpa optimasi, setiap panggilan menambah satu catatan di call stack sampai penuh (_stack overflow_). Dengan optimasi (`-O2`), compiler bisa mengubah panggilan rekursif di baris `return` menjadi perulangan biasa, sehingga programnya tidak crash tetapi juga tidak pernah selesai.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Peringkat lomba">
+  Baris pertama berisi `n` (1 ≤ n ≤ 100.000), banyak peserta. Setiap baris berikutnya berisi nama peserta (satu kata) dan skornya (0 sampai 1.000). Tampilkan peserta dari skor **tertinggi** ke terendah dengan format yang sama. Peserta dengan skor sama harus tetap dalam urutan input. Urutkan dengan **merge sort** yang kamu tulis sendiri.
+
+  ```txt title="Contoh input"
+  6
+  Ani 85
+  Budi 92
+  Citra 85
+  Dodi 70
+  Eka 92
+  Fajar 85
+  ```
+
+  ```txt title="Contoh output"
+  Budi 92
+  Eka 92
+  Ani 85
+  Citra 85
+  Fajar 85
+  Dodi 70
+  ```
+
+  <Petunjuk>
+    Simpan setiap peserta dalam [struct](/docs/cpp/struct) `Peserta`. Ubah `gabung` dari materi agar mengambil peserta dengan skor **lebih besar** lebih dulu. Lalu pikirkan: saat dua skor sama, peserta dari bagian mana yang harus diambil dulu agar urutan input terjaga?
+  </Petunjuk>
+
+  <Pembahasan>
+    Bagian kiri selalu berisi peserta yang datang lebih awal di input. Jadi saat skornya sama, ambil dari bagian **kiri** dulu: syaratnya `kiri.skor >= kanan.skor`. Jika ditulis `>`, Eka bisa muncul sebelum Budi. Merge sort cocok di sini karena stabil. Quick sort dengan partisi Lomuto tidak stabil, dan `sort` C++ juga tidak menjamin kestabilan. Pustaka C++ menyediakan `stable_sort` untuk keperluan ini, dan `sorted()` di Python selalu stabil.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Peserta {
+        string nama;
+        int skor;
+    };
+
+    void gabung(vector<Peserta>& a, int kiri, int tengah, int kanan) {
+        vector<Peserta> sementara;
+        int i = kiri, j = tengah + 1;
+        while (i <= tengah && j <= kanan) {
+            if (a[i].skor >= a[j].skor) {     // sama: ambil yang datang lebih dulu
+                sementara.push_back(a[i]);
+                i++;
+            } else {
+                sementara.push_back(a[j]);
+                j++;
+            }
+        }
+        while (i <= tengah) {
+            sementara.push_back(a[i]);
+            i++;
+        }
+        while (j <= kanan) {
+            sementara.push_back(a[j]);
+            j++;
+        }
+        for (int t = 0; t < (int)sementara.size(); t++) {
+            a[kiri + t] = sementara[t];
+        }
+    }
+
+    void mergeSort(vector<Peserta>& a, int kiri, int kanan) {
+        if (kiri >= kanan) {                  // kasus dasar: 0 atau 1 elemen
+            return;
+        }
+        int tengah = kiri + (kanan - kiri) / 2;
+        mergeSort(a, kiri, tengah);
+        mergeSort(a, tengah + 1, kanan);
+        gabung(a, kiri, tengah, kanan);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Peserta> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i].nama >> a[i].skor;
+        }
+
+        mergeSort(a, 0, n - 1);
+
+        for (int i = 0; i < n; i++) {
+            cout << a[i].nama << " " << a[i].skor << "\n";
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Peserta:
+        def __init__(self, nama, skor):
+            self.nama = nama
+            self.skor = skor
+
+
+    def gabung(a, kiri, tengah, kanan):
+        sementara = []
+        i, j = kiri, tengah + 1
+        while i <= tengah and j <= kanan:
+            if a[i].skor >= a[j].skor:        # sama: ambil yang datang lebih dulu
+                sementara.append(a[i])
+                i += 1
+            else:
+                sementara.append(a[j])
+                j += 1
+        while i <= tengah:
+            sementara.append(a[i])
+            i += 1
+        while j <= kanan:
+            sementara.append(a[j])
+            j += 1
+        for t in range(len(sementara)):
+            a[kiri + t] = sementara[t]
+
+
+    def merge_sort(a, kiri, kanan):
+        if kiri >= kanan:                     # kasus dasar: 0 atau 1 elemen
+            return
+        tengah = kiri + (kanan - kiri) // 2
+        merge_sort(a, kiri, tengah)
+        merge_sort(a, tengah + 1, kanan)
+        gabung(a, kiri, tengah, kanan)
+
+
+    n = int(input())
+    a = []
+    for i in range(n):
+        bagian = input().split()
+        a.append(Peserta(bagian[0], int(bagian[1])))
+
+    merge_sort(a, 0, n - 1)
+
+    for p in a:
+        print(p.nama, p.skor)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Pangkat cepat modulo">
+  Baca tiga bilangan `a`, `b`, dan `m` (0 ≤ a ≤ 10¹⁸, 0 ≤ b ≤ 10¹⁸, 1 ≤ m ≤ 10⁹). Tampilkan sisa bagi `a` pangkat `b` dengan `m`. Tulis fungsi pangkatnya sendiri dengan divide & conquer.
+
+  | Input | Output |
+  | --- | --- |
+  | `2 10 1000` | `24` |
+  | `123456789123456789 2 1000000007` | `165980939` |
+  | `5 0 1` | `0` |
+
+  <Petunjuk>
+    Ubah `pangkat` dari materi: ambil `% m` setelah setiap perkalian. Kedua angka yang dikalikan harus selalu lebih kecil dari `m`, jadi `a` pun perlu diambil sisanya lebih dulu. Hati-hati juga dengan kasus dasar ketika `m = 1`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah diambil sisa baginya, setiap angka lebih kecil dari m ≤ 10⁹, sehingga hasil kali dua angka paling besar sekitar 10¹⁸ dan masih muat di `long long`. Tanpa `a % m` di awal, `a` bisa sebesar 10¹⁸ dan `setengah * a` langsung meluap, seperti pada contoh kedua. Kasus dasarnya mengembalikan `1 % m`, bukan `1`, karena sisa bagi apa pun dengan 1 adalah 0 (contoh ketiga).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    long long pangkatMod(long long a, long long b, long long m) {
+        if (b == 0) {                               // kasus dasar
+            return 1 % m;
+        }
+        long long setengah = pangkatMod(a, b / 2, m);
+        long long hasil = setengah * setengah % m;
+        if (b % 2 == 1) {
+            hasil = hasil * a % m;
+        }
+        return hasil;
+    }
+
+    int main() {
+        long long a, b, m;
+        cin >> a >> b >> m;
+        cout << pangkatMod(a % m, b, m) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def pangkat_mod(a, b, m):
+        if b == 0:                                  # kasus dasar
+            return 1 % m
+        setengah = pangkat_mod(a, b // 2, m)
+        hasil = setengah * setengah % m
+        if b % 2 == 1:
+            hasil = hasil * a % m
+        return hasil
+
+
+    a, b, m = map(int, input().split())
+    print(pangkat_mod(a % m, b, m))
+    ```
+
+    Di Python, cukup `print(pow(a, b, m))`. Menulisnya sendiri tetap berguna untuk memahami cara kerjanya, dan di C++ tidak ada fungsi siap pakai untuk ini.
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Tebak output: partisi">
+  Tentukan output program berikut tanpa menjalankannya. Fungsi `partisi` sama dengan di materi. Lalu jawab: jika quick sort dari materi dijalankan pada `1 2 3 4 5 6 7 8`, berapa kali perbandingan `a[j] < pivot` dilakukan secara total?
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <utility>
+  #include <vector>
+  using namespace std;
+
+  int partisi(vector<int>& a, int kiri, int kanan) {
+      int pivot = a[kanan];
+      int i = kiri;
+      for (int j = kiri; j < kanan; j++) {
+          if (a[j] < pivot) {
+              swap(a[i], a[j]);
+              i++;
+          }
+      }
+      swap(a[i], a[kanan]);
+      return i;
+  }
+
+  int main() {
+      vector<int> a = {4, 7, 1, 8, 3, 6, 2, 5};
+      int p = partisi(a, 0, 7);
+      cout << "pivot di indeks " << p << endl;
+      for (int x : a) {
+          cout << x << " ";
+      }
+      cout << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def partisi(a, kiri, kanan):
+      pivot = a[kanan]
+      i = kiri
+      for j in range(kiri, kanan):
+          if a[j] < pivot:
+              a[i], a[j] = a[j], a[i]
+              i += 1
+      a[i], a[kanan] = a[kanan], a[i]
+      return i
+
+
+  a = [4, 7, 1, 8, 3, 6, 2, 5]
+  p = partisi(a, 0, 7)
+  print("pivot di indeks", p)
+  for x in a:
+      print(x, end=" ")
+  print()
+  ```
+
+  <Pembahasan>
+    Output (baris kedua diakhiri satu spasi):
+
+    ```txt
+    pivot di indeks 4
+    4 1 3 2 5 6 8 7 
+    ```
+
+    | `j` | `a[j]` | `< 5`? | Isi sesudahnya | `i` |
+    | --- | --- | --- | --- | --- |
+    | 0 | 4 | ya, tukar dengan dirinya sendiri | `4 7 1 8 3 6 2 5` | 1 |
+    | 1 | 7 | tidak | `4 7 1 8 3 6 2 5` | 1 |
+    | 2 | 1 | ya, tukar `a[1]` dan `a[2]` | `4 1 7 8 3 6 2 5` | 2 |
+    | 3 | 8 | tidak | `4 1 7 8 3 6 2 5` | 2 |
+    | 4 | 3 | ya, tukar `a[2]` dan `a[4]` | `4 1 3 8 7 6 2 5` | 3 |
+    | 5 | 6 | tidak | `4 1 3 8 7 6 2 5` | 3 |
+    | 6 | 2 | ya, tukar `a[3]` dan `a[6]` | `4 1 3 2 7 6 8 5` | 4 |
+    | | | tukar pivot ke `a[4]` | `4 1 3 2 5 6 8 7` | |
+
+    Perhatikan bahwa bagian kiri (`4 1 3 2`) dan bagian kanan (`6 8 7`) belum urut. Partisi hanya menjamin semuanya berada di sisi yang benar.
+
+    Untuk `1 2 3 4 5 6 7 8`, pivotnya selalu elemen terbesar di rentangnya, sehingga rentang hanya berkurang satu setiap kali: 7 + 6 + 5 + 4 + 3 + 2 + 1 = **28** perbandingan. Itu sama dengan n(n − 1)/2 untuk n = 8, kasus terburuk quick sort.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Puncak jalur pendakian">
+  Ketinggian titik-titik di sebuah jalur pendakian dicatat dari kaki gunung. Ketinggiannya **naik terus** sampai puncak, lalu **turun terus** (bagian naik atau bagian turun boleh kosong, dan tidak ada dua titik bersebelahan yang sama tinggi). Baca `n` (1 ≤ n ≤ 100.000) dan ketinggiannya, lalu tampilkan indeks puncak (dari 0) dan ketinggiannya.
+
+  Cari puncaknya dengan membagi dua seperti binary search, sehingga cukup sekitar log₂ n perbandingan. Membaca input tetap butuh `n` langkah, tetapi yang dilatih di sini adalah pencariannya.
+
+  ```txt title="Contoh input"
+  7
+  2 5 9 14 11 6 3
+  ```
+
+  ```txt title="Contoh output"
+  3 14
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  10 8 5 1
+  ```
+
+  ```txt title="Contoh output 2"
+  0 10
+  ```
+
+  <Petunjuk>
+    Bandingkan `a[tengah]` dengan tetangga kanannya `a[tengah + 1]`. Jika jalurnya masih naik di sana, puncak pasti berada di kanan `tengah`. Jika sudah turun, puncak ada di `tengah` atau di kirinya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jika `a[tengah] < a[tengah + 1]`, jalur masih naik, jadi `tengah` bukan puncak dan puncaknya di `[tengah + 1, kanan]`. Jika tidak, jalur sudah turun mulai `tengah`, jadi puncaknya di `[kiri, tengah]`. Perhatikan bahwa `tengah` sendiri **tetap ikut** di bagian kiri karena bisa jadi itulah puncaknya. Kedua bagian selalu lebih kecil dari `[kiri, kanan]`, karena `tengah` dibulatkan ke bawah sehingga `tengah < kanan`. Fakta yang sama menjamin `a[tengah + 1]` tidak pernah keluar dari rentang.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int puncak(const vector<int>& a, int kiri, int kanan) {
+        if (kiri == kanan) {                    // kasus dasar: tinggal satu titik
+            return kiri;
+        }
+        int tengah = kiri + (kanan - kiri) / 2;
+        if (a[tengah] < a[tengah + 1]) {
+            return puncak(a, tengah + 1, kanan);   // masih naik
+        }
+        return puncak(a, kiri, tengah);            // sudah turun
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        int p = puncak(a, 0, n - 1);
+        cout << p << " " << a[p] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def puncak(a, kiri, kanan):
+        if kiri == kanan:                       # kasus dasar: tinggal satu titik
+            return kiri
+        tengah = kiri + (kanan - kiri) // 2
+        if a[tengah] < a[tengah + 1]:
+            return puncak(a, tengah + 1, kanan)    # masih naik
+        return puncak(a, kiri, tengah)             # sudah turun
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+    p = puncak(a, 0, n - 1)
+    print(p, a[p])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Menghitung inversi">
+  Sepasang posisi `i < j` disebut **inversi** jika `a[i] > a[j]`, yaitu pasangan yang urutannya terbalik. Banyak inversi mengukur seberapa jauh data dari keadaan urut: data urut naik punya 0 inversi. Baca `n` (1 ≤ n ≤ 100.000) bilangan (masing-masing di antara -10⁹ dan 10⁹), lalu tampilkan banyak inversinya.
+
+  Memeriksa semua pasangan butuh sekitar 5 miliar perbandingan untuk n = 100.000, terlalu lambat.
+
+  ```txt title="Contoh input"
+  5
+  3 1 4 1 5
+  ```
+
+  ```txt title="Contoh output"
+  3
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  5 4 3 2 1
+  ```
+
+  ```txt title="Contoh output 2"
+  10
+  ```
+
+  <Petunjuk>
+    Pakai merge sort. Setiap inversi terletak di dalam bagian kiri, di dalam bagian kanan, atau melintang (satu elemen di kiri, satu di kanan). Dua jenis pertama dihitung oleh rekursi. Jenis ketiga bisa dihitung saat `gabung`: ketika elemen kanan `a[j]` diambil lebih dulu, elemen itu lebih kecil dari **semua** elemen kiri yang belum diambil.
+  </Petunjuk>
+
+  <Pembahasan>
+    Saat `gabung` mengambil `a[j]` dari bagian kanan, sisa bagian kiri `a[i..tengah]` semuanya lebih besar dari `a[j]`, karena bagian kiri sudah urut dan `a[i]` adalah yang terkecil di antara sisanya. Semua `tengah - i + 1` elemen itu berpasangan inversi dengan `a[j]`, jadi tambahkan sekaligus. Saat nilainya sama, ambil dari kiri lebih dulu (`<=`) karena pasangan bernilai sama bukan inversi. Pada contoh 1, pasangan `1` dan `1` tidak dihitung.
+
+    Untuk n = 100.000, banyak inversi bisa mencapai sekitar 5 × 10⁹, jadi pakai `long long`. Fungsi `hitung` mengurutkan rentangnya sekaligus mengembalikan banyak inversi di dalamnya. Totalnya tetap O(n log n), karena hanya ada satu penjumlahan tambahan setiap kali elemen kanan diambil.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    long long gabungHitung(vector<int>& a, int kiri, int tengah, int kanan) {
+        vector<int> sementara;
+        long long inversi = 0;
+        int i = kiri, j = tengah + 1;
+        while (i <= tengah && j <= kanan) {
+            if (a[i] <= a[j]) {
+                sementara.push_back(a[i]);
+                i++;
+            } else {
+                sementara.push_back(a[j]);
+                inversi += tengah - i + 1;     // a[i..tengah] semuanya > a[j]
+                j++;
+            }
+        }
+        while (i <= tengah) {
+            sementara.push_back(a[i]);
+            i++;
+        }
+        while (j <= kanan) {
+            sementara.push_back(a[j]);
+            j++;
+        }
+        for (int t = 0; t < (int)sementara.size(); t++) {
+            a[kiri + t] = sementara[t];
+        }
+        return inversi;
+    }
+
+    long long hitung(vector<int>& a, int kiri, int kanan) {
+        if (kiri >= kanan) {                   // kasus dasar: tidak ada pasangan
+            return 0;
+        }
+        int tengah = kiri + (kanan - kiri) / 2;
+        long long total = hitung(a, kiri, tengah);
+        total += hitung(a, tengah + 1, kanan);
+        total += gabungHitung(a, kiri, tengah, kanan);
+        return total;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        cout << hitung(a, 0, n - 1) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def gabung_hitung(a, kiri, tengah, kanan):
+        sementara = []
+        inversi = 0
+        i, j = kiri, tengah + 1
+        while i <= tengah and j <= kanan:
+            if a[i] <= a[j]:
+                sementara.append(a[i])
+                i += 1
+            else:
+                sementara.append(a[j])
+                inversi += tengah - i + 1      # a[i..tengah] semuanya > a[j]
+                j += 1
+        while i <= tengah:
+            sementara.append(a[i])
+            i += 1
+        while j <= kanan:
+            sementara.append(a[j])
+            j += 1
+        for t in range(len(sementara)):
+            a[kiri + t] = sementara[t]
+        return inversi
+
+
+    def hitung(a, kiri, kanan):
+        if kiri >= kanan:                      # kasus dasar: tidak ada pasangan
+            return 0
+        tengah = kiri + (kanan - kiri) // 2
+        total = hitung(a, kiri, tengah)
+        total += hitung(a, tengah + 1, kanan)
+        total += gabung_hitung(a, kiri, tengah, kanan)
+        return total
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+    print(hitung(a, 0, n - 1))
+    ```
+
+    Fakta menarik: banyak inversi sama dengan banyak pertukaran yang dilakukan bubble sort, karena setiap pertukaran dua elemen bersebelahan menghapus tepat satu inversi.
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Untung beruntun terbesar">
+  Sebuah toko mencatat untung (atau rugi, jika negatif) setiap hari selama `n` hari (1 ≤ n ≤ 100.000, setiap nilai di antara -10⁹ dan 10⁹). Tentukan jumlah terbesar dari **beberapa hari berturut-turut**, minimal satu hari. Kerjakan dengan divide & conquer.
+
+  ```txt title="Contoh input"
+  7
+  -2 5 -3 4 -6 2 1
+  ```
+
+  ```txt title="Contoh output"
+  6
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  -4 -2 -7
+  ```
+
+  ```txt title="Contoh output 2"
+  -2
+  ```
+
+  <Petunjuk>
+    Bagi di tengah. Rentang hari terbaik berada sepenuhnya di bagian kiri, sepenuhnya di bagian kanan, atau **melintasi** titik tengah. Dua kemungkinan pertama diserahkan ke rekursi. Rentang yang melintas pasti memuat hari `tengah` dan `tengah + 1`: cari jumlah terbesar yang **berakhir** di `tengah` (berjalan ke kiri) dan jumlah terbesar yang **dimulai** di `tengah + 1` (berjalan ke kanan), lalu jumlahkan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada contoh 1, rentang terbaik adalah `5 -3 4` dengan jumlah 6, dan rentang itu melintasi titik tengah (`tengah` = 3, hari bernilai 4). Bagian melintas dihitung dengan dua perulangan dari tengah ke luar, masing-masing mencatat jumlah terbesar yang pernah dicapai. Nilai awalnya diambil dari elemen yang pasti ikut, yaitu `a[tengah]` dan `a[tengah + 1]`, sehingga data yang semuanya negatif (contoh 2) tetap benar. Kesalahan umum adalah memulai dari 0, yang diam-diam mengizinkan rentang kosong.
+
+    Setiap tingkat rekursi menelusuri seluruh rentang sekali, jadi totalnya O(n log n). Jumlahnya bisa mencapai 10⁵ × 10⁹ = 10¹⁴, jadi pakai `long long`. `max(x, y)` dari `<algorithm>` mengembalikan yang lebih besar dari dua nilai.
+
+    ```cpp tab="C++"
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    long long terbaik(const vector<long long>& a, int kiri, int kanan) {
+        if (kiri == kanan) {                       // kasus dasar: satu hari
+            return a[kiri];
+        }
+        int tengah = kiri + (kanan - kiri) / 2;
+        long long hasilKiri = terbaik(a, kiri, tengah);
+        long long hasilKanan = terbaik(a, tengah + 1, kanan);
+
+        long long jumlah = 0, kiriTerbaik = a[tengah];
+        for (int i = tengah; i >= kiri; i--) {     // berakhir di tengah
+            jumlah += a[i];
+            kiriTerbaik = max(kiriTerbaik, jumlah);
+        }
+        jumlah = 0;
+        long long kananTerbaik = a[tengah + 1];
+        for (int i = tengah + 1; i <= kanan; i++) { // dimulai di tengah + 1
+            jumlah += a[i];
+            kananTerbaik = max(kananTerbaik, jumlah);
+        }
+        long long melintas = kiriTerbaik + kananTerbaik;
+
+        return max(max(hasilKiri, hasilKanan), melintas);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<long long> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        cout << terbaik(a, 0, n - 1) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def terbaik(a, kiri, kanan):
+        if kiri == kanan:                          # kasus dasar: satu hari
+            return a[kiri]
+        tengah = kiri + (kanan - kiri) // 2
+        hasil_kiri = terbaik(a, kiri, tengah)
+        hasil_kanan = terbaik(a, tengah + 1, kanan)
+
+        jumlah = 0
+        kiri_terbaik = a[tengah]
+        for i in range(tengah, kiri - 1, -1):      # berakhir di tengah
+            jumlah += a[i]
+            kiri_terbaik = max(kiri_terbaik, jumlah)
+        jumlah = 0
+        kanan_terbaik = a[tengah + 1]
+        for i in range(tengah + 1, kanan + 1):     # dimulai di tengah + 1
+            jumlah += a[i]
+            kanan_terbaik = max(kanan_terbaik, jumlah)
+        melintas = kiri_terbaik + kanan_terbaik
+
+        return max(hasil_kiri, hasil_kanan, melintas)
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+    print(terbaik(a, 0, n - 1))
+    ```
+
+    Masalah ini sebenarnya bisa diselesaikan dalam O(n) dengan satu perulangan. Cara itu termasuk teknik _dynamic programming_, kelanjutan dari ide [memoisasi](/docs/cpp/pendalaman/memoisasi).
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Terkecil ke-k">
+  Baris pertama berisi `n` dan `k` (1 ≤ k ≤ n ≤ 100.000). Baris kedua berisi `n` bilangan yang **semuanya berbeda**. Tampilkan bilangan terkecil ke-`k`, yaitu bilangan yang berada di posisi ke-`k` jika data diurutkan naik. Jangan mengurutkan seluruh data. Pakailah partisi dari quick sort.
+
+  ```txt title="Contoh input"
+  7 3
+  15 4 23 8 42 16 1
+  ```
+
+  ```txt title="Contoh output"
+  8
+  ```
+
+  ```txt title="Contoh input 2"
+  5 5
+  9 2 7 4 5
+  ```
+
+  ```txt title="Contoh output 2"
+  9
+  ```
+
+  <Petunjuk>
+    Setelah partisi, pivot berada di indeks `p`, posisi akhirnya jika data diurutkan. Jika `p` sama dengan `k - 1`, pivot itulah jawabannya. Jika tidak, jawabannya hanya ada di **satu** sisi, jadi sisi lainnya bisa dibuang, seperti binary search. Agar data yang sudah urut tidak menjadi kasus terburuk, tukar dulu elemen tengah rentang ke posisi `kanan` sebelum partisi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Cara ini disebut **quickselect**. Seperti binary search, hanya ada satu submasalah, sehingga rekursinya bisa ditulis sebagai perulangan yang mempersempit `[kiri, kanan]`. Jika pivot rata-rata membagi rentang menjadi dua, pekerjaannya kira-kira n + n/2 + n/4 + ... ≈ 2n, yaitu O(n) rata-rata. Bandingkan dengan mengurutkan dulu, yang butuh O(n log n). Memakai elemen tengah sebagai pivot membuat data urut naik maupun urut turun justru menjadi kasus yang baik. Kasus terburuknya tetap O(n²), tetapi butuh data yang disusun khusus.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <utility>
+    #include <vector>
+    using namespace std;
+
+    int partisi(vector<int>& a, int kiri, int kanan) {
+        int tengah = kiri + (kanan - kiri) / 2;
+        swap(a[tengah], a[kanan]);        // pakai elemen tengah sebagai pivot
+        int pivot = a[kanan];
+        int i = kiri;
+        for (int j = kiri; j < kanan; j++) {
+            if (a[j] < pivot) {
+                swap(a[i], a[j]);
+                i++;
+            }
+        }
+        swap(a[i], a[kanan]);
+        return i;
+    }
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+
+        int target = k - 1;               // indeks jawaban jika data diurutkan
+        int kiri = 0, kanan = n - 1;
+        while (true) {
+            int p = partisi(a, kiri, kanan);
+            if (p == target) {
+                break;
+            } else if (target < p) {
+                kanan = p - 1;            // jawaban di kiri pivot
+            } else {
+                kiri = p + 1;             // jawaban di kanan pivot
+            }
+        }
+        cout << a[target] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def partisi(a, kiri, kanan):
+        tengah = kiri + (kanan - kiri) // 2
+        a[tengah], a[kanan] = a[kanan], a[tengah]   # pakai elemen tengah sebagai pivot
+        pivot = a[kanan]
+        i = kiri
+        for j in range(kiri, kanan):
+            if a[j] < pivot:
+                a[i], a[j] = a[j], a[i]
+                i += 1
+        a[i], a[kanan] = a[kanan], a[i]
+        return i
+
+
+    n, k = map(int, input().split())
+    a = list(map(int, input().split()))
+
+    target = k - 1                    # indeks jawaban jika data diurutkan
+    kiri, kanan = 0, n - 1
+    while True:
+        p = partisi(a, kiri, kanan)
+        if p == target:
+            break
+        elif target < p:
+            kanan = p - 1             # jawaban di kiri pivot
+        else:
+            kiri = p + 1              # jawaban di kanan pivot
+    print(a[target])
+    ```
+
+    Perulangan pasti berhenti. `target` selalu berada di dalam `[kiri, kanan]`, dan setiap putaran yang tidak berhenti membuang pivot beserta satu sisinya. Saat rentangnya tinggal satu elemen, `partisi` mengembalikan indeks elemen itu, yang pasti `target`. Pustaka C++ punya versi siap pakainya, `nth_element` dari `<algorithm>`.
+  </Pembahasan>
+</Soal>

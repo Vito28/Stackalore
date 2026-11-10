@@ -1,0 +1,1694 @@
+---
+title: Matriks
+description: Menyimpan data berbentuk tabel dengan vector dua dimensi, menelusuri baris dan kolom, mengolah diagonal, menjumlah, mentranspos, mengalikan, dan memutar matriks, serta menjelajah grid karakter.
+sumber:
+  - ref: cppreference
+    judul: std::vector
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: cppreference
+    judul: Array declaration
+    url: https://en.cppreference.com/w/cpp/language/array
+  - ref: python-docs
+    judul: Tutorial, Nested List Comprehensions
+    url: https://docs.python.org/3/tutorial/datastructures.html#nested-list-comprehensions
+  - ref: python-docs
+    judul: Programming FAQ, How do I create a multidimensional list?
+    url: https://docs.python.org/3/faq/programming.html#how-do-i-create-a-multidimensional-list
+---
+
+## Masalah: data berbentuk tabel
+
+Di [Array & vector](/docs/cpp/array-dan-vector) kamu menyimpan nilai banyak siswa dalam satu vector. Sekarang setiap siswa punya nilai untuk **beberapa mata pelajaran**, sehingga datanya berbentuk tabel:
+
+| Siswa | Matematika | IPA | B. Indonesia |
+| --- | --- | --- | --- |
+| Ani | 80 | 75 | 90 |
+| Budi | 65 | 88 | 70 |
+| Citra | 92 | 81 | 85 |
+| Dodi | 70 | 60 | 78 |
+
+Kamu bisa saja membuat empat vector, satu untuk setiap siswa. Namun itu mengulang masalah lama: setiap vector punya nama sendiri, sehingga perulangan tidak bisa berpindah dari satu vector ke vector berikutnya. Yang dibutuhkan adalah **satu** variabel untuk seluruh tabel, dengan dua indeks: nomor baris dan nomor kolom.
+
+Tabel bilangan seperti ini disebut **matriks**. Matriks berukuran `r × c` punya `r` baris dan `c` kolom. Elemen di baris `i` dan kolom `j` ditulis `a[i][j]`. Bentuk dasarnya sudah kamu lihat di bagian [Array dua dimensi](/docs/cpp/array-dan-vector#array-dua-dimensi). Materi ini membahasnya lebih dalam.
+
+```txt
+           kolom 0   kolom 1   kolom 2
+baris 0       80        75        90      a[0][2] = 90
+baris 1       65        88        70
+baris 2       92        81        85      a[2][0] = 92
+baris 3       70        60        78
+```
+
+Indeks pertama selalu **baris**, indeks kedua selalu **kolom**, dan keduanya dimulai dari 0. Data seperti ini ada di mana-mana: denah kursi bioskop, papan catur, lembar spreadsheet, peta permainan, sampai gambar digital yang tersusun dari baris dan kolom piksel.
+
+## Membuat matriks dari input
+
+Di materi ini dan materi-materi berikutnya, matriks dibaca dengan format yang sama: baris pertama berisi `r` dan `c`, lalu ada `r` baris yang masing-masing berisi `c` bilangan.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+
+    vector<vector<int>> a(r, vector<int>(c));   // r baris, setiap baris berisi c angka 0
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            cin >> a[i][j];
+        }
+    }
+
+    cout << a.size() << " baris, " << a[0].size() << " kolom" << endl;
+    cout << "a[0][2] = " << a[0][2] << endl;
+    cout << "a[2][0] = " << a[2][0] << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+r, c = map(int, input().split())
+
+a = []
+for i in range(r):
+    baris = list(map(int, input().split()))   # satu baris berisi c bilangan
+    a.append(baris)
+
+print(len(a), "baris,", len(a[0]), "kolom")
+print("a[0][2] =", a[0][2])
+print("a[2][0] =", a[2][0])
+```
+
+```txt title="Contoh jalannya program"
+4 3
+80 75 90
+65 88 70
+92 81 85
+70 60 78
+4 baris, 3 kolom
+a[0][2] = 90
+a[2][0] = 92
+```
+
+Baca `vector<vector<int>> a(r, vector<int>(c))` dari luar ke dalam: `a` adalah vector berisi `r` elemen, dan setiap elemennya adalah `vector<int>(c)`, yaitu vector berisi `c` bilangan bernilai 0. Jadi `a[i]` adalah **satu baris utuh**, dan `a[i][j]` adalah elemen ke-`j` di baris itu. Karena itu `a.size()` memberi banyak baris, sedangkan `a[0].size()` memberi banyak kolom.
+
+Di Python, matriks adalah **list berisi list**. Setiap baris input diubah menjadi list, lalu ditambahkan ke list luar.
+
+```txt
+a ──► a[0] ──► [80][75][90]
+      a[1] ──► [65][88][70]
+      a[2] ──► [92][81][85]
+      a[3] ──► [70][60][78]
+```
+
+Python juga punya bentuk singkat untuk membaca matriks dalam satu baris kode:
+
+```python
+a = [list(map(int, input().split())) for _ in range(r)]
+```
+
+Bentuk ini disebut **list comprehension**: ekspresi di depan `for` dijalankan `r` kali, lalu hasilnya dikumpulkan menjadi list baru. Nama `_` dipakai untuk variabel penghitung yang tidak dibutuhkan.
+
+<Callout type="warning" title="Jebakan Python: [[0] * c] * r">
+  Untuk membuat matriks berisi nol, jangan menulis `[[0] * c] * r`. Hasilnya bukan `r` baris yang berbeda, melainkan **satu baris yang sama** yang ditunjuk `r` kali.
+</Callout>
+
+```python
+salah = [[0] * 4] * 3            # ✗ satu baris yang sama, dipakai 3 kali
+salah[0][1] = 7
+print(salah)                     # [[0, 7, 0, 0], [0, 7, 0, 0], [0, 7, 0, 0]]
+
+benar = [[0] * 4 for _ in range(3)]   # ✓ setiap baris dibuat baru
+benar[0][1] = 7
+print(benar)                     # [[0, 7, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+```
+
+`* 3` pada list luar hanya menyalin **penunjuk** ke baris yang sama, bukan isi barisnya. Mengubah satu baris berarti mengubah "ketiganya", karena sebenarnya hanya ada satu. List comprehension menjalankan `[0] * 4` tiga kali, sehingga terbentuk tiga baris yang benar-benar terpisah. C++ tidak punya jebakan ini: `vector<vector<int>> a(r, vector<int>(c))` membuat `r` salinan baris yang terpisah.
+
+## Menelusuri per baris dan per kolom
+
+Dua pertanyaan tentang tabel nilai tadi:
+
+- Berapa **total nilai setiap siswa**? Satu siswa adalah satu baris, jadi jumlahkan per baris.
+- Berapa **nilai tertinggi setiap mapel**? Satu mapel adalah satu kolom, jadi telusuri per kolom.
+
+Lanjutan program di atas (setelah matriks dibaca):
+
+```cpp tab="C++"
+// total nilai setiap siswa: perulangan luar pada baris
+for (int i = 0; i < r; i++) {
+    int total = 0;
+    for (int j = 0; j < c; j++) {
+        total += a[i][j];
+    }
+    cout << "Siswa " << i << ": " << total << endl;
+}
+
+// nilai tertinggi setiap mapel: perulangan luar pada kolom
+for (int j = 0; j < c; j++) {
+    int tertinggi = a[0][j];
+    for (int i = 1; i < r; i++) {
+        if (a[i][j] > tertinggi) {
+            tertinggi = a[i][j];
+        }
+    }
+    cout << "Mapel " << j << ": " << tertinggi << endl;
+}
+```
+
+```python tab="Python"
+# total nilai setiap siswa: perulangan luar pada baris
+for i in range(r):
+    total = 0
+    for j in range(c):
+        total += a[i][j]
+    print(f"Siswa {i}: {total}")
+
+# nilai tertinggi setiap mapel: perulangan luar pada kolom
+for j in range(c):
+    tertinggi = a[0][j]
+    for i in range(1, r):
+        if a[i][j] > tertinggi:
+            tertinggi = a[i][j]
+    print(f"Mapel {j}: {tertinggi}")
+```
+
+```txt title="Output untuk tabel nilai di atas"
+Siswa 0: 245
+Siswa 1: 223
+Siswa 2: 258
+Siswa 3: 208
+Mapel 0: 92
+Mapel 1: 88
+Mapel 2: 90
+```
+
+Perhatikan bahwa indeksnya **tetap** `a[i][j]`, dengan `i` untuk baris dan `j` untuk kolom. Yang ditukar hanyalah perulangan mana yang berada di luar. Urutan kunjungan untuk matriks 4 × 3:
+
+```txt
+per baris (i di luar)       per kolom (j di luar)
+ 1  2  3                     1  5  9
+ 4  5  6                     2  6 10
+ 7  8  9                     3  7 11
+10 11 12                     4  8 12
+```
+
+Di Python, jumlah satu baris juga bisa ditulis singkat `sum(a[i])`, karena `a[i]` adalah list biasa. Untuk kolom tidak ada jalan pintas serupa, karena elemen satu kolom tersebar di banyak list.
+
+## Matriks persegi dan diagonal
+
+Matriks dengan banyak baris sama dengan banyak kolom disebut **matriks persegi**, berukuran `n × n`. Matriks persegi punya dua diagonal:
+
+- **Diagonal utama**, dari kiri atas ke kanan bawah. Elemennya punya indeks baris sama dengan indeks kolom: `i == j`.
+- **Diagonal anti** (diagonal samping), dari kanan atas ke kiri bawah. Jumlah indeksnya selalu `n - 1`: `i + j == n - 1`.
+
+```txt
+diagonal utama (i == j)      diagonal anti (i + j == n - 1)
+
+[4]  1   7                    4   1  [7]
+ 2  [9]  3                    2  [9]  3
+ 5   8  [6]                  [5]  8   6
+```
+
+| Posisi | Syarat |
+| --- | --- |
+| Diagonal utama | `i == j` |
+| Di atas diagonal utama | `j > i` |
+| Di bawah diagonal utama | `j < i` |
+| Diagonal anti | `i + j == n - 1` |
+
+Setiap baris punya tepat satu elemen di diagonal utama, yaitu `a[i][i]`, dan satu elemen di diagonal anti, yaitu `a[i][n - 1 - i]`. Jadi cukup **satu** perulangan:
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<vector<int>> a(n, vector<int>(n));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> a[i][j];
+        }
+    }
+
+    int utama = 0, anti = 0;
+    for (int i = 0; i < n; i++) {
+        utama += a[i][i];
+        anti += a[i][n - 1 - i];
+    }
+    cout << "Diagonal utama: " << utama << endl;
+    cout << "Diagonal anti: " << anti << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+a = [list(map(int, input().split())) for _ in range(n)]
+
+utama = 0
+anti = 0
+for i in range(n):
+    utama += a[i][i]
+    anti += a[i][n - 1 - i]
+print("Diagonal utama:", utama)
+print("Diagonal anti:", anti)
+```
+
+```txt title="Contoh jalannya program"
+3
+4 1 7
+2 9 3
+5 8 6
+Diagonal utama: 19
+Diagonal anti: 21
+```
+
+Menelusuri seluruh matriks lalu memeriksa `if (i == j)` juga benar, tetapi memeriksa `n × n` elemen padahal yang dibutuhkan hanya `n`. Perhatikan juga bahwa untuk `n` ganjil, elemen tengah (di sini `9`) termasuk ke **kedua** diagonal.
+
+## Operasi matriks
+
+Matematika mendefinisikan beberapa operasi pada matriks. Ketiganya di bawah ini sering dipakai, dan semuanya hanya membutuhkan perulangan bersarang. Setiap operasi ditulis sebagai fungsi yang mengembalikan matriks baru. Matriks dikirim sebagai `const vector<vector<int>>&` agar tidak disalin, sama seperti [mengirim vector ke fungsi](/docs/cpp/array-dan-vector#mengirim-vector-ke-fungsi).
+
+### Penjumlahan
+
+Dua matriks hanya bisa dijumlahkan jika **ukurannya sama**. Hasilnya diperoleh dengan menjumlahkan elemen di posisi yang sama.
+
+```txt
+| 1  2 |   | 5  0 |   | 6   2 |
+| 3  4 | + | 1  7 | = | 4  11 |
+```
+
+```cpp tab="C++"
+vector<vector<int>> jumlahkan(const vector<vector<int>>& a, const vector<vector<int>>& b) {
+    int r = a.size(), c = a[0].size();
+    vector<vector<int>> hasil(r, vector<int>(c));
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            hasil[i][j] = a[i][j] + b[i][j];
+        }
+    }
+    return hasil;
+}
+```
+
+```python tab="Python"
+def jumlahkan(a, b):
+    r, c = len(a), len(a[0])
+    hasil = [[0] * c for _ in range(r)]
+    for i in range(r):
+        for j in range(c):
+            hasil[i][j] = a[i][j] + b[i][j]
+    return hasil
+```
+
+### Transpos
+
+**Transpos** mengubah setiap baris menjadi kolom. Elemen `a[i][j]` pindah ke posisi `[j][i]`, sehingga matriks `r × c` menjadi `c × r`.
+
+```txt
+a (2 × 3)        transpos a (3 × 2)
+1 2 3            1 4
+4 5 6            2 5
+                 3 6
+```
+
+```cpp tab="C++"
+vector<vector<int>> transpos(const vector<vector<int>>& a) {
+    int r = a.size(), c = a[0].size();
+    vector<vector<int>> t(c, vector<int>(r));   // ukurannya terbalik: c × r
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            t[j][i] = a[i][j];
+        }
+    }
+    return t;
+}
+```
+
+```python tab="Python"
+def transpos(a):
+    r, c = len(a), len(a[0])
+    t = [[0] * r for _ in range(c)]   # ukurannya terbalik: c × r
+    for i in range(r):
+        for j in range(c):
+            t[j][i] = a[i][j]
+    return t
+```
+
+### Perkalian matriks
+
+Perkalian matriks **tidak** dilakukan per elemen. Elemen hasil `C[i][j]` diperoleh dari **baris `i` milik A** dan **kolom `j` milik B**: kalikan pasangan elemennya satu per satu, lalu jumlahkan.
+
+```txt
+     A (2 × 3)          B (3 × 2)        C (2 × 2)
+   | 1  2  0 |        | 2  1 |         |  2   7 |
+   | 3  1  2 |   ×    | 0  3 |    =    | 14   8 |
+                      | 4  1 |
+
+C[1][0] = baris 1 milik A dengan kolom 0 milik B
+        = 3×2 + 1×0 + 2×4
+        = 14
+```
+
+Agar pasangannya pas, panjang baris A harus sama dengan panjang kolom B. Inilah **aturan ukuran** perkalian matriks:
+
+| A | B | A × B |
+| --- | --- | --- |
+| `r × k` | `k × c` | `r × c` |
+| `2 × 3` | `3 × 2` | `2 × 2` |
+| `2 × 3` | `2 × 3` | tidak bisa, 3 ≠ 2 |
+
+Banyak kolom A harus sama dengan banyak baris B. Akibatnya urutan perkalian penting: A × B dan B × A umumnya berbeda, bahkan ukurannya bisa berbeda. Pada contoh di atas, B × A berukuran 3 × 3.
+
+Programnya memakai tiga perulangan bersarang. Dua perulangan luar memilih posisi `[i][j]`, perulangan terdalam menjumlahkan `k` hasil kali.
+
+```cpp tab="C++"
+vector<vector<int>> kali(const vector<vector<int>>& a, const vector<vector<int>>& b) {
+    int r = a.size(), k = b.size(), c = b[0].size();   // a: r × k, b: k × c
+    vector<vector<int>> hasil(r, vector<int>(c, 0));
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            for (int t = 0; t < k; t++) {
+                hasil[i][j] += a[i][t] * b[t][j];
+            }
+        }
+    }
+    return hasil;
+}
+```
+
+```python tab="Python"
+def kali(a, b):
+    r, k, c = len(a), len(b), len(b[0])   # a: r × k, b: k × c
+    hasil = [[0] * c for _ in range(r)]
+    for i in range(r):
+        for j in range(c):
+            for t in range(k):
+                hasil[i][j] += a[i][t] * b[t][j]
+    return hasil
+```
+
+Ketiga fungsi di atas dipakai dalam program berikut. Fungsi `cetak` menampilkan matriks baris per baris.
+
+```cpp tab="C++"
+void cetak(const vector<vector<int>>& m) {
+    for (int i = 0; i < (int)m.size(); i++) {
+        for (int j = 0; j < (int)m[i].size(); j++) {
+            if (j > 0) {
+                cout << " ";
+            }
+            cout << m[i][j];
+        }
+        cout << endl;
+    }
+}
+
+int main() {
+    vector<vector<int>> a = {{1, 2, 0}, {3, 1, 2}};
+    vector<vector<int>> b = {{2, 1}, {0, 3}, {4, 1}};
+
+    cout << "a + a:" << endl;
+    cetak(jumlahkan(a, a));
+    cout << "transpos a:" << endl;
+    cetak(transpos(a));
+    cout << "a x b:" << endl;
+    cetak(kali(a, b));
+    return 0;
+}
+```
+
+```python tab="Python"
+def cetak(m):
+    for baris in m:
+        print(*baris)
+
+
+a = [[1, 2, 0], [3, 1, 2]]
+b = [[2, 1], [0, 3], [4, 1]]
+
+print("a + a:")
+cetak(jumlahkan(a, a))
+print("transpos a:")
+cetak(transpos(a))
+print("a x b:")
+cetak(kali(a, b))
+```
+
+```txt title="Output"
+a + a:
+2 4 0
+6 2 4
+transpos a:
+1 3
+2 1
+0 2
+a x b:
+2 7
+14 8
+```
+
+Untuk dua matriks `n × n`, perkalian butuh `n × n × n` = n³ perkalian bilangan. Matriks 1.000 × 1.000 berarti satu miliar perkalian. Pertumbuhan seperti ini dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>. Perkalian matriks adalah salah satu operasi terpenting di komputer: grafik 3D memakainya untuk memutar dan menggeser objek, dan jaringan saraf tiruan di _deep learning_ sebagian besar isinya adalah perkalian matriks berukuran besar.
+
+## Memutar 90 derajat
+
+Memutar gambar di ponsel adalah memutar matriks piksel. Saat matriks `r × c` diputar 90° searah jarum jam, ukurannya menjadi `c × r`.
+
+```txt
+a (2 × 3)       diputar 90° searah jarum jam (3 × 2)
+1 2 3           4 1
+4 5 6           5 2
+                6 3
+```
+
+Baris pertama (`1 2 3`) menjadi kolom **terakhir**, dan baris terakhir (`4 5 6`) menjadi kolom **pertama**. Lacak beberapa elemen untuk menemukan rumusnya:
+
+| Elemen | Posisi di `a` | Posisi di hasil |
+| --- | --- | --- |
+| `1` | `[0][0]` | `[0][1]` |
+| `3` | `[0][2]` | `[2][1]` |
+| `4` | `[1][0]` | `[0][0]` |
+| `6` | `[1][2]` | `[2][0]` |
+
+Kolom lama menjadi baris baru, dan baris lama dihitung dari bawah menjadi kolom baru. Jadi `a[i][j]` pindah ke `hasil[j][r - 1 - i]`.
+
+```cpp tab="C++"
+vector<vector<int>> putarKanan(const vector<vector<int>>& a) {
+    int r = a.size(), c = a[0].size();
+    vector<vector<int>> hasil(c, vector<int>(r));
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            hasil[j][r - 1 - i] = a[i][j];
+        }
+    }
+    return hasil;
+}
+```
+
+```python tab="Python"
+def putar_kanan(a):
+    r, c = len(a), len(a[0])
+    hasil = [[0] * r for _ in range(c)]
+    for i in range(r):
+        for j in range(c):
+            hasil[j][r - 1 - i] = a[i][j]
+    return hasil
+```
+
+Cara lain melihatnya: memutar searah jarum jam sama dengan mentranspos, lalu membalik urutan setiap baris. Coba periksa dengan contoh di atas. Memutar **berlawanan** arah jarum jam sama dengan memutar searah jarum jam tiga kali.
+
+Hasil putaran ditulis ke matriks **baru**. Untuk matriks yang tidak persegi, ukurannya memang berubah sehingga tidak mungkin ditulis di tempat yang sama. Untuk matriks persegi pun, menulis ke matriks yang sama akan menimpa nilai yang belum sempat dipindahkan.
+
+## Grid karakter
+
+Peta permainan, labirin, dan denah ruangan biasanya disimpan sebagai **grid karakter**. Formatnya sama dengan matriks: baris pertama berisi `r` dan `c`, lalu `r` baris yang masing-masing berupa teks sepanjang `c` karakter. Di materi ini dan materi-materi berikutnya, `.` berarti sel terbuka dan `#` berarti tembok.
+
+```txt
+4 5
+..#..
+.#...
+...#.
+#....
+```
+
+Setiap baris cukup disimpan sebagai sebuah [string](/docs/cpp/string), jadi grid adalah `vector<string>` (Python: list berisi string). `grid[i]` adalah satu baris teks, dan `grid[i][j]` adalah satu karakter di baris `i` kolom `j`.
+
+### Tetangga dan empat arah
+
+Banyak soal grid bertanya tentang **tetangga** sebuah sel, yaitu sel yang berbagi sisi dengannya. Sel `(i, j)` punya paling banyak empat tetangga:
+
+```txt
+              (i-1, j)
+                atas
+(i, j-1) kiri  (i, j)  kanan (i, j+1)
+                bawah
+              (i+1, j)
+```
+
+Daripada menulis empat `if` yang hampir sama, simpan perubahan baris dan kolom untuk setiap arah dalam dua array. Urutannya selalu **atas, bawah, kiri, kanan**:
+
+| `d` | Arah | `dr[d]` | `dc[d]` |
+| --- | --- | --- | --- |
+| 0 | atas | -1 | 0 |
+| 1 | bawah | 1 | 0 |
+| 2 | kiri | 0 | -1 |
+| 3 | kanan | 0 | 1 |
+
+Tetangga ke arah `d` adalah `(i + dr[d], j + dc[d])`. Sel di pinggir grid punya tetangga yang berada **di luar** grid, jadi setiap tetangga harus diperiksa dulu dengan `nr >= 0 && nr < r && nc >= 0 && nc < c` sebelum isinya dibaca.
+
+Program berikut mengganti setiap sel terbuka dengan banyak tetangganya yang juga terbuka. Tembok tetap ditampilkan sebagai `#`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<string> grid(r);
+    for (int i = 0; i < r; i++) {
+        cin >> grid[i];
+    }
+
+    int dr[4] = {-1, 1, 0, 0};     // atas, bawah, kiri, kanan
+    int dc[4] = {0, 0, -1, 1};
+
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            if (grid[i][j] == '#') {
+                cout << '#';
+                continue;
+            }
+            int terbuka = 0;
+            for (int d = 0; d < 4; d++) {
+                int nr = i + dr[d];
+                int nc = j + dc[d];
+                if (nr >= 0 && nr < r && nc >= 0 && nc < c && grid[nr][nc] == '.') {
+                    terbuka++;
+                }
+            }
+            cout << terbuka;
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+r, c = map(int, input().split())
+grid = []
+for i in range(r):
+    grid.append(input())
+
+dr = [-1, 1, 0, 0]     # atas, bawah, kiri, kanan
+dc = [0, 0, -1, 1]
+
+for i in range(r):
+    baris = ""
+    for j in range(c):
+        if grid[i][j] == "#":
+            baris += "#"
+            continue
+        terbuka = 0
+        for d in range(4):
+            nr = i + dr[d]
+            nc = j + dc[d]
+            if nr >= 0 and nr < r and nc >= 0 and nc < c and grid[nr][nc] == ".":
+                terbuka += 1
+        baris += str(terbuka)
+    print(baris)
+```
+
+```txt title="Contoh jalannya program"
+4 5
+..#..
+.#...
+...#.
+#....
+21#22
+2#233
+233#2
+#2322
+```
+
+Pemeriksaan batas ditaruh **sebelum** `grid[nr][nc]`. Berkat [_short-circuit_](/docs/cpp/operator-perbandingan-dan-logika#evaluasi-short-circuit), begitu salah satu syarat batas bernilai salah, `grid[nr][nc]` tidak pernah dibaca. Sel kiri atas `(0, 0)`, misalnya, hanya punya dua tetangga di dalam grid: bawah dan kanan.
+
+String Python tidak bisa diubah per karakter. Jika programmu perlu mengubah isi grid (misalnya menandai sel yang sudah dikunjungi), simpan setiap baris sebagai list karakter dengan `grid.append(list(input()))`, lalu tampilkan lagi dengan `print("".join(grid[i]))`. `"".join(...)` menyambung semua karakter di dalam list menjadi satu string.
+
+<Callout title="Grid adalah graph">
+  Bayangkan setiap sel terbuka sebagai titik, dan dua sel terbuka yang bertetangga sebagai titik yang terhubung. Pertanyaan seperti "apakah ada jalan dari pintu masuk ke pintu keluar?" atau "berapa langkah paling sedikit untuk sampai?" akan kamu jawab di [DFS](/docs/cpp/dfs) dan [BFS](/docs/cpp/bfs), dengan pola empat arah yang sama persis.
+</Callout>
+
+## Di memori: baris demi baris
+
+Array dua dimensi C++ seperti `int a[3][4]` disimpan sebagai 12 kotak `int` yang **bersebelahan**: seluruh baris 0, lalu seluruh baris 1, lalu seluruh baris 2. Susunan ini disebut _row-major_. Akibatnya, posisi `a[i][j]` dihitung dari awal array adalah `i × 4 + j`. Misalnya `a[1][2]` adalah kotak ke-`1 × 4 + 2` = 6.
+
+```txt
+int a[3][4]:
+
+| a[0][0] a[0][1] a[0][2] a[0][3] | a[1][0] a[1][1] a[1][2] a[1][3] | a[2][0] ... |
+           baris 0                            baris 1                  baris 2
+```
+
+`vector<vector<int>>` sedikit berbeda. Setiap baris adalah vector tersendiri, jadi elemen di dalam satu baris bersebelahan, tetapi baris-barisnya bisa berada di tempat yang berjauhan, seperti gambar `a ──► a[0] ──► ...` di atas.
+
+Dua hal praktis dari fakta ini:
+
+- Menelusuri dengan baris di luar dan kolom di dalam membaca memori secara berurutan. Untuk matriks besar, urutan ini biasanya lebih cepat daripada menelusuri per kolom.
+- Matriks `r × c` juga bisa disimpan dalam satu vector biasa berukuran `r * c`, dengan elemen `[i][j]` berada di indeks `i * c + j`.
+
+<DeepDive href="/docs/cpp/pendalaman/pointer-dan-array" kind="konsep" title="Pointer dan array">
+  Kenapa elemen array bersebelahan di memori dan bagaimana alamat elemen ke-`i` dihitung dari alamat awal. Rumus `i * c + j` di atas adalah perluasan dari perhitungan yang sama.
+</DeepDive>
+
+## Kesalahan yang sering terjadi
+
+### Tertukar baris dan kolom
+
+```cpp tab="C++"
+// a berukuran 2 × 3, jadi r = 2 dan c = 3
+for (int i = 0; i < r; i++) {
+    for (int j = 0; j < c; j++) {
+        cout << a[j][i] << " ";      // ✗ seharusnya a[i][j]
+    }
+}
+```
+
+```python tab="Python"
+# a berukuran 2 × 3, jadi r = 2 dan c = 3
+for i in range(r):
+    for j in range(c):
+        print(a[j][i], end=" ")      # ✗ seharusnya a[i][j]
+```
+
+Saat `j` bernilai 2, kode ini membaca `a[2]`, padahal baris yang ada hanya `a[0]` dan `a[1]`. Python berhenti dengan `IndexError: list index out of range`. C++ tidak memeriksa apa pun, sehingga terjadi [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior).
+
+Yang berbahaya, pada matriks **persegi** kesalahan ini tidak menimbulkan error. Programnya hanya diam-diam menghasilkan jawaban yang salah. Biasakan menguji program matriks dengan matriks yang tidak persegi, misalnya 2 × 3, dan selalu cocokkan batas perulangan dengan indeksnya: indeks baris dibatasi `r`, indeks kolom dibatasi `c`.
+
+### Keluar dari batas grid
+
+Sel di baris 0 punya tetangga atas di baris `-1`. Tanpa pemeriksaan batas, C++ membaca memori di luar grid (_undefined behavior_). Python lebih licik: `grid[-1]` **tidak** error, melainkan mengambil baris **terakhir**, karena indeks negatif di Python dihitung dari belakang. Sel di tepi atas seolah-olah bertetangga dengan sel di tepi bawah, dan programmu memberi jawaban salah tanpa pesan apa pun.
+
+Jadi pemeriksaan batas wajib di **kedua** bahasa, dan harus ditulis sebelum isi sel dibaca.
+
+### Baris yang sama di Python
+
+Selain `[[0] * c] * r`, ada dua cara lain yang membuat dua nama menunjuk ke baris yang sama:
+
+```python
+a = [[1, 2], [3, 4]]
+
+b = a                  # ✗ bukan salinan: b dan a adalah list yang sama
+c = a.copy()           # ✗ hanya list luar yang disalin, baris-barisnya masih dipakai bersama
+c[0][0] = 99
+print(a)               # [[99, 2], [3, 4]]  ikut berubah!
+
+d = [baris.copy() for baris in a]   # ✓ setiap baris disalin
+d[0][0] = 5
+print(a)               # [[99, 2], [3, 4]]  tidak berubah
+```
+
+Di C++, `vector<vector<int>> b = a;` menyalin seluruh isi, termasuk setiap baris. Mengubah `b` tidak mengubah `a`.
+
+## Rangkuman
+
+- Matriks adalah tabel bilangan berukuran `r × c`. Elemen di baris `i` kolom `j` diakses dengan `a[i][j]`. Indeks pertama baris, indeks kedua kolom, keduanya mulai dari 0.
+- C++ memakai `vector<vector<int>> a(r, vector<int>(c));`. Python memakai list berisi list. Jangan membuat matriks Python dengan `[[0] * c] * r`.
+- Telusuri per baris dengan baris di perulangan luar, atau per kolom dengan kolom di perulangan luar. Indeksnya tetap `a[i][j]`.
+- Pada matriks persegi `n × n`, diagonal utama adalah `a[i][i]` dan diagonal anti adalah `a[i][n - 1 - i]`.
+- Penjumlahan butuh ukuran yang sama. Transpos mengubah `r × c` menjadi `c × r`. Perkalian `r × k` dengan `k × c` menghasilkan `r × c` dan memakai tiga perulangan bersarang.
+- Memutar 90° searah jarum jam memindahkan `a[i][j]` ke `hasil[j][r - 1 - i]`. Tulis hasilnya ke matriks baru.
+- Grid karakter disimpan sebagai `vector<string>`. Tetangga dicari dengan `dr`/`dc` (atas, bawah, kiri, kanan), dan batas diperiksa sebelum sel dibaca.
+- Uji program dengan matriks yang tidak persegi agar kesalahan tukar baris dan kolom terlihat.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, matriks dibaca dengan format di atas: `r c`, lalu `r` baris berisi `c` bilangan. Matriks ditampilkan baris per baris, dengan bilangan dipisah satu spasi.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Matriks identitas">
+  **Matriks identitas** adalah matriks persegi yang diagonal utamanya berisi `1` dan elemen lainnya `0`. Baris pertama input berisi `n`, lalu `n` baris berisi `n` bilangan. Tampilkan `Ya` jika matriks itu matriks identitas, dan `Tidak` jika bukan.
+
+  ```txt title="Contoh input"
+  3
+  1 0 0
+  0 1 0
+  0 0 1
+  ```
+
+  ```txt title="Contoh output"
+  Ya
+  ```
+
+  ```txt title="Contoh input 2"
+  2
+  1 0
+  1 1
+  ```
+
+  ```txt title="Contoh output 2"
+  Tidak
+  ```
+
+  <Pembahasan>
+    Nilai yang diharapkan di posisi `[i][j]` adalah `1` jika `i == j` dan `0` jika tidak. Begitu ada satu elemen yang berbeda, jawabannya sudah pasti `Tidak`. Membungkus pemeriksaan dalam fungsi membuat `return false` langsung keluar dari **kedua** perulangan sekaligus, sesuatu yang tidak bisa dilakukan `break`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    bool identitas(const vector<vector<int>>& a) {
+        int n = a.size();
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                int harusnya = (i == j) ? 1 : 0;
+                if (a[i][j] != harusnya) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<vector<int>> a(n, vector<int>(n));
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                cin >> a[i][j];
+            }
+        }
+
+        cout << (identitas(a) ? "Ya" : "Tidak") << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def identitas(a):
+        n = len(a)
+        for i in range(n):
+            for j in range(n):
+                harusnya = 1 if i == j else 0
+                if a[i][j] != harusnya:
+                    return False
+        return True
+
+
+    n = int(input())
+    a = [list(map(int, input().split())) for _ in range(n)]
+
+    print("Ya" if identitas(a) else "Tidak")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output: kolom di luar">
+  Tentukan output program berikut tanpa menjalankannya. Lalu jelaskan apa yang terjadi jika batas kedua perulangan ditukar, yaitu `j < 2` dan `i < 3`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      vector<vector<int>> a = {{1, 2, 3}, {4, 5, 6}};
+
+      for (int j = 0; j < 3; j++) {
+          for (int i = 0; i < 2; i++) {
+              cout << a[i][j] << " ";
+          }
+          cout << endl;
+      }
+      cout << a[1][0] + a[0][2] << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  a = [[1, 2, 3], [4, 5, 6]]
+
+  for j in range(3):
+      for i in range(2):
+          print(a[i][j], end=" ")
+      print()
+  print(a[1][0] + a[0][2])
+  ```
+
+  <Pembahasan>
+    Kedua versi menampilkan (setiap baris dari tiga baris pertama diakhiri satu spasi):
+
+    ```txt
+    1 4 
+    2 5 
+    3 6 
+    7
+    ```
+
+    Perulangan luar berjalan pada kolom, jadi setiap baris output berisi satu **kolom** matriks. Hasilnya adalah transpos `a`. Baris terakhir: `a[1][0]` adalah `4` (baris 1, kolom 0) dan `a[0][2]` adalah `3`, jumlahnya `7`.
+
+    Jika batasnya ditukar, `i` berjalan sampai 2 dan program membaca `a[2][...]`, padahal `a` hanya punya baris 0 dan 1. Python berhenti dengan `IndexError` setelah mencetak `1 4`, sedangkan C++ mengalami _undefined behavior_. Batas setiap perulangan harus mengikuti indeks yang dipakainya: `i` untuk baris (sampai `r`), `j` untuk kolom (sampai `c`).
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Perbaiki jumlah per baris">
+  Program berikut seharusnya menampilkan jumlah setiap baris, satu per baris. Untuk matriks 3 × 3 hasilnya selalu benar, tetapi untuk contoh di bawah program menampilkan `3` dan `9`. Temukan kesalahannya, perbaiki, lalu jelaskan kenapa matriks persegi tidak memperlihatkan kesalahan ini.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      int r, c;
+      cin >> r >> c;
+      vector<vector<int>> a(r, vector<int>(c));
+      for (int i = 0; i < r; i++) {
+          for (int j = 0; j < c; j++) {
+              cin >> a[i][j];
+          }
+      }
+
+      for (int i = 0; i < r; i++) {
+          int jumlah = 0;
+          for (int j = 0; j < r; j++) {
+              jumlah += a[i][j];
+          }
+          cout << jumlah << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  r, c = map(int, input().split())
+  a = [list(map(int, input().split())) for _ in range(r)]
+
+  for i in range(r):
+      jumlah = 0
+      for j in range(r):
+          jumlah += a[i][j]
+      print(jumlah)
+  ```
+
+  ```txt title="Contoh input"
+  2 3
+  1 2 3
+  4 5 6
+  ```
+
+  ```txt title="Contoh output"
+  6
+  15
+  ```
+
+  <Pembahasan>
+    Perulangan dalam memakai indeks kolom `j`, tetapi dibatasi `r` (banyak baris). Untuk matriks 2 × 3, `j` hanya sampai 1, sehingga kolom terakhir tidak ikut dijumlah: `1 + 2 = 3` dan `4 + 5 = 9`. Pada matriks persegi `r` sama dengan `c`, jadi kesalahan ini tersembunyi. Untuk matriks 3 × 2 kesalahannya justru membaca kolom yang tidak ada: Python berhenti dengan `IndexError`, sedangkan C++ mengalami _undefined behavior_. Ganti batasnya menjadi `j < c`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<vector<int>> a(r, vector<int>(c));
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cin >> a[i][j];
+            }
+        }
+
+        for (int i = 0; i < r; i++) {
+            int jumlah = 0;
+            for (int j = 0; j < c; j++) {
+                jumlah += a[i][j];
+            }
+            cout << jumlah << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    r, c = map(int, input().split())
+    a = [list(map(int, input().split())) for _ in range(r)]
+
+    for i in range(r):
+        jumlah = 0
+        for j in range(c):
+            jumlah += a[i][j]
+        print(jumlah)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Perkalian dua matriks">
+  Input berisi dua matriks berurutan, masing-masing dengan format `r c` lalu isinya. Matriks pertama adalah A dan matriks kedua adalah B. Jika A × B bisa dihitung, tampilkan hasilnya. Jika tidak, tampilkan `Tidak bisa dikalikan`. Ukuran setiap matriks paling besar 100 × 100, dan setiap elemennya di antara -1.000 dan 1.000.
+
+  ```txt title="Contoh input"
+  2 3
+  1 -1 2
+  0 3 1
+  3 2
+  2 0
+  1 4
+  -1 5
+  ```
+
+  ```txt title="Contoh output"
+  -1 6
+  2 17
+  ```
+
+  ```txt title="Contoh input 2"
+  2 2
+  1 2
+  3 4
+  3 1
+  5
+  6
+  7
+  ```
+
+  ```txt title="Contoh output 2"
+  Tidak bisa dikalikan
+  ```
+
+  <Petunjuk>
+    Karena kedua matriks dibaca dengan format yang sama, buat satu fungsi `bacaMatriks()` yang membaca ukuran dan isinya, lalu mengembalikan matriks. Syarat perkaliannya: banyak kolom A sama dengan banyak baris B.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah kedua matriks dibaca, periksa aturan ukuran sebelum mengalikan. Setiap elemen hasil paling besar 100 × 1.000 × 1.000 = 10⁸, jadi masih muat di `int`. Pada contoh pertama, `C[1][1]` = 0×0 + 3×4 + 1×5 = 17.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    vector<vector<int>> bacaMatriks() {
+        int r, c;
+        cin >> r >> c;
+        vector<vector<int>> m(r, vector<int>(c));
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cin >> m[i][j];
+            }
+        }
+        return m;
+    }
+
+    int main() {
+        vector<vector<int>> a = bacaMatriks();
+        vector<vector<int>> b = bacaMatriks();
+
+        int r = a.size(), k = a[0].size();
+        int k2 = b.size(), c = b[0].size();
+        if (k != k2) {
+            cout << "Tidak bisa dikalikan" << endl;
+            return 0;
+        }
+
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                int nilai = 0;
+                for (int t = 0; t < k; t++) {
+                    nilai += a[i][t] * b[t][j];
+                }
+                if (j > 0) {
+                    cout << " ";
+                }
+                cout << nilai;
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def baca_matriks():
+        r, c = map(int, input().split())
+        return [list(map(int, input().split())) for _ in range(r)]
+
+
+    a = baca_matriks()
+    b = baca_matriks()
+
+    r, k = len(a), len(a[0])
+    k2, c = len(b), len(b[0])
+    if k != k2:
+        print("Tidak bisa dikalikan")
+    else:
+        for i in range(r):
+            baris = []
+            for j in range(c):
+                nilai = 0
+                for t in range(k):
+                    nilai += a[i][t] * b[t][j]
+                baris.append(nilai)
+            print(*baris)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Putar berkali-kali">
+  Baca sebuah matriks, lalu bilangan `k` (0 ≤ k ≤ 1.000.000.000) di baris terakhir. Putar matriks itu 90° searah jarum jam sebanyak `k` kali, lalu tampilkan hasilnya.
+
+  ```txt title="Contoh input"
+  2 3
+  1 2 3
+  4 5 6
+  2
+  ```
+
+  ```txt title="Contoh output"
+  6 5 4
+  3 2 1
+  ```
+
+  ```txt title="Contoh input 2"
+  2 3
+  1 2 3
+  4 5 6
+  7
+  ```
+
+  ```txt title="Contoh output 2"
+  3 6
+  2 5
+  1 4
+  ```
+
+  <Petunjuk>
+    Empat kali putaran mengembalikan matriks ke posisi semula. Jadi yang penting hanya `k % 4`. Pakai fungsi `putarKanan` dari materi, dan ingat bahwa setiap putaran menukar banyak baris dan banyak kolom.
+  </Petunjuk>
+
+  <Pembahasan>
+    Memutar satu miliar kali jelas terlalu lama, padahal hasilnya sama dengan memutar `k % 4` kali. Contoh kedua memutar `7 % 4 = 3` kali, sama dengan memutar sekali berlawanan arah jarum jam. Karena `putarKanan` membaca ukuran dari matriks yang diterimanya, ukuran yang berubah setiap putaran tertangani dengan sendirinya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    vector<vector<int>> putarKanan(const vector<vector<int>>& a) {
+        int r = a.size(), c = a[0].size();
+        vector<vector<int>> hasil(c, vector<int>(r));
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                hasil[j][r - 1 - i] = a[i][j];
+            }
+        }
+        return hasil;
+    }
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<vector<int>> a(r, vector<int>(c));
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cin >> a[i][j];
+            }
+        }
+        int k;
+        cin >> k;
+
+        for (int p = 0; p < k % 4; p++) {
+            a = putarKanan(a);
+        }
+
+        for (int i = 0; i < (int)a.size(); i++) {
+            for (int j = 0; j < (int)a[i].size(); j++) {
+                if (j > 0) {
+                    cout << " ";
+                }
+                cout << a[i][j];
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def putar_kanan(a):
+        r, c = len(a), len(a[0])
+        hasil = [[0] * r for _ in range(c)]
+        for i in range(r):
+            for j in range(c):
+                hasil[j][r - 1 - i] = a[i][j]
+        return hasil
+
+
+    r, c = map(int, input().split())
+    a = [list(map(int, input().split())) for _ in range(r)]
+    k = int(input())
+
+    for p in range(k % 4):
+        a = putar_kanan(a)
+
+    for baris in a:
+        print(*baris)
+    ```
+
+    Setelah perulangan, ukuran `a` bisa sudah bukan `r × c` lagi. Karena itu bagian pencetakan memakai `a.size()` dan `a[i].size()`, bukan `r` dan `c` dari input.
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Robot di dalam grid">
+  Sebuah robot berada di grid karakter. Sel awalnya ditandai `R`, sel terbuka `.`, dan tembok `#`. Setelah grid, ada satu baris berisi deretan perintah tanpa spasi: `W` (atas), `S` (bawah), `A` (kiri), dan `D` (kanan). Untuk setiap perintah, robot pindah satu sel ke arah itu, **kecuali** jika sel tujuannya tembok atau di luar grid. Dalam kasus itu robot diam di tempat dan perintahnya dihitung sebagai **terhalang**.
+
+  Tampilkan posisi akhir robot (baris dan kolom, dihitung dari 0) di baris pertama, dan banyak perintah yang terhalang di baris kedua. Sel `R` sendiri adalah sel terbuka.
+
+  ```txt title="Contoh input"
+  4 5
+  R..#.
+  .#...
+  ...#.
+  #....
+  DDDSSAWW
+  ```
+
+  ```txt title="Contoh output"
+  2 1
+  3
+  ```
+
+  <Petunjuk>
+    Cari dulu posisi `R`. Ubah setiap huruf perintah menjadi nomor arah `d` sesuai urutan atas, bawah, kiri, kanan (`W` = 0, `S` = 1, `A` = 2, `D` = 3), lalu pakai `dr[d]` dan `dc[d]` seperti di materi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jejak contoh: dari `(0, 0)`, `D` dua kali ke `(0, 2)`. `D` ketiga terhalang tembok di `(0, 3)`. `S` dua kali ke `(2, 2)`, `A` ke `(2, 1)`, lalu kedua `W` terhalang tembok di `(1, 1)`. Kuncinya, posisi robot hanya diubah **setelah** sel tujuan lolos pemeriksaan batas dan tembok.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int nomorArah(char perintah) {
+        if (perintah == 'W') return 0;   // atas
+        if (perintah == 'S') return 1;   // bawah
+        if (perintah == 'A') return 2;   // kiri
+        return 3;                        // 'D', kanan
+    }
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<string> grid(r);
+        for (int i = 0; i < r; i++) {
+            cin >> grid[i];
+        }
+        string perintah;
+        cin >> perintah;
+
+        int baris = 0, kolom = 0;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == 'R') {
+                    baris = i;
+                    kolom = j;
+                }
+            }
+        }
+
+        int dr[4] = {-1, 1, 0, 0};
+        int dc[4] = {0, 0, -1, 1};
+        int terhalang = 0;
+        for (char p : perintah) {
+            int d = nomorArah(p);
+            int nr = baris + dr[d];
+            int nc = kolom + dc[d];
+            if (nr >= 0 && nr < r && nc >= 0 && nc < c && grid[nr][nc] != '#') {
+                baris = nr;
+                kolom = nc;
+            } else {
+                terhalang++;
+            }
+        }
+
+        cout << baris << " " << kolom << endl;
+        cout << terhalang << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def nomor_arah(perintah):
+        if perintah == "W":
+            return 0       # atas
+        if perintah == "S":
+            return 1       # bawah
+        if perintah == "A":
+            return 2       # kiri
+        return 3           # "D", kanan
+
+
+    r, c = map(int, input().split())
+    grid = []
+    for i in range(r):
+        grid.append(input())
+    perintah = input()
+
+    baris = 0
+    kolom = 0
+    for i in range(r):
+        for j in range(c):
+            if grid[i][j] == "R":
+                baris = i
+                kolom = j
+
+    dr = [-1, 1, 0, 0]
+    dc = [0, 0, -1, 1]
+    terhalang = 0
+    for p in perintah:
+        d = nomor_arah(p)
+        nr = baris + dr[d]
+        nc = kolom + dc[d]
+        if nr >= 0 and nr < r and nc >= 0 and nc < c and grid[nr][nc] != "#":
+            baris = nr
+            kolom = nc
+        else:
+            terhalang += 1
+
+    print(baris, kolom)
+    print(terhalang)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Tebak output: transpos di tempat">
+  Program berikut mencoba mentranspos matriks persegi **di tempat**, tanpa matriks baru, dengan menukar `a[i][j]` dan `a[j][i]`. Tentukan outputnya tanpa menjalankannya. Jika hasilnya bukan transpos, perbaiki programnya.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      vector<vector<int>> a = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+      int n = 3;
+
+      for (int i = 0; i < n; i++) {
+          for (int j = 0; j < n; j++) {
+              int sementara = a[i][j];
+              a[i][j] = a[j][i];
+              a[j][i] = sementara;
+          }
+      }
+
+      for (int i = 0; i < n; i++) {
+          cout << a[i][0] << " " << a[i][1] << " " << a[i][2] << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  a = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+  n = 3
+
+  for i in range(n):
+      for j in range(n):
+          a[i][j], a[j][i] = a[j][i], a[i][j]
+
+  for i in range(n):
+      print(a[i][0], a[i][1], a[i][2])
+  ```
+
+  <Petunjuk>
+    Ikuti pasangan `2` dan `4`. Kapan keduanya ditukar? Apakah mereka ditukar lagi nanti?
+  </Petunjuk>
+
+  <Pembahasan>
+    Matriksnya **tidak berubah**:
+
+    ```txt
+    1 2 3
+    4 5 6
+    7 8 9
+    ```
+
+    Saat `i = 0, j = 1`, angka `2` dan `4` ditukar. Namun nanti saat `i = 1, j = 0`, pasangan yang sama ditukar **lagi**, sehingga kembali ke tempat semula. Ini terjadi pada setiap pasangan, sedangkan elemen diagonal ditukar dengan dirinya sendiri. Perbaikannya: tukar setiap pasangan sekali saja, yaitu hanya untuk elemen di atas diagonal utama (`j` mulai dari `i + 1`).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        vector<vector<int>> a = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+        int n = 3;
+
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {    // hanya di atas diagonal
+                int sementara = a[i][j];
+                a[i][j] = a[j][i];
+                a[j][i] = sementara;
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            cout << a[i][0] << " " << a[i][1] << " " << a[i][2] << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    n = 3
+
+    for i in range(n):
+        for j in range(i + 1, n):          # hanya di atas diagonal
+            a[i][j], a[j][i] = a[j][i], a[i][j]
+
+    for i in range(n):
+        print(a[i][0], a[i][1], a[i][2])
+    ```
+
+    Output setelah diperbaiki adalah `1 4 7`, `2 5 8`, `3 6 9`. Transpos di tempat hanya mungkin untuk matriks persegi. Matriks yang tidak persegi berubah ukuran, jadi harus ditulis ke matriks baru.
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Urutan spiral">
+  Tampilkan semua elemen matriks dalam satu baris (dipisah spasi), dengan urutan **spiral searah jarum jam** yang dimulai dari kiri atas: sepanjang baris paling atas ke kanan, turun sepanjang kolom paling kanan, ke kiri sepanjang baris paling bawah, naik sepanjang kolom paling kiri, lalu ulangi untuk bagian dalam. Ukuran matriks paling besar 100 × 100.
+
+  ```txt title="Contoh input"
+  3 4
+  1 2 3 4
+  10 11 12 5
+  9 8 7 6
+  ```
+
+  ```txt title="Contoh output"
+  1 2 3 4 5 6 7 8 9 10 11 12
+  ```
+
+  ```txt title="Contoh input 2"
+  4 1
+  5
+  8
+  2
+  7
+  ```
+
+  ```txt title="Contoh output 2"
+  5 8 2 7
+  ```
+
+  <Petunjuk>
+    Simpan empat batas bagian yang belum dikunjungi: `atas`, `bawah`, `kiri`, `kanan`. Setelah menelusuri baris `atas` dari kiri ke kanan, baris itu selesai, jadi `atas++`. Lakukan hal serupa untuk tiga sisi lainnya. Hati-hati pada matriks yang hanya tersisa satu baris atau satu kolom: sisi bawah dan sisi kiri bisa menelusuri ulang elemen yang sudah dikunjungi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap putaran mengupas satu "cincin" luar. Setelah sisi atas dan sisi kanan selesai, bagian yang tersisa bisa saja sudah habis. Itulah gunanya pemeriksaan `atas <= bawah` sebelum sisi bawah dan `kiri <= kanan` sebelum sisi kiri. Tanpa pemeriksaan itu, contoh kedua (satu kolom) akan menampilkan `5 8 2 7 2 8`, karena kolom yang sama ditelusuri lagi dari bawah ke atas. Cara lain yang sering dipakai adalah menghitung banyak elemen yang sudah dicetak dan berhenti tepat di `r × c`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<vector<int>> a(r, vector<int>(c));
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cin >> a[i][j];
+            }
+        }
+
+        vector<int> hasil;
+        int atas = 0, bawah = r - 1, kiri = 0, kanan = c - 1;
+        while (atas <= bawah && kiri <= kanan) {
+            for (int j = kiri; j <= kanan; j++) {      // sisi atas, ke kanan
+                hasil.push_back(a[atas][j]);
+            }
+            atas++;
+            for (int i = atas; i <= bawah; i++) {      // sisi kanan, ke bawah
+                hasil.push_back(a[i][kanan]);
+            }
+            kanan--;
+            if (atas <= bawah) {
+                for (int j = kanan; j >= kiri; j--) {  // sisi bawah, ke kiri
+                    hasil.push_back(a[bawah][j]);
+                }
+                bawah--;
+            }
+            if (kiri <= kanan) {
+                for (int i = bawah; i >= atas; i--) {  // sisi kiri, ke atas
+                    hasil.push_back(a[i][kiri]);
+                }
+                kiri++;
+            }
+        }
+
+        for (int t = 0; t < (int)hasil.size(); t++) {
+            if (t > 0) {
+                cout << " ";
+            }
+            cout << hasil[t];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    r, c = map(int, input().split())
+    a = [list(map(int, input().split())) for _ in range(r)]
+
+    hasil = []
+    atas, bawah, kiri, kanan = 0, r - 1, 0, c - 1
+    while atas <= bawah and kiri <= kanan:
+        for j in range(kiri, kanan + 1):          # sisi atas, ke kanan
+            hasil.append(a[atas][j])
+        atas += 1
+        for i in range(atas, bawah + 1):          # sisi kanan, ke bawah
+            hasil.append(a[i][kanan])
+        kanan -= 1
+        if atas <= bawah:
+            for j in range(kanan, kiri - 1, -1):  # sisi bawah, ke kiri
+                hasil.append(a[bawah][j])
+            bawah -= 1
+        if kiri <= kanan:
+            for i in range(bawah, atas - 1, -1):  # sisi kiri, ke atas
+                hasil.append(a[i][kiri])
+            kiri += 1
+
+    print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Jumlah persegi panjang">
+  Baca sebuah matriks berukuran paling besar 1.000 × 1.000 dengan elemen di antara -10⁹ dan 10⁹. Setelah matriks, ada bilangan `q` (q ≤ 100.000), lalu `q` pertanyaan berupa `r1 c1 r2 c2` (1 ≤ r1 ≤ r2 ≤ r, 1 ≤ c1 ≤ c2 ≤ c, baris dan kolom **dihitung dari 1**). Untuk setiap pertanyaan, tampilkan jumlah semua elemen di persegi panjang dengan sudut kiri atas `(r1, c1)` dan sudut kanan bawah `(r2, c2)`.
+
+  Menjumlah ulang setiap persegi panjang dengan perulangan bersarang bisa butuh 100.000 × 1.000.000 langkah, jauh terlalu lambat.
+
+  ```txt title="Contoh input"
+  3 4
+  2 -1 3 0
+  4 5 -2 1
+  1 0 6 3
+  4
+  1 1 2 2
+  2 2 3 4
+  1 3 3 3
+  1 1 3 4
+  ```
+
+  ```txt title="Contoh output"
+  10
+  13
+  7
+  22
+  ```
+
+  <Petunjuk>
+    Ingat _prefix sum_ dari [latihan Array & vector](/docs/cpp/array-dan-vector#soal-9). Buat `p` berukuran `(r + 1) × (c + 1)` dengan baris 0 dan kolom 0 berisi nol, dan `p[i][j]` = jumlah semua elemen di persegi panjang dari `(1, 1)` sampai `(i, j)`. Gambarlah persegi panjangnya di kertas untuk menemukan rumus `p[i][j]` dari `p[i - 1][j]`, `p[i][j - 1]`, dan `p[i - 1][j - 1]`.
+  </Petunjuk>
+
+  <Pembahasan>
+    `p[i - 1][j]` (semua di atas) ditambah `p[i][j - 1]` (semua di kiri) menghitung bagian kiri atas `p[i - 1][j - 1]` **dua kali**, jadi kurangi sekali:
+
+    ```txt
+    p[i][j] = a[i][j] + p[i-1][j] + p[i][j-1] - p[i-1][j-1]
+    ```
+
+    Untuk menjawab pertanyaan, mulai dari `p[r2][c2]`, buang bagian di atas persegi (`p[r1 - 1][c2]`) dan bagian di kirinya (`p[r2][c1 - 1]`). Bagian kiri atas `p[r1 - 1][c1 - 1]` ikut terbuang dua kali, jadi tambahkan kembali sekali.
+
+    ```txt
+    +---------+-----------+
+    |  kiri   |   atas    |      jawaban = p[r2][c2]
+    |  atas   |           |               - p[r1-1][c2]    (atas)
+    +---------+-----------+               - p[r2][c1-1]    (kiri)
+    |  kiri   |  DICARI   |               + p[r1-1][c1-1]  (kiri atas)
+    +---------+-----------+
+    ```
+
+    Menyiapkan `p` butuh satu kali penelusuran matriks, lalu setiap pertanyaan dijawab dengan empat angka saja. Jumlahnya bisa mencapai 10⁶ × 10⁹ = 10¹⁵, jadi pakai `long long`. Baris dan kolom tambahan berisi nol membuat rumus tetap benar saat `r1 = 1` atau `c1 = 1`, tanpa `if` tambahan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<vector<long long>> p(r + 1, vector<long long>(c + 1, 0));
+        for (int i = 1; i <= r; i++) {
+            for (int j = 1; j <= c; j++) {
+                long long x;
+                cin >> x;
+                p[i][j] = x + p[i - 1][j] + p[i][j - 1] - p[i - 1][j - 1];
+            }
+        }
+
+        int q;
+        cin >> q;
+        for (int k = 0; k < q; k++) {
+            int r1, c1, r2, c2;
+            cin >> r1 >> c1 >> r2 >> c2;
+            long long jawaban = p[r2][c2] - p[r1 - 1][c2] - p[r2][c1 - 1] + p[r1 - 1][c1 - 1];
+            cout << jawaban << "\n";
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    r, c = map(int, input().split())
+    p = [[0] * (c + 1) for _ in range(r + 1)]
+    for i in range(1, r + 1):
+        baris = list(map(int, input().split()))
+        for j in range(1, c + 1):
+            p[i][j] = baris[j - 1] + p[i - 1][j] + p[i][j - 1] - p[i - 1][j - 1]
+
+    q = int(input())
+    for k in range(q):
+        r1, c1, r2, c2 = map(int, input().split())
+        print(p[r2][c2] - p[r1 - 1][c2] - p[r2][c1 - 1] + p[r1 - 1][c1 - 1])
+    ```
+
+    Versi C++ memakai `"\n"` alih-alih `endl` karena jawabannya bisa sampai 100.000 baris, dan `endl` memaksa setiap baris langsung dikirim ke layar. Bedanya dijelaskan di [`endl` vs `"\n"`](/docs/cpp/pendalaman/buffer#endl-vs-n).
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Memeriksa sudoku">
+  Papan sudoku berukuran 9 × 9 dan terbagi menjadi sembilan kotak 3 × 3. Input berisi 9 baris, masing-masing berupa teks 9 karakter. Setiap karakter adalah digit `1` sampai `9`, atau `.` untuk sel kosong. Papan itu **valid** jika tidak ada digit yang muncul lebih dari sekali di baris yang sama, di kolom yang sama, maupun di kotak 3 × 3 yang sama. Sel kosong tidak dihitung. Tampilkan `Valid` atau `Tidak valid`.
+
+  ```txt title="Contoh input"
+  4.3..29.5
+  2.....6..
+  ...3..87.
+  .....3.8.
+  .589.1.6.
+  32.......
+  .3.....5.
+  .72..8.49
+  8..4.9.2.
+  ```
+
+  ```txt title="Contoh output"
+  Valid
+  ```
+
+  ```txt title="Contoh input 2"
+  4.3..29.5
+  24....6..
+  ...3..87.
+  .....3.8.
+  .589.1.6.
+  32.......
+  .3.....5.
+  .72..8.49
+  8..4.9.2.
+  ```
+
+  ```txt title="Contoh output 2"
+  Tidak valid
+  ```
+
+  <Petunjuk>
+    Siapkan tiga matriks `bool` berukuran 9 × 10: `adaDiBaris[i][d]` bernilai `true` jika digit `d` sudah muncul di baris `i`, begitu pula untuk kolom dan kotak. Nomori kotak 0 sampai 8 dari kiri atas ke kanan bawah. Sel `(i, j)` berada di kotak nomor `(i / 3) * 3 + j / 3`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Telusuri setiap sel sekali. Untuk sel berisi digit `d`, periksa apakah `d` sudah tercatat di baris, kolom, atau kotaknya. Jika sudah, papan tidak valid. Jika belum, catat di ketiganya. Pada contoh kedua, `4` di `(1, 1)` tidak bentrok dengan baris 1 maupun kolom 1, tetapi bentrok dengan `4` di `(0, 0)` yang berada di kotak yang sama, kotak nomor 0. Kesalahan yang sering terjadi adalah hanya memeriksa baris dan kolom, atau salah menghitung nomor kotak.
+
+    | `i` | `i / 3` | Baris kotak |
+    | --- | --- | --- |
+    | 0, 1, 2 | 0 | kotak 0, 1, 2 |
+    | 3, 4, 5 | 1 | kotak 3, 4, 5 |
+    | 6, 7, 8 | 2 | kotak 6, 7, 8 |
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        vector<string> papan(9);
+        for (int i = 0; i < 9; i++) {
+            cin >> papan[i];
+        }
+
+        vector<vector<bool>> adaDiBaris(9, vector<bool>(10, false));
+        vector<vector<bool>> adaDiKolom(9, vector<bool>(10, false));
+        vector<vector<bool>> adaDiKotak(9, vector<bool>(10, false));
+
+        bool valid = true;
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (papan[i][j] == '.') {
+                    continue;
+                }
+                int d = papan[i][j] - '0';
+                int k = (i / 3) * 3 + j / 3;
+                if (adaDiBaris[i][d] || adaDiKolom[j][d] || adaDiKotak[k][d]) {
+                    valid = false;
+                }
+                adaDiBaris[i][d] = true;
+                adaDiKolom[j][d] = true;
+                adaDiKotak[k][d] = true;
+            }
+        }
+
+        cout << (valid ? "Valid" : "Tidak valid") << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    papan = []
+    for i in range(9):
+        papan.append(input())
+
+    ada_di_baris = [[False] * 10 for _ in range(9)]
+    ada_di_kolom = [[False] * 10 for _ in range(9)]
+    ada_di_kotak = [[False] * 10 for _ in range(9)]
+
+    valid = True
+    for i in range(9):
+        for j in range(9):
+            if papan[i][j] == ".":
+                continue
+            d = int(papan[i][j])
+            k = (i // 3) * 3 + j // 3
+            if ada_di_baris[i][d] or ada_di_kolom[j][d] or ada_di_kotak[k][d]:
+                valid = False
+            ada_di_baris[i][d] = True
+            ada_di_kolom[j][d] = True
+            ada_di_kotak[k][d] = True
+
+    print("Valid" if valid else "Tidak valid")
+    ```
+
+    Digit dipakai langsung sebagai indeks kolom tabel, jadi setiap tabel punya 10 kolom (indeks 0 tidak terpakai). Teknik "catat yang sudah pernah muncul di tabel `bool`" ini akan sering kamu pakai, misalnya untuk menandai sel yang sudah dikunjungi di [BFS](/docs/cpp/bfs).
+  </Pembahasan>
+</Soal>

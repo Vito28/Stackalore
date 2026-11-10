@@ -1,0 +1,5 @@
+{
+  "title": "Tree & Graph",
+  "icon": "Network",
+  "pages": ["tree", "binary-search-tree", "graph", "dfs", "bfs"]
+}

@@ -1,5 +1,14 @@
 {
   "title": "Struktur Data",
   "icon": "Boxes",
-  "pages": ["array-dan-vector", "string", "struct", "stack", "queue", "linked-list", "map-dan-set"]
+  "pages": [
+    "array-dan-vector",
+    "string",
+    "matriks",
+    "struct",
+    "stack",
+    "queue",
+    "linked-list",
+    "map-dan-set"
+  ]
 }

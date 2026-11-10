@@ -226,7 +226,7 @@ Di sini sifat `[]` yang tadi disebut jebakan justru berguna: kata yang belum per
 
 Mencari di `vector` berarti memeriksa elemen satu per satu. Map memakai cara yang lebih cerdas, dan C++ menyediakan dua jenis.
 
-**`std::map`** menyimpan kunci dalam struktur pohon yang selalu terurut. Mencarinya mirip mencari kata di kamus cetak: buka bagian tengah, lalu putuskan apakah kata yang dicari ada di separuh kiri atau kanan. Setiap langkah membuang separuh kandidat, sehingga sejuta kunci hanya butuh sekitar 20 langkah.
+**`std::map`** menyimpan kunci dalam struktur pohon yang selalu terurut, yang nanti dibahas di materi [Binary Search Tree](/docs/cpp/binary-search-tree). Mencarinya mirip mencari kata di kamus cetak: buka bagian tengah, lalu putuskan apakah kata yang dicari ada di separuh kiri atau kanan. Setiap langkah membuang separuh kandidat, sehingga sejuta kunci hanya butuh sekitar 20 langkah.
 
 **`std::unordered_map`** dan `dict` Python memakai **hash table**, yang biasanya lebih cepat lagi.
 
@@ -1003,7 +1003,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   ```
 
   <Petunjuk>
-    Kata-kata yang saling anagram akan menjadi teks yang sama jika hurufnya diurutkan: `kasur`, `rusak`, dan `sukar` sama-sama menjadi `akrsu`. Jadikan teks terurut itu sebagai kunci map, dan daftar kata sebagai nilainya. Di C++, urutkan huruf dengan `sort(kunci.begin(), kunci.end());` dari `<algorithm>`, cara yang sama dengan mengurutkan vector di [pustaka vector](/docs/cpp/pustaka/vector). Di Python, `sorted(kata)` menghasilkan list huruf terurut, dan `"".join(...)` menyambungnya kembali menjadi string.
+    Kata-kata yang saling anagram akan menjadi teks yang sama jika hurufnya diurutkan: `kasur`, `rusak`, dan `sukar` sama-sama menjadi `akrsu`. Jadikan teks terurut itu sebagai kunci map, dan daftar kata sebagai nilainya. Di C++, urutkan huruf dengan `sort(kunci.begin(), kunci.end());` dari `<algorithm>`, cara yang sama dengan mengurutkan vector (lihat [`<algorithm>`](/docs/cpp/pustaka/algorithm)). Di Python, `sorted(kata)` menghasilkan list huruf terurut, dan `"".join(...)` menyambungnya kembali menjadi string.
   </Petunjuk>
 
   <Pembahasan>

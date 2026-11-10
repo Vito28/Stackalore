@@ -136,7 +136,19 @@ Contoh nyatanya adalah **pencarian biner** (_binary search_) pada data yang **su
 | 2 | `30 42 57 64` (4 elemen) | `42` | 57 lebih besar, buang separuh kiri |
 | 3 | `57 64` (2 elemen) | `57` | ketemu |
 
-Untuk sejuta data terurut, pencarian linear bisa butuh 1.000.000 perbandingan, sedangkan pencarian biner paling banyak sekitar 20.
+Untuk sejuta data terurut, pencarian linear bisa butuh 1.000.000 perbandingan, sedangkan pencarian biner paling banyak sekitar 20. Cara menulisnya dibahas di materi [Algoritma Pencarian](/docs/cpp/algoritma-pencarian).
+
+### O(n log n)
+
+Ini kompleksitas pengurutan yang baik, misalnya `sort` di C++, `sorted()` di Python, dan _merge sort_. Merge sort membagi data menjadi dua bagian terus-menerus sampai setiap bagian tinggal satu elemen. Pembagian itu menghasilkan sekitar log n tingkat, dan di setiap tingkat seluruh `n` elemen diolah satu kali saat digabungkan kembali. Totalnya sekitar n × log n langkah. Penjelasan lengkapnya ada di materi [Divide & Conquer](/docs/cpp/divide-and-conquer).
+
+Bandingkan dengan bubble sort, selection sort, dan insertion sort di materi [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan), yang memakai perulangan bersarang sehingga O(n²).
+
+### O(2ⁿ): eksponensial
+
+Jumlah langkahnya **berlipat dua** setiap kali `n` bertambah satu. Pola ini muncul saat program mencoba **semua kemungkinan**, misalnya memeriksa semua cara memilih sebagian dari `n` barang (ada 2ⁿ cara). Untuk `n = 30` saja, itu sudah lebih dari satu miliar kemungkinan.
+
+Fungsi Fibonacci rekursif yang ditulis apa adanya juga tumbuh eksponensial, karena nilai yang sama dihitung berulang-ulang. Untuk `n = 50`, fungsi itu memanggil dirinya sendiri puluhan miliar kali. Teknik [memoisasi](/docs/cpp/pendalaman/memoisasi) memangkasnya menjadi O(n) dengan menyimpan hasil yang sudah pernah dihitung.
 
 ## Seberapa besar bedanya?
 
@@ -207,6 +219,26 @@ Satu perbedaan kecil: `deque` C++ bisa diakses lewat indeks di posisi mana pun d
 
 Penjelasan lengkapnya ada di [Map & Set](/docs/cpp/map-dan-set).
 
+### Tree dan graph
+
+| Operasi | Kompleksitas | Catatan |
+| --- | --- | --- |
+| Cari, sisip, hapus di [binary search tree](/docs/cpp/binary-search-tree) | O(h), dengan `h` tinggi tree | O(log n) jika seimbang, O(n) jika miring seperti linked list |
+| Menelusuri semua node [tree](/docs/cpp/tree) (preorder, inorder, postorder, level-order) | O(n) | setiap node dikunjungi sekali |
+| [DFS](/docs/cpp/dfs) atau [BFS](/docs/cpp/bfs) dengan adjacency list | O(n + m) | `n` simpul, `m` sisi |
+| DFS atau BFS dengan adjacency matrix | O(n²) | setiap simpul memeriksa satu baris matriks penuh |
+
+### Algoritma pengurutan dan pencarian
+
+| Algoritma | Kompleksitas | Catatan |
+| --- | --- | --- |
+| Bubble sort, selection sort, insertion sort | O(n²) | insertion sort mendekati O(n) jika data hampir terurut |
+| Merge sort | O(n log n) | butuh memori tambahan O(n) |
+| Quick sort | rata-rata O(n log n), terburuk O(n²) | kasus terburuk muncul jika pivot selalu yang terkecil atau terbesar |
+| `sort` C++, `sorted()` Python | O(n log n) | |
+| Pencarian linear | O(n) | data tidak perlu terurut |
+| Pencarian biner | O(log n) | data **harus** terurut |
+
 ## Jebakan: perulangan yang tersembunyi
 
 Satu baris kode bisa menyembunyikan perulangan. `x in lst`, `lst.pop(0)`, dan `v.erase(v.begin())` masing-masing O(n). Jika dipanggil di dalam perulangan sebanyak `n` kali, totalnya menjadi **O(n²)**, walaupun kodenya hanya terlihat seperti satu perulangan.
@@ -241,7 +273,7 @@ Isinya sama-sama mengosongkan antrean berisi 200.000 elemen, tetapi versi `list`
 
 - Kompleksitas waktu mengukur bagaimana jumlah langkah **tumbuh** saat ukuran data `n` membesar, bukan waktu dalam detik.
 - Big-O mengambil suku terbesar dan membuang konstanta: `3n + 5` langkah adalah O(n).
-- O(1): akses indeks. O(log n): membuang separuh setiap langkah, seperti pencarian biner. O(n): satu perulangan, seperti pencarian linear. O(n²): perulangan bersarang.
+- O(1): akses indeks. O(log n): membuang separuh setiap langkah, seperti pencarian biner. O(n): satu perulangan, seperti pencarian linear. O(n log n): pengurutan yang baik, seperti merge sort dan `sort`. O(n²): perulangan bersarang. O(2ⁿ): mencoba semua kemungkinan.
 - `push_back` dan `append` O(1) amortized. Sisip atau hapus di depan `vector`/`list` O(n), jadi gunakan `deque` untuk antrean.
 - `map` dan `set` C++ O(log n). `unordered_map`, `dict`, dan `set` Python rata-rata O(1), terburuk O(n).
 - Waspadai operasi O(n) di dalam perulangan: totalnya menjadi O(n²).

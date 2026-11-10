@@ -1,0 +1,2071 @@
+---
+title: Binary Search Tree
+description: Binary tree yang isinya selalu teratur sehingga mencari, menyisipkan, dan menghapus bisa cepat, pengaruh urutan sisip terhadap bentuk tree, serta hubungannya dengan set dan map.
+sumber:
+  - ref: cppreference
+    judul: std::set
+    url: https://en.cppreference.com/w/cpp/container/set
+  - ref: cppreference
+    judul: std::map
+    url: https://en.cppreference.com/w/cpp/container/map
+  - ref: cppreference
+    judul: delete expression
+    url: https://en.cppreference.com/w/cpp/language/delete
+  - ref: python-docs
+    judul: Tutorial, Classes
+    url: https://docs.python.org/3/tutorial/classes.html
+  - ref: python-docs
+    judul: Set Types, set and frozenset
+    url: https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset
+  - ref: python-docs
+    judul: Mapping Types, dict
+    url: https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+---
+
+## Masalah: cepat mencari, cepat menyisipkan
+
+Di materi [Algoritma Pencarian](/docs/cpp/algoritma-pencarian), kamu melihat bahwa vector yang **terurut** bisa dicari dengan pencarian biner: sejuta data cukup diperiksa sekitar 20 kali. Masalahnya muncul saat data terus bertambah. Untuk menyisipkan nilai baru sambil menjaga urutan, semua elemen di belakang posisinya harus digeser.
+
+[Linked list](/docs/cpp/linked-list) punya kelebihan dan kekurangan yang berkebalikan. Menyisipkan node cukup dengan mengubah dua pointer, tanpa menggeser apa pun. Namun linked list tidak bisa melompat ke elemen tengah, jadi pencarian biner tidak mungkin. Mencari sebuah nilai, atau mencari posisi untuk menyisipkannya, harus menelusuri node satu per satu.
+
+| Struktur | Mencari nilai | Menyisipkan sambil tetap terurut |
+| --- | --- | --- |
+| Vector terurut | Cepat, pencarian biner O(log n) | Lambat, elemen harus digeser O(n) |
+| Linked list terurut | Lambat, telusuri satu per satu O(n) | Mengubah pointer cepat, tetapi mencari posisinya O(n) |
+| Binary search tree | Rata-rata O(log n) | Rata-rata O(log n) |
+
+**Binary search tree** (BST) memberikan keduanya. BST adalah [binary tree](/docs/cpp/tree) biasa, dengan node `data`, `left`, dan `right` yang sudah kamu kenal, ditambah satu aturan tentang **di mana** setiap nilai boleh diletakkan. Aturan itu membuat setiap node berperan seperti "elemen tengah" pada pencarian biner.
+
+## Aturan BST
+
+Sebuah binary tree disebut BST jika **setiap** node memenuhi dua syarat:
+
+- semua nilai di subtree **kiri** lebih kecil daripada nilai node itu,
+- semua nilai di subtree **kanan** lebih besar daripada nilai node itu.
+
+Di materi ini, BST tidak menyimpan nilai kembar. Alasannya dibahas di bagian [Kesalahan yang sering terjadi](#kesalahan-yang-sering-terjadi). Tree berikut adalah BST, dan akan dipakai sebagai contoh sepanjang materi ini:
+
+```txt
+            45
+          /    \
+        23      71
+       /  \    /
+     11   30  58
+            \   \
+            36   64
+```
+
+Periksa node `36`. Ia berada di subtree kiri `45` (`36 < 45`), di subtree kanan `23` (`36 > 23`), dan di subtree kanan `30` (`36 > 30`). Semua syarat terpenuhi.
+
+Perhatikan bahwa syaratnya berlaku untuk **seluruh** subtree, bukan hanya anak langsung. Tree berikut **bukan** BST:
+
+```txt
+            45
+          /    \
+        23      71
+       /  \
+     11   52
+```
+
+Sebagai anak kanan `23`, nilai `52` memang lebih besar dari `23`. Namun `52` berada di subtree **kiri** `45`, padahal `52 > 45`. Akibatnya nyata: saat mencari 52, kita mulai dari 45, melihat bahwa 52 lebih besar, lalu turun ke kanan. Nilai 52 tidak akan pernah ditemukan.
+
+### Inorder pada BST selalu terurut
+
+Penelusuran inorder mengunjungi subtree kiri, lalu node itu, lalu subtree kanan. Pada BST, isi subtree kiri semuanya lebih kecil dan isi subtree kanan semuanya lebih besar, dan hal ini berlaku di setiap node. Jadi **inorder pada BST selalu menghasilkan nilai yang terurut naik**. Inorder tree contoh adalah `11 23 30 36 45 58 64 71`.
+
+## Mencari nilai
+
+Mulai dari root, lalu bandingkan nilai yang dicari, `x`, dengan data node:
+
+- Jika sama, nilai ditemukan.
+- Jika `x` lebih kecil, nilai itu hanya mungkin ada di subtree kiri. Seluruh subtree kanan bisa diabaikan.
+- Jika `x` lebih besar, nilai itu hanya mungkin ada di subtree kanan.
+- Jika sudah sampai `nullptr`, nilai itu tidak ada.
+
+| Langkah | Node | Mencari 36 | Mencari 50 |
+| --- | --- | --- | --- |
+| 1 | 45 | `36 < 45`, ke kiri | `50 > 45`, ke kanan |
+| 2 | 23 / 71 | `36 > 23`, ke kanan | `50 < 71`, ke kiri |
+| 3 | 30 / 58 | `36 > 30`, ke kanan | `50 < 58`, ke kiri |
+| 4 | 36 / ∅ | sama, **ketemu** | sampai `nullptr`, **tidak ada** |
+
+Setiap perbandingan membuang satu subtree utuh, persis seperti pencarian biner membuang separuh data. Bandingkan dengan soal mencari nilai pada binary tree biasa di materi [Tree](/docs/cpp/tree), yang harus memeriksa subtree kiri **dan** kanan.
+
+```cpp tab="C++"
+bool cari(Node* root, int x) {
+    if (root == nullptr) {             // kasus dasar: sampai ujung, tidak ada
+        return false;
+    }
+    if (x == root->data) {             // kasus dasar: ketemu
+        return true;
+    }
+    if (x < root->data) {
+        return cari(root->left, x);    // kalau ada, pasti di kiri
+    }
+    return cari(root->right, x);       // kalau ada, pasti di kanan
+}
+```
+
+```python tab="Python"
+def cari(root, x):
+    if root is None:                   # kasus dasar: sampai ujung, tidak ada
+        return False
+    if x == root.data:                 # kasus dasar: ketemu
+        return True
+    if x < root.data:
+        return cari(root.left, x)      # kalau ada, pasti di kiri
+    return cari(root.right, x)         # kalau ada, pasti di kanan
+```
+
+Karena setiap langkah hanya turun ke **satu** anak, pencarian juga mudah ditulis dengan perulangan. Caranya mirip menelusuri linked list, hanya saja di setiap node kita memilih ke kiri atau ke kanan:
+
+```cpp tab="C++"
+bool cariIteratif(Node* root, int x) {
+    Node* p = root;
+    while (p != nullptr) {
+        if (x == p->data) {
+            return true;
+        }
+        if (x < p->data) {
+            p = p->left;
+        } else {
+            p = p->right;
+        }
+    }
+    return false;
+}
+```
+
+```python tab="Python"
+def cari_iteratif(root, x):
+    p = root
+    while p is not None:
+        if x == p.data:
+            return True
+        if x < p.data:
+            p = p.left
+        else:
+            p = p.right
+    return False
+```
+
+Banyak perbandingan paling banyak sama dengan tinggi tree ditambah satu. Versi perulangan tidak memakai call stack, jadi tetap aman walaupun tree-nya sangat tinggi.
+
+## Menyisipkan nilai
+
+Nilai baru selalu masuk sebagai **daun**. Telusuri tree seperti saat mencari nilai itu. Begitu langkahnya sampai di `nullptr`, di situlah tempat yang kosong, dan node baru diletakkan di sana.
+
+```cpp tab="C++"
+Node* sisipkan(Node* root, int x) {
+    if (root == nullptr) {                     // kasus dasar: tempat kosong ditemukan
+        return new Node{x, nullptr, nullptr};
+    }
+    if (x < root->data) {
+        root->left = sisipkan(root->left, x);
+    } else if (x > root->data) {
+        root->right = sisipkan(root->right, x);
+    }
+    // x == root->data: nilai kembar, diabaikan
+    return root;
+}
+```
+
+```python tab="Python"
+def sisipkan(root, x):
+    if root is None:                           # kasus dasar: tempat kosong ditemukan
+        return Node(x)
+    if x < root.data:
+        root.left = sisipkan(root.left, x)
+    elif x > root.data:
+        root.right = sisipkan(root.right, x)
+    # x == root.data: nilai kembar, diabaikan
+    return root
+```
+
+`sisipkan` mengembalikan root dari tree **sesudah** penyisipan. Polanya sama dengan `tambahDepan` di [Linked List](/docs/cpp/linked-list):
+
+- Untuk tree kosong, fungsi mengembalikan node baru, dan node itu menjadi root.
+- Untuk tree yang tidak kosong, fungsi mengembalikan root yang sama.
+
+Karena itu, pemanggil selalu menulis `root = sisipkan(root, x);`. Di dalam fungsi, baris `root->left = sisipkan(root->left, x);` bekerja dengan cara yang sama. Di level paling bawah, panggilan itu mengembalikan node baru, dan node baru tersambung ke parent-nya. Di level-level atasnya, panggilan itu mengembalikan anak yang sama, sehingga pointer-nya tidak berubah.
+
+Tree contoh terbentuk jika `45 23 71 11 30 58 36 64` disisipkan satu per satu ke tree kosong:
+
+| Sisipkan | Jalur perbandingan | Menjadi |
+| --- | --- | --- |
+| 45 | tree masih kosong | root |
+| 23 | 45 (ke kiri) | anak kiri 45 |
+| 71 | 45 (ke kanan) | anak kanan 45 |
+| 11 | 45 (kiri), 23 (kiri) | anak kiri 23 |
+| 30 | 45 (kiri), 23 (kanan) | anak kanan 23 |
+| 58 | 45 (kanan), 71 (kiri) | anak kiri 71 |
+| 36 | 45 (kiri), 23 (kanan), 30 (kanan) | anak kanan 30 |
+| 64 | 45 (kanan), 71 (kiri), 58 (kanan) | anak kanan 58 |
+
+Program lengkap berikut membaca `n` bilangan, menyisipkannya ke BST, lalu mencetaknya secara inorder. Fungsi `inorder` dan `hapusTree` sama dengan di materi [Tree](/docs/cpp/tree).
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* left;
+    Node* right;
+};
+
+Node* sisipkan(Node* root, int x) {
+    if (root == nullptr) {                     // kasus dasar
+        return new Node{x, nullptr, nullptr};
+    }
+    if (x < root->data) {
+        root->left = sisipkan(root->left, x);
+    } else if (x > root->data) {
+        root->right = sisipkan(root->right, x);
+    }
+    return root;
+}
+
+void inorder(Node* root, vector<int>& hasil) {
+    if (root == nullptr) {                     // kasus dasar
+        return;
+    }
+    inorder(root->left, hasil);
+    hasil.push_back(root->data);
+    inorder(root->right, hasil);
+}
+
+void hapusTree(Node* root) {
+    if (root == nullptr) {                     // kasus dasar
+        return;
+    }
+    hapusTree(root->left);
+    hapusTree(root->right);
+    delete root;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    Node* root = nullptr;                      // mulai dari tree kosong
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        root = sisipkan(root, x);
+    }
+
+    vector<int> hasil;
+    inorder(root, hasil);
+    for (int i = 0; i < (int)hasil.size(); i++) {
+        if (i > 0) {
+            cout << " ";
+        }
+        cout << hasil[i];
+    }
+    cout << endl;
+
+    hapusTree(root);
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.left = None
+        self.right = None
+
+
+def sisipkan(root, x):
+    if root is None:                           # kasus dasar
+        return Node(x)
+    if x < root.data:
+        root.left = sisipkan(root.left, x)
+    elif x > root.data:
+        root.right = sisipkan(root.right, x)
+    return root
+
+
+def inorder(root, hasil):
+    if root is None:                           # kasus dasar
+        return
+    inorder(root.left, hasil)
+    hasil.append(root.data)
+    inorder(root.right, hasil)
+
+
+n = int(input())
+root = None                                    # mulai dari tree kosong
+for x in map(int, input().split()):
+    root = sisipkan(root, x)
+
+hasil = []
+inorder(root, hasil)
+print(*hasil)
+```
+
+```txt title="Contoh input"
+8
+45 23 71 11 30 58 36 64
+```
+
+```txt title="Contoh output"
+11 23 30 36 45 58 64 71
+```
+
+Tanpa sengaja, program ini juga mengurutkan bilangan. Masukkan semua bilangan ke BST, lalu baca secara inorder. Hanya saja, cara ini tidak selalu cepat, seperti yang akan kamu lihat di bagian [bentuk tree](#bentuk-tree-bergantung-pada-urutan-sisip).
+
+## Nilai terkecil dan terbesar
+
+Nilai terkecil BST ada di node **paling kiri**: terus turun ke kiri sampai tidak bisa lagi. Nilai terbesar ada di node paling kanan. Kedua fungsi ini mensyaratkan tree tidak kosong.
+
+```cpp tab="C++"
+int nilaiMin(Node* root) {             // syarat: root bukan nullptr
+    Node* p = root;
+    while (p->left != nullptr) {
+        p = p->left;
+    }
+    return p->data;
+}
+
+int nilaiMaks(Node* root) {            // syarat: root bukan nullptr
+    Node* p = root;
+    while (p->right != nullptr) {
+        p = p->right;
+    }
+    return p->data;
+}
+```
+
+```python tab="Python"
+def nilai_min(root):                   # syarat: root bukan None
+    p = root
+    while p.left is not None:
+        p = p.left
+    return p.data
+
+
+def nilai_maks(root):                  # syarat: root bukan None
+    p = root
+    while p.right is not None:
+        p = p.right
+    return p.data
+```
+
+Pada tree contoh, `nilaiMin` berjalan `45 → 23 → 11` dan menghasilkan 11, sedangkan `nilaiMaks` berjalan `45 → 71` dan menghasilkan 71. Bandingkan dengan `nilaiMaks` di materi [Tree](/docs/cpp/tree), yang harus mengunjungi **semua** node karena binary tree biasa tidak punya aturan urutan.
+
+## Menghapus nilai
+
+Menghapus lebih rumit daripada menyisipkan, karena node yang dihapus bisa saja punya anak. Ada tiga kasus.
+
+**Kasus 1: node adalah daun.** Hapus saja. Pointer di parent-nya menjadi `nullptr`. Contohnya menghapus 11:
+
+```txt
+       23                     23
+      /  \          →           \
+    11    30                     30
+            \                      \
+            36                     36
+```
+
+**Kasus 2: node punya satu anak.** Anak itu naik menggantikan posisinya, membawa seluruh subtree-nya. Contohnya menghapus 30, yang hanya punya anak kanan 36:
+
+```txt
+       23                     23
+      /  \          →        /  \
+    11    30               11    36
+            \
+            36
+```
+
+Aturan BST tetap terjaga. Semua isi subtree milik 30 memang berada di sisi kanan 23, jadi tetap sah setelah naik satu tingkat.
+
+**Kasus 3: node punya dua anak.** Node tidak bisa langsung dibuang, karena ada dua subtree yang membutuhkan parent. Caranya, ganti **nilai** node itu dengan nilai pengganti yang aman, lalu hapus nilai pengganti itu dari tempat asalnya. Pengganti yang aman adalah **successor**: nilai terkecil di subtree kanan, yaitu nilai yang muncul tepat sesudahnya dalam urutan inorder.
+
+Contohnya menghapus 45 (root). Nilai terkecil di subtree kanan adalah 58 (dari 71 turun ke kiri, lalu berhenti). Nilai 58 disalin ke root, lalu 58 dihapus dari subtree kanan. Node 58 punya satu anak (64), jadi penghapusannya adalah kasus 2:
+
+```txt
+            45                              58
+          /    \                          /    \
+        23      71                      23      71
+       /  \    /            →          /  \    /
+     11   30  58                     11   30  64
+            \   \                           \
+            36   64                         36
+```
+
+Kenapa successor aman? Successor berasal dari subtree kanan, jadi ia lebih besar dari semua isi subtree kiri. Successor juga yang terkecil di subtree kanan, jadi ia lebih kecil dari semua sisa isi subtree kanan. Selain itu, successor tidak mungkin punya anak kiri (kalau punya, berarti ia bukan yang terkecil), sehingga menghapusnya dari tempat asal selalu kasus 1 atau kasus 2. Nilai terbesar di subtree kiri (_predecessor_) juga bisa dipakai dengan alasan yang sama.
+
+Ketiga kasus digabung dalam satu fungsi rekursif. Seperti `sisipkan`, fungsi ini mengembalikan root subtree yang baru:
+
+```cpp tab="C++"
+Node* hapusNilai(Node* root, int x) {
+    if (root == nullptr) {                     // kasus dasar: x tidak ada
+        return nullptr;
+    }
+    if (x < root->data) {
+        root->left = hapusNilai(root->left, x);
+    } else if (x > root->data) {
+        root->right = hapusNilai(root->right, x);
+    } else {                                   // root adalah node yang dihapus
+        if (root->left == nullptr) {           // kasus 1 atau 2: tidak ada anak kiri
+            Node* sisa = root->right;          // simpan dulu, baru delete
+            delete root;
+            return sisa;
+        }
+        if (root->right == nullptr) {          // kasus 2: hanya ada anak kiri
+            Node* sisa = root->left;
+            delete root;
+            return sisa;
+        }
+        Node* pengganti = root->right;         // kasus 3: cari successor
+        while (pengganti->left != nullptr) {
+            pengganti = pengganti->left;
+        }
+        root->data = pengganti->data;          // salin nilainya
+        root->right = hapusNilai(root->right, pengganti->data);   // hapus dari tempat asal
+    }
+    return root;
+}
+```
+
+```python tab="Python"
+def hapus_nilai(root, x):
+    if root is None:                           # kasus dasar: x tidak ada
+        return None
+    if x < root.data:
+        root.left = hapus_nilai(root.left, x)
+    elif x > root.data:
+        root.right = hapus_nilai(root.right, x)
+    else:                                      # root adalah node yang dihapus
+        if root.left is None:                  # kasus 1 atau 2: tidak ada anak kiri
+            return root.right
+        if root.right is None:                 # kasus 2: hanya ada anak kiri
+            return root.left
+        pengganti = root.right                 # kasus 3: cari successor
+        while pengganti.left is not None:
+            pengganti = pengganti.left
+        root.data = pengganti.data             # salin nilainya
+        root.right = hapus_nilai(root.right, pengganti.data)   # hapus dari tempat asal
+    return root
+```
+
+Beberapa hal yang perlu diperhatikan:
+
+- Kasus 1 tidak punya `if` sendiri. Daun tidak punya anak kiri, jadi ia masuk ke `if` pertama dan mengembalikan anak kanannya, yang juga `nullptr`.
+- Di C++, alamat anak yang akan naik disimpan dulu ke `sisa`, **baru** node-nya di-`delete`. Menulis `delete root; return root->right;` berarti membaca node yang sudah dihapus.
+- Setiap node yang dibuang di-`delete` tepat satu kali. Pada kasus 3, node yang benar-benar di-`delete` adalah node successor di tempat asalnya, lewat panggilan rekursif. Node yang nilainya diganti tetap berada di tree.
+- Pemanggil menulis `root = hapusNilai(root, x);`, karena root bisa berubah, misalnya saat root sendiri yang dihapus dan hanya punya satu anak.
+
+Jika 11, 30, lalu 45 dihapus berturut-turut dari tree contoh, hasilnya:
+
+```txt
+        58
+       /  \
+     23    71
+       \   /
+       36 64
+```
+
+Inorder-nya `23 36 58 64 71`, masih terurut.
+
+## Bentuk tree bergantung pada urutan sisip
+
+Nilai yang sama bisa menghasilkan BST yang sangat berbeda, tergantung urutan penyisipannya. Berikut dua BST yang sama-sama berisi `10` sampai `70`:
+
+```txt
+Urutan sisip: 40 20 60 10 30 50 70
+
+           40
+         /    \
+       20      60
+      /  \    /  \
+    10   30  50   70
+
+Tinggi 2. Mencari nilai mana pun paling banyak 3 perbandingan.
+```
+
+```txt
+Urutan sisip: 10 20 30 40 50 60 70
+
+    10
+      \
+       20
+         \
+          30
+            \
+             40
+               \
+                50
+                  \
+                   60
+                     \
+                      70
+
+Tinggi 6. Mencari 70 butuh 7 perbandingan.
+```
+
+Tree kedua **miring**: setiap node hanya punya anak kanan, sehingga bentuknya sama saja dengan linked list. Ini terjadi setiap kali data disisipkan dalam keadaan sudah terurut (naik maupun turun), padahal data seperti ini sering muncul dalam praktik.
+
+Mencari, menyisipkan, dan menghapus sama-sama berjalan di satu jalur dari root ke bawah, jadi banyak langkahnya ditentukan oleh **tinggi** tree:
+
+| Banyak nilai | Tinggi jika seimbang | Tinggi jika miring |
+| --- | --- | --- |
+| 7 | 2 | 6 |
+| 1.000 | 9 | 999 |
+| 1.000.000 | 19 | 999.999 |
+
+| Operasi | BST seimbang | BST miring (terburuk) |
+| --- | --- | --- |
+| Cari, sisipkan, hapus | O(log n) | O(n) |
+| Nilai terkecil atau terbesar | O(log n) | O(n) |
+| Menelusuri semua nilai (inorder) | O(n) | O(n) |
+
+Penjelasan notasi ini ada di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>. Jika urutan sisipnya acak, tingginya biasanya tetap kecil. Pada percobaan dengan sejuta bilangan yang disisipkan dalam urutan acak, tinggi BST-nya sekitar 50, jauh dari 999.999. Itulah arti "rata-rata O(log n)" pada tabel di awal materi. Hal yang sama berlaku untuk "mengurutkan dengan BST" tadi: rata-rata O(n log n), tetapi O(n²) jika datanya sudah terurut.
+
+Tree yang miring juga membuat rekursi sangat dalam. Saat dicoba, memasukkan 1.000 bilangan terurut dengan `sisipkan` rekursif di Python sudah berhenti dengan `RecursionError`. Penjelasannya ada di <Term href="/docs/cpp/pendalaman/call-stack">call stack</Term>.
+
+<Callout type="info" title="BST yang menyeimbangkan diri">
+  Ada jenis BST yang memperbaiki bentuknya sendiri setiap kali disisipi atau dihapus, misalnya **AVL tree** dan **red-black tree**. Keduanya menjamin tinggi tetap O(log n) berapa pun urutan datanya. Cara kerjanya di luar cakupan materi ini, tetapi kamu sudah memakainya setiap kali memakai `set` atau `map` di C++.
+</Callout>
+
+## BST di pustaka standar
+
+Di materi [Map & Set](/docs/cpp/map-dan-set), kamu sudah melihat bahwa `set` dan `map` di C++ menyimpan isinya dalam pohon yang selalu terurut. Standar C++ tidak mewajibkan struktur tertentu, hanya mewajibkan isinya terurut dan operasi cari, sisip, serta hapus berjalan dalam O(log n). Dalam praktik, pustaka standar yang umum biasanya memenuhinya dengan **red-black tree**, yaitu BST yang menyeimbangkan diri. Itulah sebabnya menelusuri `set` dengan for-each selalu menghasilkan urutan naik, persis seperti inorder. Seperti `sisipkan` kita, `set` juga mengabaikan nilai kembar.
+
+Python tidak punya BST bawaan. `set` dan `dict` di Python memakai _hashing_, sama seperti `unordered_set` dan `unordered_map` di C++. Rata-rata operasinya O(1), tetapi isinya tidak terurut.
+
+```cpp tab="C++"
+#include <set>
+
+set<int> s = {45, 23, 71, 11, 30};
+s.insert(58);
+s.erase(23);
+cout << s.count(30) << endl;       // 1, artinya 30 ada
+
+for (int x : s) {                  // selalu terurut naik
+    cout << x << " ";              // 11 30 45 58 71
+}
+cout << endl;
+```
+
+```python tab="Python"
+s = {45, 23, 71, 11, 30}
+s.add(58)
+s.discard(23)
+print(30 in s)                     # True
+
+print(*sorted(s))                  # 11 30 45 58 71, harus diurutkan dulu
+```
+
+| | BST buatan sendiri | C++ `set`, `map` | C++ `unordered_set`, `unordered_map`, Python `set`, `dict` |
+| --- | --- | --- | --- |
+| Isi di dalamnya | BST biasa | Biasanya red-black tree | Hash table |
+| Cari, sisip, hapus | Rata-rata O(log n), terburuk O(n) | O(log n), dijamin | Rata-rata O(1) |
+| Terurut saat ditelusuri | Ya, lewat inorder | Ya | Tidak |
+
+Dalam program sungguhan, kamu hampir tidak pernah perlu menulis BST sendiri. Pahami cara kerjanya agar bisa memilih struktur yang tepat. Jika kamu butuh isi yang terurut, nilai terkecil, atau nilai di dalam suatu rentang, pakai `set`/`map` di C++. Di Python, urutkan dengan `sorted()` saat dibutuhkan, atau simpan list terurut dengan bantuan modul `bisect` (lihat <Term href="/docs/cpp/pustaka/algorithm">pustaka algorithm</Term>). Jika hanya perlu tahu "ada atau tidak", struktur berbasis hashing biasanya lebih cepat.
+
+## Kesalahan yang sering terjadi
+
+### Tidak menentukan aturan untuk nilai kembar
+
+Aturan BST di atas memakai "lebih kecil" dan "lebih besar". Lalu, ke mana nilai yang **sama** harus pergi? Pilih satu aturan dan pakai secara konsisten di semua fungsi. Di materi ini, nilai kembar **diabaikan**, sama seperti `set`. Pilihan lainnya adalah menambah anggota `banyak` di setiap node untuk mencatat berapa kali nilai itu muncul, atau selalu menaruh nilai yang sama di sisi kanan.
+
+Yang berbahaya adalah aturan yang tidak konsisten, misalnya `sisipkan` menaruh nilai kembar di kiri sementara `cari` mencarinya di kanan. Nilainya ada di dalam tree, tetapi tidak pernah ditemukan.
+
+### Lupa menyimpan hasil `sisipkan` atau `hapusNilai`
+
+```cpp
+Node* root = nullptr;
+for (int i = 0; i < n; i++) {
+    cin >> x;
+    sisipkan(root, x);          // ✗ hasilnya dibuang, root tetap nullptr
+}
+```
+
+Setiap panggilan menerima tree kosong, membuat node baru, lalu mengembalikannya. Karena hasilnya tidak disimpan, node itu langsung hilang. Tree tetap kosong, dan di C++ semua node itu bocor. Tulis `root = sisipkan(root, x);`. Hal yang sama berlaku di dalam fungsi: `sisipkan(root->left, x);` tanpa `root->left =` membuat node baru tidak pernah tersambung ke parent-nya.
+
+Untuk `hapusNilai` akibatnya lebih parah. Jika node yang dihapus adalah root, `root` di `main` masih menyimpan alamat node yang sudah di-`delete`. Penelusuran berikutnya membaca memori yang sudah dibebaskan.
+
+### Memeriksa BST hanya dengan anak langsung
+
+Fungsi berikut terlihat masuk akal, tetapi salah:
+
+```cpp tab="C++"
+// ✗ hanya membandingkan node dengan anak langsungnya
+bool cekBST(Node* root) {
+    if (root == nullptr) {                                          // kasus dasar
+        return true;
+    }
+    if (root->left != nullptr && root->left->data >= root->data) {
+        return false;
+    }
+    if (root->right != nullptr && root->right->data <= root->data) {
+        return false;
+    }
+    return cekBST(root->left) && cekBST(root->right);
+}
+```
+
+```python tab="Python"
+# ✗ hanya membandingkan node dengan anak langsungnya
+def cek_bst(root):
+    if root is None:                                               # kasus dasar
+        return True
+    if root.left is not None and root.left.data >= root.data:
+        return False
+    if root.right is not None and root.right.data <= root.data:
+        return False
+    return cek_bst(root.left) and cek_bst(root.right)
+```
+
+Untuk tree dengan `52` di bawah `23` pada bagian [Aturan BST](#aturan-bst), fungsi ini menjawab `true`. Setiap node memang lebih besar dari anak kirinya dan lebih kecil dari anak kanannya, tetapi syarat untuk **seluruh** subtree tidak diperiksa. Ada dua cara yang benar. Pertama, manfaatkan fakta bahwa inorder BST harus naik tanpa kembar. Kedua, bawa batas bawah dan batas atas yang sah ke setiap panggilan rekursif: saat turun ke kiri, batas atasnya menjadi nilai node itu, dan saat turun ke kanan, batas bawahnya menjadi nilai node itu. Kamu akan menulisnya di Latihan.
+
+## Rangkuman
+
+- **BST** adalah binary tree dengan aturan: semua nilai di subtree kiri lebih kecil, dan semua nilai di subtree kanan lebih besar. Aturan ini berlaku untuk seluruh subtree, bukan hanya anak langsung.
+- Inorder pada BST selalu menghasilkan nilai yang terurut naik.
+- **Mencari** cukup menelusuri satu jalur: ke kiri jika lebih kecil, ke kanan jika lebih besar. Bisa ditulis rekursif maupun dengan perulangan.
+- **Menyisipkan** selalu menambah daun. `sisipkan` dan `hapusNilai` mengembalikan root yang baru, jadi hasilnya harus disimpan: `root = sisipkan(root, x);`.
+- Nilai terkecil ada di node paling kiri dan nilai terbesar di node paling kanan.
+- **Menghapus** punya tiga kasus: daun, satu anak, dan dua anak (salin successor, lalu hapus successor dari tempat asalnya). Di C++, simpan alamat anak sebelum `delete`.
+- Kecepatan BST ditentukan oleh tingginya: O(log n) jika seimbang, O(n) jika miring. Data yang disisipkan dalam keadaan terurut membuat BST miring seperti linked list. AVL tree dan red-black tree menyeimbangkan dirinya sendiri.
+- `set` dan `map` di C++ biasanya berupa BST seimbang, sedangkan `set` dan `dict` di Python memakai hashing dan tidak terurut.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, input berisi `n` di baris pertama dan `n` bilangan bulat di baris kedua (`1 ≤ n ≤ 100`, setiap bilangan antara 1 dan 1000). Sisipkan bilangan-bilangan itu **sesuai urutan input** ke BST yang awalnya kosong, dan abaikan nilai kembar. Deretan bilangan dicetak dipisah satu spasi. Solusi C++ selalu membebaskan semua node sebelum program selesai.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Sisipkan lalu cetak">
+  Bangun BST dari input, lalu cetak urutan inorder-nya di baris pertama dan urutan preorder-nya di baris kedua.
+
+  ```txt title="Contoh input"
+  7
+  50 30 80 20 40 30 90
+  ```
+
+  ```txt title="Contoh output"
+  20 30 40 50 80 90
+  50 30 20 40 80 90
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  1 2 3 4 5
+  ```
+
+  ```txt title="Contoh output 2"
+  1 2 3 4 5
+  1 2 3 4 5
+  ```
+
+  <Pembahasan>
+    Nilai `30` yang kedua diabaikan karena sudah ada. Inorder selalu terurut, sedangkan preorder memperlihatkan bentuk tree: root lebih dulu. Pada contoh kedua, inorder dan preorder sama persis. Itu tanda tree-nya miring, karena setiap node hanya punya anak kanan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* sisipkan(Node* root, int x) {
+        if (root == nullptr) {                 // kasus dasar
+            return new Node{x, nullptr, nullptr};
+        }
+        if (x < root->data) {
+            root->left = sisipkan(root->left, x);
+        } else if (x > root->data) {
+            root->right = sisipkan(root->right, x);
+        }
+        return root;
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void inorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        inorder(root->left, hasil);
+        hasil.push_back(root->data);
+        inorder(root->right, hasil);
+    }
+
+    void preorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hasil.push_back(root->data);
+        preorder(root->left, hasil);
+        preorder(root->right, hasil);
+    }
+
+    void cetakVector(const vector<int>& v) {
+        for (int i = 0; i < (int)v.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << v[i];
+        }
+        cout << endl;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* root = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            root = sisipkan(root, x);
+        }
+
+        vector<int> hasilIn;
+        vector<int> hasilPre;
+        inorder(root, hasilIn);
+        preorder(root, hasilPre);
+        cetakVector(hasilIn);
+        cetakVector(hasilPre);
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def sisipkan(root, x):
+        if root is None:                       # kasus dasar
+            return Node(x)
+        if x < root.data:
+            root.left = sisipkan(root.left, x)
+        elif x > root.data:
+            root.right = sisipkan(root.right, x)
+        return root
+
+
+    def inorder(root, hasil):
+        if root is None:                       # kasus dasar
+            return
+        inorder(root.left, hasil)
+        hasil.append(root.data)
+        inorder(root.right, hasil)
+
+
+    def preorder(root, hasil):
+        if root is None:                       # kasus dasar
+            return
+        hasil.append(root.data)
+        preorder(root.left, hasil)
+        preorder(root.right, hasil)
+
+
+    n = int(input())
+    root = None
+    for x in map(int, input().split()):
+        root = sisipkan(root, x)
+
+    hasil_in = []
+    hasil_pre = []
+    inorder(root, hasil_in)
+    preorder(root, hasil_pre)
+    print(*hasil_in)
+    print(*hasil_pre)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Mana yang BST?">
+  Tentukan mana di antara keempat tree berikut yang merupakan BST (tanpa nilai kembar). Untuk yang bukan BST, tunjukkan node yang melanggar aturan. Untuk yang BST, tuliskan urutan inorder-nya.
+
+  ```txt
+  (a)      20                (b)      20
+          /  \                       /  \
+        10    30                   10    30
+          \                       /  \     \
+           25                    5    15    40
+  ```
+
+  ```txt
+  (c)   20                   (d)      8
+          \                          / \
+           30                       9   12
+          /
+        25
+       /
+     22
+  ```
+
+  <Pembahasan>
+    | Tree | BST? | Alasan |
+    | --- | --- | --- |
+    | (a) | Bukan | `25` lebih besar dari `10`, jadi sah sebagai anak kanan `10`. Namun `25` berada di subtree **kiri** `20`, padahal `25 > 20` |
+    | (b) | Ya | Inorder: `5 10 15 20 30 40` |
+    | (c) | Ya | Inorder: `20 22 25 30`. Bentuknya zig-zag, tetapi setiap node memenuhi aturan |
+    | (d) | Bukan | `9` adalah anak kiri `8`, padahal `9 > 8` |
+
+    Tree (a) adalah jebakan yang sama dengan contoh `52` di materi. Memeriksa anak langsung saja tidak cukup. Tree (c) menunjukkan bahwa BST tidak harus terlihat seimbang. Selama aturannya terpenuhi di setiap node, ia tetap BST.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tinggi dan nilai ekstrem">
+  Bangun BST dari input, lalu cetak tiga bilangan dalam satu baris: tinggi tree (dalam banyak edge, seperti di materi [Tree](/docs/cpp/tree)), nilai terkecil, dan nilai terbesar.
+
+  | Input | Output |
+  | --- | --- |
+  | `6` lalu `40 20 60 10 30 70` | `2 10 70` |
+  | `4` lalu `9 7 5 3` | `3 3 9` |
+  | `1` lalu `42` | `0 42 42` |
+
+  <Pembahasan>
+    Tinggi dihitung dengan fungsi rekursif dari materi Tree (tree kosong bertinggi -1). Nilai terkecil dan terbesar cukup ditemukan dengan berjalan ke kiri atau ke kanan sampai mentok. Contoh kedua disisipkan dalam urutan turun, sehingga tree-nya miring ke kiri dan tingginya `n - 1`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* sisipkan(Node* root, int x) {
+        if (root == nullptr) {                 // kasus dasar
+            return new Node{x, nullptr, nullptr};
+        }
+        if (x < root->data) {
+            root->left = sisipkan(root->left, x);
+        } else if (x > root->data) {
+            root->right = sisipkan(root->right, x);
+        }
+        return root;
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int tinggi(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return -1;
+        }
+        return 1 + max(tinggi(root->left), tinggi(root->right));
+    }
+
+    int nilaiMin(Node* root) {
+        Node* p = root;
+        while (p->left != nullptr) {
+            p = p->left;
+        }
+        return p->data;
+    }
+
+    int nilaiMaks(Node* root) {
+        Node* p = root;
+        while (p->right != nullptr) {
+            p = p->right;
+        }
+        return p->data;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* root = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            root = sisipkan(root, x);
+        }
+
+        cout << tinggi(root) << " " << nilaiMin(root) << " " << nilaiMaks(root) << endl;
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def sisipkan(root, x):
+        if root is None:                       # kasus dasar
+            return Node(x)
+        if x < root.data:
+            root.left = sisipkan(root.left, x)
+        elif x > root.data:
+            root.right = sisipkan(root.right, x)
+        return root
+
+
+    def tinggi(root):
+        if root is None:                       # kasus dasar
+            return -1
+        return 1 + max(tinggi(root.left), tinggi(root.right))
+
+
+    def nilai_min(root):
+        p = root
+        while p.left is not None:
+            p = p.left
+        return p.data
+
+
+    def nilai_maks(root):
+        p = root
+        while p.right is not None:
+            p = p.right
+        return p.data
+
+
+    n = int(input())
+    root = None
+    for x in map(int, input().split()):
+        root = sisipkan(root, x)
+
+    print(tinggi(root), nilai_min(root), nilai_maks(root))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Banyak nilai dalam rentang">
+  Bangun BST dari input. Baris ketiga berisi dua bilangan `a b` dengan `a ≤ b`. Cetak banyak nilai berbeda di dalam tree yang berada di rentang `a` sampai `b` (termasuk keduanya). Manfaatkan aturan BST: jangan masuk ke subtree yang pasti tidak berisi jawaban.
+
+  ```txt title="Contoh input"
+  8
+  45 23 71 11 30 58 36 64
+  25 60
+  ```
+
+  ```txt title="Contoh output"
+  4
+  ```
+
+  Nilai yang dihitung adalah 30, 36, 45, dan 58. Untuk tree yang sama dengan rentang `72 100`, output-nya `0`.
+
+  <Petunjuk>
+    Jika data node lebih kecil dari `a`, node itu dan seluruh subtree kirinya terlalu kecil, jadi cukup periksa subtree kanan. Jika data node lebih besar dari `b`, cukup periksa subtree kiri. Selain itu, node dihitung dan kedua subtree diperiksa.
+  </Petunjuk>
+
+  <Pembahasan>
+    Fungsi `hitungRentang` mengikuti pola "selesaikan kiri, selesaikan kanan, gabungkan", tetapi melewati subtree yang pasti berada di luar rentang. Pada contoh, di node 11 fungsi tidak turun ke kiri (karena `11 < 25`), dan di node 71 fungsi tidak turun ke kanan (karena `71 > 60`). Untuk tree besar, penghematan ini membuat banyak node tidak perlu dikunjungi sama sekali.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* sisipkan(Node* root, int x) {
+        if (root == nullptr) {                 // kasus dasar
+            return new Node{x, nullptr, nullptr};
+        }
+        if (x < root->data) {
+            root->left = sisipkan(root->left, x);
+        } else if (x > root->data) {
+            root->right = sisipkan(root->right, x);
+        }
+        return root;
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int hitungRentang(Node* root, int a, int b) {
+        if (root == nullptr) {                 // kasus dasar
+            return 0;
+        }
+        if (root->data < a) {                  // node ini dan subtree kirinya terlalu kecil
+            return hitungRentang(root->right, a, b);
+        }
+        if (root->data > b) {                  // node ini dan subtree kanannya terlalu besar
+            return hitungRentang(root->left, a, b);
+        }
+        return 1 + hitungRentang(root->left, a, b) + hitungRentang(root->right, a, b);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* root = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            root = sisipkan(root, x);
+        }
+        int a, b;
+        cin >> a >> b;
+
+        cout << hitungRentang(root, a, b) << endl;
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def sisipkan(root, x):
+        if root is None:                       # kasus dasar
+            return Node(x)
+        if x < root.data:
+            root.left = sisipkan(root.left, x)
+        elif x > root.data:
+            root.right = sisipkan(root.right, x)
+        return root
+
+
+    def hitung_rentang(root, a, b):
+        if root is None:                       # kasus dasar
+            return 0
+        if root.data < a:                      # node ini dan subtree kirinya terlalu kecil
+            return hitung_rentang(root.right, a, b)
+        if root.data > b:                      # node ini dan subtree kanannya terlalu besar
+            return hitung_rentang(root.left, a, b)
+        return 1 + hitung_rentang(root.left, a, b) + hitung_rentang(root.right, a, b)
+
+
+    n = int(input())
+    root = None
+    for x in map(int, input().split()):
+        root = sisipkan(root, x)
+    a, b = map(int, input().split())
+
+    print(hitung_rentang(root, a, b))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Terkecil ke-k">
+  Bangun BST dari input. Baris ketiga berisi `k` (`k ≥ 1`). Cetak nilai terkecil ke-`k` di antara nilai-nilai **berbeda** di dalam tree, atau `TIDAK ADA` jika banyak nilai berbeda kurang dari `k`.
+
+  ```txt title="Contoh input"
+  7
+  50 30 80 20 40 30 90
+  3
+  ```
+
+  ```txt title="Contoh output"
+  40
+  ```
+
+  ```txt title="Contoh input 2"
+  7
+  50 30 80 20 40 30 90
+  7
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK ADA
+  ```
+
+  <Petunjuk>
+    Penelusuran apa yang mengunjungi nilai BST dari yang terkecil? Simpan hasilnya, lalu ingat bahwa elemen ke-`k` berada di indeks `k - 1`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Inorder BST sudah terurut naik dan tidak berisi nilai kembar (karena nilai kembar diabaikan saat disisipkan), jadi jawabannya elemen indeks `k - 1` dari hasil inorder. Pada contoh, inorder-nya `20 30 40 50 80 90`. Hanya ada 6 nilai berbeda walaupun inputnya 7 bilangan, sehingga `k = 7` menghasilkan `TIDAK ADA`. Kesalahan yang sering terjadi adalah membandingkan `k` dengan `n` dari input, padahal yang menentukan adalah banyak nilai di dalam tree.
+
+    Cara ini menyimpan semua nilai. Versi yang lebih hemat memakai penghitung selama penelusuran inorder dan berhenti begitu penghitungnya mencapai `k`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* sisipkan(Node* root, int x) {
+        if (root == nullptr) {                 // kasus dasar
+            return new Node{x, nullptr, nullptr};
+        }
+        if (x < root->data) {
+            root->left = sisipkan(root->left, x);
+        } else if (x > root->data) {
+            root->right = sisipkan(root->right, x);
+        }
+        return root;
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void inorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        inorder(root->left, hasil);
+        hasil.push_back(root->data);
+        inorder(root->right, hasil);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* root = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            root = sisipkan(root, x);
+        }
+        int k;
+        cin >> k;
+
+        vector<int> urut;
+        inorder(root, urut);
+        if (k <= (int)urut.size()) {
+            cout << urut[k - 1] << endl;
+        } else {
+            cout << "TIDAK ADA" << endl;
+        }
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def sisipkan(root, x):
+        if root is None:                       # kasus dasar
+            return Node(x)
+        if x < root.data:
+            root.left = sisipkan(root.left, x)
+        elif x > root.data:
+            root.right = sisipkan(root.right, x)
+        return root
+
+
+    def inorder(root, hasil):
+        if root is None:                       # kasus dasar
+            return
+        inorder(root.left, hasil)
+        hasil.append(root.data)
+        inorder(root.right, hasil)
+
+
+    n = int(input())
+    root = None
+    for x in map(int, input().split()):
+        root = sisipkan(root, x)
+    k = int(input())
+
+    urut = []
+    inorder(root, urut)
+    if k <= len(urut):
+        print(urut[k - 1])
+    else:
+        print("TIDAK ADA")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Tebak hasil penghapusan">
+  Bilangan `41 20 65 11 29 50 91 32 72` disisipkan satu per satu ke BST kosong. Setelah itu, fungsi `hapusNilai` dari materi dipanggil berturut-turut untuk menghapus **20**, lalu **65**, lalu **41**. Tanpa menjalankan program, gambarkan tree akhirnya dan tuliskan urutan preorder-nya.
+
+  <Petunjuk>
+    Gambar dulu BST awalnya. Ketiga nilai yang dihapus sama-sama punya dua anak, jadi setiap penghapusan mencari successor: turun sekali ke kanan, lalu terus ke kiri sampai mentok.
+  </Petunjuk>
+
+  <Pembahasan>
+    Preorder akhirnya `50 29 11 32 72 91`. BST awalnya:
+
+    ```txt
+              41
+            /    \
+          20      65
+         /  \    /  \
+       11   29  50   91
+              \     /
+              32   72
+    ```
+
+    | Hapus | Successor | Yang terjadi |
+    | --- | --- | --- |
+    | 20 | 29 (anak kanan 20, tidak punya anak kiri) | Nilai 20 diganti 29. Node 29 yang lama punya satu anak (32), jadi 32 naik menggantikannya |
+    | 65 | 72 (dari 91 turun ke kiri) | Nilai 65 diganti 72. Node 72 yang lama adalah daun, jadi langsung dihapus |
+    | 41 | 50 (dari 72 turun ke kiri) | Nilai 41 diganti 50. Node 50 yang lama adalah daun, jadi langsung dihapus |
+
+    ```txt
+              50
+            /    \
+          29      72
+         /  \       \
+       11   32       91
+    ```
+
+    Inorder-nya `11 29 32 50 72 91`, masih terurut, tanda bahwa aturan BST tetap terjaga. Kesalahan yang sering terjadi adalah menganggap successor selalu anak kanan. Saat menghapus 65, anak kanannya 91 masih punya anak kiri 72, jadi successor-nya 72, bukan 91. Kesalahan lain adalah membuang 32 bersama 29 yang lama, padahal 32 harus naik menggantikan posisinya.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Leluhur bersama terendah">
+  Bangun BST dari input. Baris ketiga berisi dua nilai `a b` yang pasti ada di dalam tree. Cetak **leluhur bersama terendah** keduanya: node paling dalam yang subtree-nya memuat `a` dan `b` sekaligus. Sebuah node dianggap berada di dalam subtree-nya sendiri, jadi jika `a` adalah leluhur `b`, jawabannya `a`.
+
+  ```txt title="Contoh input"
+  8
+  45 23 71 11 30 58 36 64
+  11 36
+  ```
+
+  ```txt title="Contoh output"
+  23
+  ```
+
+  ```txt title="Contoh input 2"
+  8
+  45 23 71 11 30 58 36 64
+  30 36
+  ```
+
+  ```txt title="Contoh output 2"
+  30
+  ```
+
+  Untuk tree yang sama, `36 64` menghasilkan `45`.
+
+  <Petunjuk>
+    Mulai dari root. Jika `a` dan `b` sama-sama lebih kecil dari data node, keduanya ada di subtree kiri, jadi turun ke kiri. Jika sama-sama lebih besar, turun ke kanan. Kapan kamu boleh berhenti?
+  </Petunjuk>
+
+  <Pembahasan>
+    Selama `a` dan `b` berada di sisi yang sama, leluhur bersamanya pasti ada lebih dalam di sisi itu. Begitu keduanya "berpisah" (satu di kiri dan satu di kanan), atau salah satunya sama dengan data node, node itulah jawabannya, karena turun ke mana pun akan meninggalkan salah satunya. Pada contoh pertama, di node 45 keduanya ke kiri, lalu di node 23 nilai 11 ke kiri sedangkan 36 ke kanan, jadi jawabannya 23. Satu jalur dari root sudah cukup, sehingga waktunya sebanding dengan tinggi tree.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* sisipkan(Node* root, int x) {
+        if (root == nullptr) {                 // kasus dasar
+            return new Node{x, nullptr, nullptr};
+        }
+        if (x < root->data) {
+            root->left = sisipkan(root->left, x);
+        } else if (x > root->data) {
+            root->right = sisipkan(root->right, x);
+        }
+        return root;
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int leluhurBersama(Node* root, int a, int b) {
+        Node* p = root;
+        while (true) {
+            if (a < p->data && b < p->data) {
+                p = p->left;                   // keduanya di kiri
+            } else if (a > p->data && b > p->data) {
+                p = p->right;                  // keduanya di kanan
+            } else {
+                return p->data;                // berpisah di sini
+            }
+        }
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* root = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            root = sisipkan(root, x);
+        }
+        int a, b;
+        cin >> a >> b;
+
+        cout << leluhurBersama(root, a, b) << endl;
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def sisipkan(root, x):
+        if root is None:                       # kasus dasar
+            return Node(x)
+        if x < root.data:
+            root.left = sisipkan(root.left, x)
+        elif x > root.data:
+            root.right = sisipkan(root.right, x)
+        return root
+
+
+    def leluhur_bersama(root, a, b):
+        p = root
+        while True:
+            if a < p.data and b < p.data:
+                p = p.left                     # keduanya di kiri
+            elif a > p.data and b > p.data:
+                p = p.right                    # keduanya di kanan
+            else:
+                return p.data                  # berpisah di sini
+
+
+    n = int(input())
+    root = None
+    for x in map(int, input().split()):
+        root = sisipkan(root, x)
+    a, b = map(int, input().split())
+
+    print(leluhur_bersama(root, a, b))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Validasi BST">
+  Soal ini memakai format input tree dari materi [Tree](/docs/cpp/tree#membaca-tree-dari-input): `n`, lalu `n` baris `data kiri kanan`, dengan node 1 sebagai root. Data boleh kembar. Cetak `YA` jika tree tersebut adalah BST tanpa nilai kembar, dan `TIDAK` jika bukan.
+
+  ```txt title="Contoh input"
+  8
+  45 2 3
+  23 4 5
+  71 6 0
+  11 0 0
+  30 0 7
+  58 0 8
+  36 0 0
+  64 0 0
+  ```
+
+  ```txt title="Contoh output"
+  YA
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  45 2 3
+  23 4 5
+  71 0 0
+  11 0 0
+  52 0 0
+  ```
+
+  ```txt title="Contoh output 2"
+  TIDAK
+  ```
+
+  <Petunjuk>
+    Pada contoh kedua, setiap node lebih besar dari anak kirinya dan lebih kecil dari anak kanannya, tetapi tree itu tetap bukan BST. Jangan hanya memeriksa anak langsung. Ingat sifat inorder pada BST.
+  </Petunjuk>
+
+  <Pembahasan>
+    Sebuah binary tree adalah BST tanpa nilai kembar **jika dan hanya jika** urutan inorder-nya naik tegas, yaitu setiap elemen lebih besar (bukan sama dengan) elemen sebelumnya. Jadi kumpulkan inorder ke vector, lalu periksa setiap pasangan elemen yang bersebelahan. Pada contoh kedua inorder-nya `11 23 52 45 71`, dan `52 > 45` merusak urutan. Pakai `>=` saat membandingkan, agar nilai kembar juga dianggap melanggar.
+
+    Cara lain adalah membawa batas yang sah ke setiap panggilan rekursif. Root boleh bernilai apa saja. Saat turun ke kiri dari node bernilai `v`, batas atasnya menjadi `v`, dan saat turun ke kanan, batas bawahnya menjadi `v`. Node `52` pada contoh kedua harus berada di antara 23 dan 45, dan ternyata tidak.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* bacaTree() {
+        int n;
+        cin >> n;
+        vector<Node*> node(n + 1, nullptr);
+        for (int i = 1; i <= n; i++) {
+            node[i] = new Node{0, nullptr, nullptr};
+        }
+        for (int i = 1; i <= n; i++) {
+            int data, kiri, kanan;
+            cin >> data >> kiri >> kanan;
+            node[i]->data = data;
+            node[i]->left = node[kiri];
+            node[i]->right = node[kanan];
+        }
+        return node[1];
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void inorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        inorder(root->left, hasil);
+        hasil.push_back(root->data);
+        inorder(root->right, hasil);
+    }
+
+    int main() {
+        Node* root = bacaTree();
+
+        vector<int> urut;
+        inorder(root, urut);
+        bool bst = true;
+        for (int i = 1; i < (int)urut.size(); i++) {
+            if (urut[i - 1] >= urut[i]) {      // harus naik tegas
+                bst = false;
+            }
+        }
+
+        if (bst) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def baca_tree():
+        n = int(input())
+        node = [None] * (n + 1)
+        for i in range(1, n + 1):
+            node[i] = Node(0)
+        for i in range(1, n + 1):
+            data, kiri, kanan = map(int, input().split())
+            node[i].data = data
+            node[i].left = node[kiri]
+            node[i].right = node[kanan]
+        return node[1]
+
+
+    def inorder(root, hasil):
+        if root is None:                       # kasus dasar
+            return
+        inorder(root.left, hasil)
+        hasil.append(root.data)
+        inorder(root.right, hasil)
+
+
+    root = baca_tree()
+    urut = []
+    inorder(root, urut)
+    bst = True
+    for i in range(1, len(urut)):
+        if urut[i - 1] >= urut[i]:             # harus naik tegas
+            bst = False
+
+    if bst:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="BST seimbang dari data terurut">
+  Baris kedua input berisi `n` bilangan berbeda yang **sudah terurut naik**. Jika disisipkan sesuai urutannya, BST-nya akan miring setinggi `n - 1`. Bangunlah BST dari bilangan-bilangan itu yang **serendah mungkin**: jadikan elemen tengah sebagai root, lalu bangun subtree kiri dari elemen di sebelah kirinya dan subtree kanan dari elemen di sebelah kanannya dengan cara yang sama. Agar jawabannya pasti, elemen tengah dari indeks `kiri` sampai `kanan` adalah elemen indeks `(kiri + kanan) / 2` (pembagian bulat). Cetak urutan preorder di baris pertama dan tinggi tree di baris kedua.
+
+  ```txt title="Contoh input"
+  7
+  10 20 30 40 50 60 70
+  ```
+
+  ```txt title="Contoh output"
+  40 20 10 30 60 50 70
+  2
+  ```
+
+  ```txt title="Contoh input 2"
+  6
+  1 2 3 4 5 6
+  ```
+
+  ```txt title="Contoh output 2"
+  3 1 2 5 4 6
+  2
+  ```
+
+  <Petunjuk>
+    Tulis fungsi `bangunSeimbang(data, kiri, kanan)` yang mengembalikan root tree untuk elemen indeks `kiri` sampai `kanan`. Kasus dasarnya bagian kosong (`kiri > kanan`). Ini adalah [Divide & Conquer](/docs/cpp/divide-and-conquer): bagi di tengah, selesaikan kedua bagian, lalu sambungkan ke root.
+  </Petunjuk>
+
+  <Pembahasan>
+    Elemen tengah menjadi root, jadi semua elemen di kirinya lebih kecil dan semua di kanannya lebih besar. Aturan BST otomatis terpenuhi. Karena setiap langkah membagi dua bagian yang ukurannya berbeda paling banyak satu, tingginya adalah yang terkecil yang mungkin, yaitu sekitar log₂ n. Pada contoh kedua, elemen tengah dari indeks 0 sampai 5 adalah indeks 2 (nilai 3). Bagian kiri `1 2` menghasilkan root 1 dengan anak kanan 2, dan bagian kanan `4 5 6` menghasilkan root 5. Fungsi ini tidak memakai `sisipkan` sama sekali. Node langsung dibuat di posisi yang tepat.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    void preorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {                 // kasus dasar
+            return;
+        }
+        hasil.push_back(root->data);
+        preorder(root->left, hasil);
+        preorder(root->right, hasil);
+    }
+
+    int tinggi(Node* root) {
+        if (root == nullptr) {                 // kasus dasar
+            return -1;
+        }
+        return 1 + max(tinggi(root->left), tinggi(root->right));
+    }
+
+    Node* bangunSeimbang(const vector<int>& data, int kiri, int kanan) {
+        if (kiri > kanan) {                    // kasus dasar: bagian kosong
+            return nullptr;
+        }
+        int tengah = (kiri + kanan) / 2;
+        Node* root = new Node{data[tengah], nullptr, nullptr};
+        root->left = bangunSeimbang(data, kiri, tengah - 1);
+        root->right = bangunSeimbang(data, tengah + 1, kanan);
+        return root;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        Node* root = bangunSeimbang(data, 0, n - 1);
+
+        vector<int> hasil;
+        preorder(root, hasil);
+        for (int i = 0; i < (int)hasil.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << hasil[i];
+        }
+        cout << endl;
+        cout << tinggi(root) << endl;
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def preorder(root, hasil):
+        if root is None:                       # kasus dasar
+            return
+        hasil.append(root.data)
+        preorder(root.left, hasil)
+        preorder(root.right, hasil)
+
+
+    def tinggi(root):
+        if root is None:                       # kasus dasar
+            return -1
+        return 1 + max(tinggi(root.left), tinggi(root.right))
+
+
+    def bangun_seimbang(data, kiri, kanan):
+        if kiri > kanan:                       # kasus dasar: bagian kosong
+            return None
+        tengah = (kiri + kanan) // 2
+        root = Node(data[tengah])
+        root.left = bangun_seimbang(data, kiri, tengah - 1)
+        root.right = bangun_seimbang(data, tengah + 1, kanan)
+        return root
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    root = bangun_seimbang(data, 0, n - 1)
+    hasil = []
+    preorder(root, hasil)
+    print(*hasil)
+    print(tinggi(root))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Perbaiki fungsi hapus">
+  Program berikut membangun BST dari `n` bilangan, lalu membaca `m` dan `m` bilangan yang harus dihapus, kemudian mencetak isi tree secara inorder (atau `kosong` jika tree habis). Fungsi `hapusNilai`-nya berisi kesalahan. Saat dicoba dengan g++ dan input contoh di bawah, versi C++ berhenti dengan `Segmentation fault`, dan jika dikompilasi dengan `-fsanitize=address` program langsung berhenti dengan laporan `heap-use-after-free`. Versi Python tidak crash, tetapi hasilnya salah. Temukan semua kesalahannya, jelaskan, lalu perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  struct Node {
+      int data;
+      Node* left;
+      Node* right;
+  };
+
+  Node* sisipkan(Node* root, int x) {
+      if (root == nullptr) {
+          return new Node{x, nullptr, nullptr};
+      }
+      if (x < root->data) {
+          root->left = sisipkan(root->left, x);
+      } else if (x > root->data) {
+          root->right = sisipkan(root->right, x);
+      }
+      return root;
+  }
+
+  Node* hapusNilai(Node* root, int x) {
+      if (root == nullptr) {
+          return nullptr;
+      }
+      if (x < root->data) {
+          hapusNilai(root->left, x);
+      } else if (x > root->data) {
+          hapusNilai(root->right, x);
+      } else {
+          if (root->left == nullptr) {
+              delete root;
+              return root->right;
+          }
+          if (root->right == nullptr) {
+              delete root;
+              return root->left;
+          }
+          Node* pengganti = root->right;
+          while (pengganti->left != nullptr) {
+              pengganti = pengganti->left;
+          }
+          root->data = pengganti->data;
+          root->right = hapusNilai(root->right, pengganti->data);
+      }
+      return root;
+  }
+
+  void inorder(Node* root, vector<int>& hasil) {
+      if (root == nullptr) {
+          return;
+      }
+      inorder(root->left, hasil);
+      hasil.push_back(root->data);
+      inorder(root->right, hasil);
+  }
+
+  void hapusTree(Node* root) {
+      if (root == nullptr) {
+          return;
+      }
+      hapusTree(root->left);
+      hapusTree(root->right);
+      delete root;
+  }
+
+  int main() {
+      int n;
+      cin >> n;
+      Node* root = nullptr;
+      for (int i = 0; i < n; i++) {
+          int x;
+          cin >> x;
+          root = sisipkan(root, x);
+      }
+      int m;
+      cin >> m;
+      for (int i = 0; i < m; i++) {
+          int x;
+          cin >> x;
+          root = hapusNilai(root, x);
+      }
+
+      vector<int> hasil;
+      inorder(root, hasil);
+      if (hasil.empty()) {
+          cout << "kosong" << endl;
+      } else {
+          for (int i = 0; i < (int)hasil.size(); i++) {
+              if (i > 0) {
+                  cout << " ";
+              }
+              cout << hasil[i];
+          }
+          cout << endl;
+      }
+
+      hapusTree(root);
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Node:
+      def __init__(self, data):
+          self.data = data
+          self.left = None
+          self.right = None
+
+
+  def sisipkan(root, x):
+      if root is None:
+          return Node(x)
+      if x < root.data:
+          root.left = sisipkan(root.left, x)
+      elif x > root.data:
+          root.right = sisipkan(root.right, x)
+      return root
+
+
+  def hapus_nilai(root, x):
+      if root is None:
+          return None
+      if x < root.data:
+          hapus_nilai(root.left, x)
+      elif x > root.data:
+          hapus_nilai(root.right, x)
+      else:
+          if root.left is None:
+              return root.right
+          if root.right is None:
+              return root.left
+          pengganti = root.right
+          while pengganti.left is not None:
+              pengganti = pengganti.left
+          root.data = pengganti.data
+          root.right = hapus_nilai(root.right, pengganti.data)
+      return root
+
+
+  def inorder(root, hasil):
+      if root is None:
+          return
+      inorder(root.left, hasil)
+      hasil.append(root.data)
+      inorder(root.right, hasil)
+
+
+  n = int(input())
+  root = None
+  for x in map(int, input().split()):
+      root = sisipkan(root, x)
+  m = int(input())
+  for x in map(int, input().split()):
+      root = hapus_nilai(root, x)
+
+  hasil = []
+  inorder(root, hasil)
+  if len(hasil) == 0:
+      print("kosong")
+  else:
+      print(*hasil)
+  ```
+
+  Setelah diperbaiki, program harus menghasilkan output berikut:
+
+  ```txt title="Contoh input"
+  7
+  50 30 70 20 40 60 80
+  3
+  20 70 50
+  ```
+
+  ```txt title="Contoh output"
+  30 40 60 80
+  ```
+
+  <Petunjuk>
+    Ada dua jenis kesalahan. Pertama, bandingkan kedua cabang `if (x < root->data)` dan `else if` dengan `sisipkan`. Ke mana perginya root subtree yang baru? Kedua, di C++, perhatikan urutan `delete root;` dan baris sesudahnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    **Kesalahan 1 (C++ dan Python):** hasil panggilan rekursif di cabang kiri dan kanan dibuang. Saat node yang dihapus berada di bawah root, fungsi mengembalikan pengganti node itu, tetapi parent-nya tidak pernah diperbarui. Di Python, node itu tetap tergantung di tree, jadi nilainya tidak pernah hilang. Dengan input contoh, versi Python mencetak `20 30 40 60 60 80`. Nilai 20 tidak terhapus, dan successor 60 yang disalin ke root juga tidak terhapus dari tempat asalnya. Di C++ akibatnya lebih buruk, karena node itu sudah di-`delete` sementara parent-nya masih menunjuk ke sana (_dangling pointer_). Perbaikannya: `root->left = hapusNilai(root->left, x);` dan `root->right = hapusNilai(root->right, x);`.
+
+    **Kesalahan 2 (hanya C++):** `delete root; return root->right;` membaca `root->right` dari node yang sudah dibebaskan. Simpan dulu alamat anaknya, baru `delete`. Python tidak punya kesalahan ini karena tidak ada `delete`.
+
+    Penghapusan 70 di input contoh kebetulan tidak terkena kesalahan 1. Node 70 punya dua anak, jadi nilainya diganti di tempat, dan penghapusan successor-nya memakai baris `root->right = ...` yang sudah benar. Karena itu, bug seperti ini mudah lolos jika hanya dicoba dengan satu atau dua kasus.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* left;
+        Node* right;
+    };
+
+    Node* sisipkan(Node* root, int x) {
+        if (root == nullptr) {                     // kasus dasar
+            return new Node{x, nullptr, nullptr};
+        }
+        if (x < root->data) {
+            root->left = sisipkan(root->left, x);
+        } else if (x > root->data) {
+            root->right = sisipkan(root->right, x);
+        }
+        return root;
+    }
+
+    Node* hapusNilai(Node* root, int x) {
+        if (root == nullptr) {                     // kasus dasar
+            return nullptr;
+        }
+        if (x < root->data) {
+            root->left = hapusNilai(root->left, x);        // perbaikan 1
+        } else if (x > root->data) {
+            root->right = hapusNilai(root->right, x);      // perbaikan 1
+        } else {
+            if (root->left == nullptr) {
+                Node* sisa = root->right;          // perbaikan 2: simpan dulu
+                delete root;
+                return sisa;
+            }
+            if (root->right == nullptr) {
+                Node* sisa = root->left;           // perbaikan 2: simpan dulu
+                delete root;
+                return sisa;
+            }
+            Node* pengganti = root->right;
+            while (pengganti->left != nullptr) {
+                pengganti = pengganti->left;
+            }
+            root->data = pengganti->data;
+            root->right = hapusNilai(root->right, pengganti->data);
+        }
+        return root;
+    }
+
+    void inorder(Node* root, vector<int>& hasil) {
+        if (root == nullptr) {                     // kasus dasar
+            return;
+        }
+        inorder(root->left, hasil);
+        hasil.push_back(root->data);
+        inorder(root->right, hasil);
+    }
+
+    void hapusTree(Node* root) {
+        if (root == nullptr) {                     // kasus dasar
+            return;
+        }
+        hapusTree(root->left);
+        hapusTree(root->right);
+        delete root;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* root = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            root = sisipkan(root, x);
+        }
+        int m;
+        cin >> m;
+        for (int i = 0; i < m; i++) {
+            int x;
+            cin >> x;
+            root = hapusNilai(root, x);
+        }
+
+        vector<int> hasil;
+        inorder(root, hasil);
+        if (hasil.empty()) {
+            cout << "kosong" << endl;
+        } else {
+            for (int i = 0; i < (int)hasil.size(); i++) {
+                if (i > 0) {
+                    cout << " ";
+                }
+                cout << hasil[i];
+            }
+            cout << endl;
+        }
+
+        hapusTree(root);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data):
+            self.data = data
+            self.left = None
+            self.right = None
+
+
+    def sisipkan(root, x):
+        if root is None:                           # kasus dasar
+            return Node(x)
+        if x < root.data:
+            root.left = sisipkan(root.left, x)
+        elif x > root.data:
+            root.right = sisipkan(root.right, x)
+        return root
+
+
+    def hapus_nilai(root, x):
+        if root is None:                           # kasus dasar
+            return None
+        if x < root.data:
+            root.left = hapus_nilai(root.left, x)          # perbaikan
+        elif x > root.data:
+            root.right = hapus_nilai(root.right, x)        # perbaikan
+        else:
+            if root.left is None:
+                return root.right
+            if root.right is None:
+                return root.left
+            pengganti = root.right
+            while pengganti.left is not None:
+                pengganti = pengganti.left
+            root.data = pengganti.data
+            root.right = hapus_nilai(root.right, pengganti.data)
+        return root
+
+
+    def inorder(root, hasil):
+        if root is None:                           # kasus dasar
+            return
+        inorder(root.left, hasil)
+        hasil.append(root.data)
+        inorder(root.right, hasil)
+
+
+    n = int(input())
+    root = None
+    for x in map(int, input().split()):
+        root = sisipkan(root, x)
+    m = int(input())
+    for x in map(int, input().split()):
+        root = hapus_nilai(root, x)
+
+    hasil = []
+    inorder(root, hasil)
+    if len(hasil) == 0:
+        print("kosong")
+    else:
+        print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>

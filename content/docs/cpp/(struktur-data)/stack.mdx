@@ -214,7 +214,8 @@ Text editor menyimpan setiap aksimu di sebuah stack riwayat. Setiap aksi baru di
 Pola yang sama muncul di banyak tempat lain:
 
 - **Tombol back di browser.** Setiap halaman yang kamu buka di-push. Tombol back mem-pop halaman sekarang dan menampilkan halaman di bawahnya.
-- **Pemanggilan fungsi.** Saat `main` memanggil `hitung`, lalu `hitung` memanggil `kuadrat`, komputer mencatat urutannya di sebuah stack yang disebut _call stack_. Begitu `kuadrat` selesai, catatannya di-pop dan eksekusi kembali ke `hitung`. Itulah sebabnya pesan error Python diawali `Traceback (most recent call last)`: isinya adalah call stack saat error terjadi. Cara membacanya dibahas di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging).
+- **Menjelajahi labirin.** Setiap persimpangan yang belum selesai dijelajahi di-push. Saat menemui jalan buntu, pop untuk kembali ke persimpangan terakhir. Cara menjelajah ini disebut _depth-first search_ dan dibahas di materi [DFS](/docs/cpp/dfs).
+- **Pemanggilan fungsi.** Saat `main` memanggil `hitung`, lalu `hitung` memanggil `kuadrat`, komputer mencatat urutannya di sebuah stack yang disebut <Term href="/docs/cpp/pendalaman/call-stack">_call stack_</Term>. Begitu `kuadrat` selesai, catatannya di-pop dan eksekusi kembali ke `hitung`. Call stack juga yang membuat fungsi bisa memanggil dirinya sendiri, yang dibahas di materi [Rekursi](/docs/cpp/rekursi). Itulah sebabnya pesan error Python diawali `Traceback (most recent call last)`: isinya adalah call stack saat error terjadi. Cara membacanya dibahas di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging).
 
 ## Penerapan: memeriksa tanda kurung
 

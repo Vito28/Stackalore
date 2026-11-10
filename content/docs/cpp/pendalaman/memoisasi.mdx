@@ -1,0 +1,372 @@
+---
+title: Memoisasi
+description: Menyimpan hasil panggilan rekursif agar tidak dihitung ulang. Fibonacci turun dari ratusan juta panggilan menjadi puluhan, functools.cache di Python, versi tabel dari bawah, dan pengantar pemrograman dinamis.
+sumber:
+  - ref: cppreference
+    judul: "std::vector"
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: python-docs
+    judul: Tutorial, Dictionaries
+    url: https://docs.python.org/3/tutorial/datastructures.html#dictionaries
+  - ref: python-docs
+    judul: functools.cache
+    url: https://docs.python.org/3/library/functools.html#functools.cache
+  - ref: python-docs
+    judul: functools.lru_cache
+    url: https://docs.python.org/3/library/functools.html#functools.lru_cache
+---
+
+<BackToLesson href="/docs/cpp/rekursi" label="Rekursi" />
+
+Di materi [Rekursi](/docs/cpp/rekursi), Fibonacci versi rekursif ternyata sangat lambat: `fib(40)` butuh lebih dari 300 juta panggilan. Penyebabnya bukan rekursi itu sendiri, melainkan **perhitungan yang sama diulang berkali-kali**. Halaman ini membahas cara memperbaikinya tanpa meninggalkan bentuk rekursifnya, yaitu **memoisasi**.
+
+## Masalah: menghitung hal yang sama berulang kali
+
+Program berikut menghitung `fib(6)` sambil mencatat berapa kali `fib` dipanggil untuk setiap nilai `n`:
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+long long fib(int n, vector<int>& hitungan) {
+    hitungan[n]++;                      // catat panggilan ini
+    if (n <= 1) {
+        return n;                       // kasus dasar
+    }
+    return fib(n - 1, hitungan) + fib(n - 2, hitungan);
+}
+
+int main() {
+    vector<int> hitungan(7, 0);
+    cout << "fib(6) = " << fib(6, hitungan) << endl;
+    for (int k = 6; k >= 0; k--) {
+        cout << "fib(" << k << ") dipanggil " << hitungan[k] << " kali" << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+def fib(n, hitungan):
+    hitungan[n] += 1                    # catat panggilan ini
+    if n <= 1:
+        return n                        # kasus dasar
+    return fib(n - 1, hitungan) + fib(n - 2, hitungan)
+
+
+hitungan = [0] * 7
+print(f"fib(6) = {fib(6, hitungan)}")
+for k in range(6, -1, -1):
+    print(f"fib({k}) dipanggil {hitungan[k]} kali")
+```
+
+```txt title="Output"
+fib(6) = 8
+fib(6) dipanggil 1 kali
+fib(5) dipanggil 1 kali
+fib(4) dipanggil 2 kali
+fib(3) dipanggil 3 kali
+fib(2) dipanggil 5 kali
+fib(1) dipanggil 8 kali
+fib(0) dipanggil 5 kali
+```
+
+Hanya ada 7 nilai berbeda, `fib(0)` sampai `fib(6)`, tetapi totalnya 25 panggilan. `fib(2)` dihitung lima kali, padahal hasilnya selalu 1. Perhatikan juga angka di kolom "berapa kali": 1, 1, 2, 3, 5, 8. Itu deret Fibonacci sendiri. Artinya, pemborosannya ikut tumbuh secepat deret Fibonacci. Secara umum, `fib(n)` butuh `2 × fib(n + 1) − 1` panggilan. Untuk `n = 40`, itu 331.160.281 panggilan untuk menghitung hanya 41 nilai berbeda.
+
+## Ide memoisasi: catat setiap jawaban
+
+Saat mengerjakan soal hitungan yang panjang, kamu menulis hasil antara di kertas coretan agar tidak perlu menghitungnya lagi. **Memoisasi** (dari kata _memo_, catatan) melakukan hal yang sama untuk fungsi rekursif:
+
+1. Sebelum menghitung `fib(n)`, periksa catatan. Jika jawabannya sudah ada, langsung kembalikan.
+2. Jika belum ada, hitung seperti biasa.
+3. Simpan hasilnya di catatan, baru kembalikan.
+
+Setiap nilai `n` kini hanya benar-benar dihitung **satu kali**. Panggilan berikutnya untuk `n` yang sama cukup membaca catatan.
+
+## Memo dengan vector dan dict
+
+Di C++, catatannya bisa berupa `vector<long long>` dengan indeks `n`. Kita butuh penanda untuk "belum dihitung". Bilangan Fibonacci tidak pernah negatif, jadi `-1` aman dipakai sebagai penanda. Di Python, `dict` lebih praktis: kuncinya `n`, nilainya `fib(n)`, dan `n in memo` langsung menjawab apakah `n` sudah pernah dihitung.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+long long fib(int n, vector<long long>& memo) {
+    if (n <= 1) {
+        return n;                       // kasus dasar
+    }
+    if (memo[n] != -1) {
+        return memo[n];                 // sudah pernah dihitung, baca catatan
+    }
+    memo[n] = fib(n - 1, memo) + fib(n - 2, memo);  // hitung sekali, lalu catat
+    return memo[n];
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<long long> memo(n + 1, -1);  // -1 berarti "belum dihitung"
+    cout << fib(n, memo) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def fib(n, memo):
+    if n <= 1:
+        return n                        # kasus dasar
+    if n in memo:
+        return memo[n]                  # sudah pernah dihitung, baca catatan
+    memo[n] = fib(n - 1, memo) + fib(n - 2, memo)   # hitung sekali, lalu catat
+    return memo[n]
+
+
+n = int(input())
+print(fib(n, {}))
+```
+
+```txt title="Contoh jalannya program"
+90
+2880067194370816120
+```
+
+Hasilnya muncul seketika. Tanpa memo, `fib(90)` butuh sekitar 9 × 10¹⁸ panggilan, yang tidak akan selesai seumur hidupmu. Batas 90 dipilih karena `fib(92)` adalah bilangan Fibonacci terbesar yang masih muat di `long long`.
+
+Beberapa hal yang perlu diperhatikan:
+
+- **Catatan dikirim dengan `&`.** Semua panggilan harus menulis ke catatan yang **sama**. Tanpa `&`, setiap panggilan menerima salinan, dan catatannya hilang begitu panggilan selesai. List dan dict Python tidak disalin saat dikirim ke fungsi, jadi tidak perlu tanda khusus.
+- **Penanda harus mustahil menjadi jawaban.** `-1` aman untuk Fibonacci. Jika `-1` bisa saja menjadi jawaban yang sah, pakai penanda lain atau `vector<bool> sudah` yang terpisah. Dict Python tidak butuh penanda, karena kunci yang belum ada memang tidak ada.
+- **Urutannya tetap kasus dasar dulu**, lalu periksa catatan, lalu hitung.
+
+## Dari eksponensial ke linear
+
+Setiap `fib(k)` untuk `k` = 2 sampai `n` kini dihitung tepat sekali, dan setiap perhitungan memanggil `fib` dua kali. Totalnya sekitar `2n` panggilan:
+
+| `n` | Tanpa memo | Dengan memo |
+| --- | --- | --- |
+| 5 | 15 | 9 |
+| 10 | 177 | 19 |
+| 20 | 21.891 | 39 |
+| 40 | 331.160.281 | 79 |
+| 90 | sekitar 9,3 × 10¹⁸ | 179 |
+
+Dalam notasi <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">Big-O</Term>, waktunya turun dari eksponensial (kira-kira dikali 1,6 setiap `n` naik 1) menjadi **O(n)**. Harganya adalah memori tambahan sebesar O(n) untuk catatan. Pertukaran "pakai sedikit memori agar jauh lebih cepat" seperti ini sangat sering muncul dalam pemrograman.
+
+Pohon panggilan `fib(5)` dengan memo jauh lebih ramping. Cabang yang sudah tercatat langsung kembali tanpa memanggil apa pun lagi:
+
+```txt
+fib(5)
++-- fib(4)
+|   +-- fib(3)
+|   |   +-- fib(2)
+|   |   |   +-- fib(1)
+|   |   |   +-- fib(0)
+|   |   +-- fib(1)
+|   +-- fib(2)      sudah tercatat, langsung kembali
++-- fib(3)          sudah tercatat, langsung kembali
+```
+
+<Callout type="warning" title="Memo tidak mengurangi kedalaman">
+  Memoisasi mengurangi **banyak** panggilan, tetapi tidak mengurangi **kedalaman**-nya. `fib(n)` tetap turun lewat `fib(n − 1)`, `fib(n − 2)`, dan seterusnya sampai kasus dasar, jadi call stack tetap setinggi sekitar `n` frame. Di Python, `fib(1000)` dengan memo tetap gagal dengan `RecursionError`. Penjelasannya ada di [Call Stack & Rekursi](/docs/cpp/pendalaman/call-stack), dan solusinya adalah versi tabel di bawah.
+</Callout>
+
+## `functools.cache` di Python
+
+Karena pola memoisasi sangat umum, Python menyediakannya siap pakai. Tulis `@cache` tepat di atas `def`. Baris seperti ini disebut **decorator**: ia membungkus fungsi di bawahnya sehingga setiap hasilnya otomatis dicatat berdasarkan argumennya.
+
+```python
+from functools import cache
+
+
+@cache
+def fib(n):
+    if n <= 1:
+        return n                        # kasus dasar
+    return fib(n - 1) + fib(n - 2)
+
+
+print(fib(90))                          # 2880067194370816120
+print(fib.cache_info())
+```
+
+```txt title="Output"
+2880067194370816120
+CacheInfo(hits=88, misses=91, maxsize=None, currsize=91)
+```
+
+Kodenya sama persis dengan versi lambat, hanya ditambah dua baris. `cache_info()` memperlihatkan isi catatannya: 91 kali harus menghitung (`misses`, yaitu `fib(0)` sampai `fib(90)`), dan 88 kali cukup membaca catatan (`hits`).
+
+- `@cache` tersedia sejak Python 3.9. Di versi lebih lama, pakai `@lru_cache(maxsize=None)` dari modul yang sama, yang bekerja persis sama.
+- `@lru_cache(maxsize=128)` hanya menyimpan 128 hasil yang terakhir dipakai. Ini berguna jika kemungkinan argumennya sangat banyak dan memori terbatas.
+- Argumennya harus bisa dijadikan kunci dict. Angka, string, dan tuple boleh. List tidak boleh, dan pemanggilannya gagal dengan `TypeError: unhashable type: 'list'`. Jadi `@cache` tidak bisa langsung dipakai untuk fungsi seperti `jumlah(data, i)` yang menerima list.
+
+C++ tidak punya padanan bawaan untuk `@cache`. Di C++, catatannya selalu ditulis sendiri seperti versi `vector` di atas.
+
+## Bottom-up: mengisi tabel dari bawah
+
+Memoisasi bekerja **dari atas ke bawah** (_top-down_): mulai dari `fib(n)`, turun lewat rekursi, dan mencatat hasil di sepanjang jalan. Arah sebaliknya juga bisa. Mulai dari kasus dasar, lalu isi tabel **dari bawah ke atas** (_bottom-up_) dengan perulangan biasa, sampai sel yang dicari:
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<long long> dp(n + 2, 0);     // n + 2 agar dp[1] tetap ada saat n = 0
+    dp[0] = 0;                          // kasus dasar
+    dp[1] = 1;                          // kasus dasar
+    for (int i = 2; i <= n; i++) {
+        dp[i] = dp[i - 1] + dp[i - 2];  // dua sel sebelumnya sudah terisi
+    }
+    cout << dp[n] << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+
+dp = [0] * (n + 2)                      # n + 2 agar dp[1] tetap ada saat n = 0
+dp[0] = 0                               # kasus dasar
+dp[1] = 1                               # kasus dasar
+for i in range(2, n + 1):
+    dp[i] = dp[i - 1] + dp[i - 2]       # dua sel sebelumnya sudah terisi
+print(dp[n])
+```
+
+| `i` | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `dp[i]` | 0 | 1 | 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34 | 55 |
+
+Saat `dp[i]` dihitung, `dp[i - 1]` dan `dp[i - 2]` pasti sudah terisi, karena tabelnya diisi berurutan dari kecil ke besar. Tidak ada rekursi sama sekali, jadi tidak ada batas kedalaman: `n = 10.000` pun aman di Python (hanya saja hasilnya tidak lagi muat di `long long` C++).
+
+| | Top-down (memoisasi) | Bottom-up (tabel) |
+| --- | --- | --- |
+| Arah | dari `fib(n)` turun ke kasus dasar | dari kasus dasar naik ke `fib(n)` |
+| Bentuk kode | rekursi + catatan | perulangan + tabel |
+| Kedalaman call stack | sekitar `n` | tidak ada rekursi |
+| Yang dihitung | hanya yang benar-benar dibutuhkan | semua sel dari kasus dasar sampai jawaban |
+| Kelebihan | dekat dengan rumus aslinya, mudah ditulis | tidak bisa _stack overflow_, sedikit lebih cepat |
+
+Kedua cara ini adalah inti dari **pemrograman dinamis** (_dynamic programming_): pecah masalah menjadi submasalah yang **saling tumpang tindih**, lalu selesaikan setiap submasalah cukup satu kali. Karena `dp[i]` hanya butuh dua sel sebelumnya, tabelnya bahkan bisa dihemat menjadi dua variabel saja. Itulah versi perulangan `a`, `b` di materi Rekursi.
+
+## Contoh kedua: banyak jalur di grid
+
+Sebuah grid berukuran `r` baris dan `c` kolom berisi sel kosong `.` dan tembok `#`, dengan format input seperti di materi [Matriks](/docs/cpp/matriks). Kamu mulai di pojok kiri atas dan ingin sampai di pojok kanan bawah. Setiap langkah hanya boleh ke **kanan** atau ke **bawah**, dan tidak boleh masuk ke tembok. Ada berapa jalur berbeda?
+
+```txt title="Contoh input"
+3 4
+....
+.#..
+....
+```
+
+Cara berpikir rekursifnya: dari sel `(i, j)`, langkah pertama hanya ada dua kemungkinan, ke bawah `(i + 1, j)` atau ke kanan `(i, j + 1)`. Jadi banyak jalur dari `(i, j)` sama dengan banyak jalur dari sel bawahnya **ditambah** banyak jalur dari sel kanannya. Kasus dasarnya:
+
+- Sel di luar grid atau berisi tembok: 0 jalur.
+- Sel tujuan: 1 jalur, yaitu berhenti di situ.
+
+Tanpa memo, sel yang sama dihitung berkali-kali, karena bisa dicapai lewat banyak urutan langkah. Misalnya, sel `(1, 1)` bisa dicapai lewat "kanan, bawah" maupun "bawah, kanan". Untuk grid kosong 16 × 16, jawabannya 155.117.520 jalur, dan rekursi tanpa memo butuh 891.925.739 panggilan. Padahal grid itu hanya punya 256 sel. Dengan memo berupa tabel dua dimensi seukuran grid, setiap sel cukup dihitung sekali, dan banyak panggilannya turun menjadi 511.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+long long jalur(const vector<string>& grid, int i, int j, vector<vector<long long>>& memo) {
+    int r = (int)grid.size();
+    int c = (int)grid[0].size();
+    if (i >= r || j >= c || grid[i][j] == '#') {
+        return 0;                       // kasus dasar: di luar grid atau tembok
+    }
+    if (i == r - 1 && j == c - 1) {
+        return 1;                       // kasus dasar: sampai di tujuan
+    }
+    if (memo[i][j] != -1) {
+        return memo[i][j];              // sudah pernah dihitung
+    }
+    // jalur lewat sel bawah + jalur lewat sel kanan
+    memo[i][j] = jalur(grid, i + 1, j, memo) + jalur(grid, i, j + 1, memo);
+    return memo[i][j];
+}
+
+int main() {
+    int r, c;
+    cin >> r >> c;
+    vector<string> grid(r);
+    for (int i = 0; i < r; i++) {
+        cin >> grid[i];
+    }
+    vector<vector<long long>> memo(r, vector<long long>(c, -1));
+    cout << jalur(grid, 0, 0, memo) << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def jalur(grid, i, j, memo):
+    r = len(grid)
+    c = len(grid[0])
+    if i >= r or j >= c or grid[i][j] == "#":
+        return 0                        # kasus dasar: di luar grid atau tembok
+    if i == r - 1 and j == c - 1:
+        return 1                        # kasus dasar: sampai di tujuan
+    if memo[i][j] != -1:
+        return memo[i][j]               # sudah pernah dihitung
+    # jalur lewat sel bawah + jalur lewat sel kanan
+    memo[i][j] = jalur(grid, i + 1, j, memo) + jalur(grid, i, j + 1, memo)
+    return memo[i][j]
+
+
+r, c = map(int, input().split())
+grid = []
+for i in range(r):
+    grid.append(input())
+memo = [[-1] * c for _ in range(r)]     # r baris, masing-masing berisi c buah -1
+print(jalur(grid, 0, 0, memo))
+```
+
+```txt title="Output untuk contoh input"
+4
+```
+
+Perhatikan urutan pemeriksaan `i >= r || j >= c || grid[i][j] == '#'`. Berkat _short-circuit_, `grid[i][j]` hanya dibaca jika `(i, j)` memang berada di dalam grid.
+
+Versi bottom-up-nya mengisi tabel `dp` dengan arti yang sama, `dp[i][j]` = banyak jalur dari `(i, j)` ke tujuan. Karena setiap sel butuh sel bawah dan sel kanannya, tabel diisi mulai dari pojok kanan bawah, baris demi baris ke atas, dan setiap baris dari kanan ke kiri:
+
+```txt
+grid:            dp (banyak jalur dari sel itu ke tujuan):
+
+. . . .           4  3  3  1
+. # . .           1  #  2  1
+. . . .           1  1  1  1      <- baris terbawah: hanya bisa terus ke kanan
+```
+
+Setiap angka adalah jumlah angka di bawahnya dan di kanannya (sel di luar grid dan tembok dihitung 0). Jawabannya ada di pojok kiri atas: 4.
+
+Contoh lain yang sering muncul adalah **menaiki tangga**: ada berapa cara menaiki `n` anak tangga jika setiap langkah naik 1 atau 2 anak tangga? Langkah terakhir pasti berasal dari anak tangga `n − 1` atau `n − 2`, sehingga `cara(n) = cara(n − 1) + cara(n − 2)`, dengan `cara(0) = cara(1) = 1`. Rumusnya sama dengan Fibonacci, hanya bergeser satu (`cara(n) = fib(n + 1)`), jadi memoisasi dan tabelnya juga sama persis.
+
+## Kapan memoisasi berguna?
+
+Memoisasi tidak selalu membantu. Ada tiga syarat:
+
+1. **Submasalah yang sama muncul berulang kali.** Fibonacci dan jalur di grid memenuhinya. Faktorial tidak: `faktorial(5)` memanggil `faktorial(4)` sekali saja, dan tidak ada yang memanggilnya lagi. Memo di sana hanya membuang memori.
+2. **Hasilnya hanya bergantung pada argumen.** Argumen yang sama harus selalu menghasilkan jawaban yang sama. Fungsi yang mencetak sesuatu, seperti `hanoi`, atau yang hasilnya bergantung pada vector yang dipakai bersama, seperti `subset` dengan `dipilih`, tidak bisa dimemo dengan cara ini.
+3. **Banyak kemungkinan argumennya cukup kecil untuk dicatat.** Grid 1.000 × 1.000 berarti satu juta sel catatan, masih wajar. Fungsi `hitung(a, i, sisa)` di latihan "Subset berjumlah K" pada materi Rekursi juga bisa dimemo, karena pasangan `i` dan `sisa` yang mungkin hanya sekitar `n × K`. Sebaliknya, jika hasil sebuah fungsi bergantung pada **seluruh** isi pilihan sejauh ini, ada `2ⁿ` kemungkinan, dan catatannya tidak lagi menghemat apa pun.
+
+## Rangkuman
+
+- Rekursi bercabang seperti Fibonacci menjadi lambat karena **submasalah yang sama dihitung berulang kali**, bukan karena rekursinya.
+- **Memoisasi** mencatat setiap hasil. Sebelum menghitung, periksa catatan. Sesudah menghitung, simpan hasilnya.
+- Di C++, catatannya berupa `vector` (atau tabel dua dimensi) dengan penanda "belum dihitung" seperti `-1`, dikirim dengan `&`. Di Python, pakai `dict` atau `@cache` dari `functools`.
+- Fibonacci turun dari waktu eksponensial menjadi **O(n)**, dengan memori tambahan O(n). Kedalaman rekursinya tetap sekitar `n`.
+- **Bottom-up** mengisi tabel dari kasus dasar dengan perulangan, tanpa rekursi dan tanpa batas kedalaman. Top-down dan bottom-up adalah inti **pemrograman dinamis**.
+- Memoisasi berguna jika submasalahnya tumpang tindih, hasilnya hanya bergantung pada argumen, dan banyak kemungkinan argumennya cukup kecil.
+
+<BackToLesson href="/docs/cpp/rekursi" label="Rekursi" />

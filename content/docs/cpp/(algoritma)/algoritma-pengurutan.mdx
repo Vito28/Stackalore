@@ -1,0 +1,1359 @@
+---
+title: Algoritma Pengurutan
+description: Cara kerja bubble sort, selection sort, dan insertion sort, lalu memakai sort bawaan C++ dan Python untuk urutan turun, struct, beberapa kunci sekaligus, dan pengurutan yang stabil.
+sumber:
+  - ref: cppreference
+    judul: std::sort
+    url: https://en.cppreference.com/w/cpp/algorithm/sort
+  - ref: cppreference
+    judul: std::stable_sort
+    url: https://en.cppreference.com/w/cpp/algorithm/stable_sort
+  - ref: cppreference
+    judul: std::greater
+    url: https://en.cppreference.com/w/cpp/utility/functional/greater
+  - ref: python-docs
+    judul: Sorting Techniques
+    url: https://docs.python.org/3/howto/sorting.html
+  - ref: python-docs
+    judul: "Built-in Functions, sorted()"
+    url: https://docs.python.org/3/library/functions.html#sorted
+---
+
+## Masalah: data yang berantakan
+
+Kamu sudah bisa menyimpan banyak data di [vector](/docs/cpp/array-dan-vector) dan [struct](/docs/cpp/struct), lalu mencari isinya dengan pencarian linear. Namun data yang masuk biasanya acak: nilai ujian dicatat sesuai urutan absen, harga barang sesuai urutan dimasukkan ke sistem. Banyak pertanyaan sehari-hari baru mudah dijawab setelah datanya **diurutkan**:
+
+- **Peringkat.** Siapa juara 1, 2, dan 3? Urutkan nilai dari besar ke kecil, lalu ambil tiga yang paling depan.
+- **Nilai tengah (median).** Median adalah elemen yang berada tepat di tengah setelah data diurutkan.
+- **Mencari lebih cepat.** Kamus dan buku telepon bisa dibuka "kira-kira di tengah" karena isinya urut abjad. Di materi berikutnya, [Algoritma Pencarian](/docs/cpp/algoritma-pencarian), kamu akan memanfaatkan data terurut untuk mencari jauh lebih cepat daripada pencarian linear.
+- **Menemukan data kembar.** Setelah diurutkan, nilai yang sama pasti bersebelahan.
+
+**Mengurutkan** (_sorting_) berarti menyusun ulang elemen sehingga setiap elemen tidak lebih besar daripada elemen sesudahnya. Susunan ini disebut **urutan naik** (_ascending_). Kebalikannya, dari besar ke kecil, disebut **urutan turun** (_descending_).
+
+Di materi ini kamu akan menulis tiga algoritma pengurutan sederhana untuk memahami cara kerjanya dan menghitung biayanya. Setelah itu kamu belajar memakai `sort` bawaan, yang jauh lebih cepat dan dipakai di program sungguhan.
+
+## Menukar dua nilai
+
+Ketiga algoritma di materi ini sering **menukar** dua elemen. Cara yang terlihat wajar ternyata salah:
+
+```cpp
+int a = 3, b = 8;
+a = b;      // a = 8
+b = a;      // b = 8, nilai 3 sudah hilang
+```
+
+Begitu `a = b` dijalankan, nilai lama `a` tertimpa. Simpan dulu nilai itu di variabel sementara:
+
+```cpp tab="C++"
+#include <iostream>
+#include <utility>
+using namespace std;
+
+int main() {
+    int a = 3, b = 8;
+
+    int sementara = a;   // 1. simpan a
+    a = b;               // 2. a = 8
+    b = sementara;       // 3. b = 3
+    cout << a << " " << b << endl;   // 8 3
+
+    swap(a, b);          // fungsi siap pakai, hasilnya sama
+    cout << a << " " << b << endl;   // 3 8
+    return 0;
+}
+```
+
+```python tab="Python"
+a = 3
+b = 8
+
+sementara = a        # 1. simpan a
+a = b                # 2. a = 8
+b = sementara        # 3. b = 3
+print(a, b)          # 8 3
+
+a, b = b, a          # cara khas Python, hasilnya sama
+print(a, b)          # 3 8
+```
+
+`swap` dari `<utility>` menukar isi dua variabel, termasuk dua elemen vector: `swap(data[i], data[j])`. Fungsi ini menerima parameternya sebagai reference, persis seperti fungsi `tukar` di [Pass by Value & Pass by Reference](/docs/cpp/pendalaman/pass-by-value-dan-reference).
+
+Di Python, ruas kanan `b, a` lebih dulu dibungkus menjadi sebuah **tuple**, yaitu beberapa nilai yang digabung menjadi satu (mirip list, tetapi isinya tidak bisa diubah). Setelah itu tuple tersebut dibongkar ke `a` dan `b`. Karena nilai lama sudah tersimpan di dalam tuple, tidak ada yang tertimpa.
+
+## Bubble sort
+
+Idenya: telusuri data dari kiri ke kanan, bandingkan setiap **pasangan bersebelahan**, dan tukar jika yang kiri lebih besar. Satu kali penelusuran ini disebut **putaran**.
+
+Perhatikan apa yang terjadi pada elemen terbesar. Begitu tersentuh, ia selalu lebih besar daripada tetangga kanannya, sehingga terus ditukar ke kanan sampai ujung. Seperti gelembung udara yang naik ke permukaan, karena itu namanya _bubble sort_. Berikut putaran pertama untuk data `4 9 2 7 5 8`:
+
+| Pasangan yang dibandingkan | Tukar? | Isi data sesudahnya |
+| --- | --- | --- |
+| `4` dan `9` | tidak | `4 9 2 7 5 8` |
+| `9` dan `2` | ya | `4 2 9 7 5 8` |
+| `9` dan `7` | ya | `4 2 7 9 5 8` |
+| `9` dan `5` | ya | `4 2 7 5 9 8` |
+| `9` dan `8` | ya | `4 2 7 5 8 9` |
+
+Setelah satu putaran, `9` sudah berada di tempat akhirnya. Putaran kedua tidak perlu menyentuh ujung kanan lagi, putaran ketiga bisa berhenti satu langkah lebih awal lagi, dan seterusnya. Jejak lengkapnya:
+
+| Putaran | Perbandingan | Pertukaran | Isi data sesudahnya | Sudah di tempat akhir |
+| --- | --- | --- | --- | --- |
+| 1 | 5 | 4 | `4 2 7 5 8 9` | `9` |
+| 2 | 4 | 2 | `2 4 5 7 8 9` | `8 9` |
+| 3 | 3 | 0 | `2 4 5 7 8 9` | berhenti |
+
+Putaran ketiga tidak menukar apa pun. Artinya setiap pasangan bersebelahan sudah urut, jadi **seluruh** data sudah urut. Tanpa pemeriksaan ini, program tetap menjalankan putaran keempat dan kelima yang sia-sia. Penanda "ada pertukaran atau tidak" ini disebut **berhenti lebih awal** (_early stop_).
+
+```cpp tab="C++"
+#include <iostream>
+#include <utility>
+#include <vector>
+using namespace std;
+
+void bubbleSort(vector<int>& data) {
+    int n = data.size();
+    for (int putaran = 0; putaran < n - 1; putaran++) {
+        bool adaTukar = false;
+        for (int j = 0; j < n - 1 - putaran; j++) {   // ujung kanan sudah urut
+            if (data[j] > data[j + 1]) {
+                swap(data[j], data[j + 1]);
+                adaTukar = true;
+            }
+        }
+        if (!adaTukar) {
+            break;                  // tidak ada pertukaran: data sudah urut
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> data(n);
+    for (int i = 0; i < n; i++) {
+        cin >> data[i];
+    }
+
+    bubbleSort(data);
+
+    for (int i = 0; i < n; i++) {
+        cout << data[i] << " ";
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def bubble_sort(data):
+    n = len(data)
+    for putaran in range(n - 1):
+        ada_tukar = False
+        for j in range(n - 1 - putaran):          # ujung kanan sudah urut
+            if data[j] > data[j + 1]:
+                data[j], data[j + 1] = data[j + 1], data[j]
+                ada_tukar = True
+        if not ada_tukar:
+            break                   # tidak ada pertukaran: data sudah urut
+
+
+n = int(input())
+data = list(map(int, input().split()))
+
+bubble_sort(data)
+
+print(*data)
+```
+
+```txt title="Contoh jalannya program"
+6
+4 9 2 7 5 8
+2 4 5 7 8 9
+```
+
+Parameter `vector<int>& data` memakai `&`, sehingga fungsi mengurutkan vector milik `main`, bukan salinannya. Di Python, list yang dikirim ke fungsi memang tidak disalin, jadi perubahan di dalam `bubble_sort` langsung terlihat di luar.
+
+## Selection sort
+
+Selection sort bekerja seperti cara banyak orang menyusun kartu di meja: cari kartu **terkecil**, letakkan paling kiri. Dari sisanya, cari lagi yang terkecil, letakkan di posisi kedua. Ulangi sampai habis.
+
+Di dalam vector, "meletakkan" berarti menukar elemen terkecil dengan elemen di posisi `i`. Bagian kiri sampai indeks `i - 1` selalu sudah urut dan tidak disentuh lagi. Jejak untuk data yang sama:
+
+| `i` | Bagian yang belum urut | Terkecil | Tindakan | Isi data sesudahnya |
+| --- | --- | --- | --- | --- |
+| 0 | `4 9 2 7 5 8` | `2` di indeks 2 | tukar indeks 0 dan 2 | `2 9 4 7 5 8` |
+| 1 | `9 4 7 5 8` | `4` di indeks 2 | tukar indeks 1 dan 2 | `2 4 9 7 5 8` |
+| 2 | `9 7 5 8` | `5` di indeks 4 | tukar indeks 2 dan 4 | `2 4 5 7 9 8` |
+| 3 | `7 9 8` | `7` di indeks 3 | sudah di tempatnya | `2 4 5 7 9 8` |
+| 4 | `9 8` | `8` di indeks 5 | tukar indeks 4 dan 5 | `2 4 5 7 8 9` |
+
+Setelah `i = 4`, tinggal satu elemen yang belum diperiksa, dan elemen itu pasti yang terbesar. Jadi perulangan luar cukup sampai `n - 2`.
+
+```cpp tab="C++"
+void selectionSort(vector<int>& data) {
+    int n = data.size();
+    for (int i = 0; i < n - 1; i++) {
+        int terkecil = i;                     // indeks terkecil sejauh ini
+        for (int j = i + 1; j < n; j++) {
+            if (data[j] < data[terkecil]) {
+                terkecil = j;
+            }
+        }
+        if (terkecil != i) {
+            swap(data[i], data[terkecil]);    // pindahkan ke depan
+        }
+    }
+}
+```
+
+```python tab="Python"
+def selection_sort(data):
+    n = len(data)
+    for i in range(n - 1):
+        terkecil = i                          # indeks terkecil sejauh ini
+        for j in range(i + 1, n):
+            if data[j] < data[terkecil]:
+                terkecil = j
+        if terkecil != i:
+            data[i], data[terkecil] = data[terkecil], data[i]   # pindahkan ke depan
+```
+
+Pola "simpan indeks kandidat terbaik, lalu bandingkan dengan sisanya" sama dengan mencari nilai tertinggi di materi [Struct](/docs/cpp/struct). Bedanya, selection sort mengulanginya untuk setiap posisi.
+
+Selection sort selalu memeriksa seluruh bagian yang belum urut, bahkan jika data sudah urut sejak awal. Kelebihannya, ia hanya melakukan **paling banyak `n - 1` pertukaran**. Ini berguna jika memindahkan data mahal, misalnya setiap elemen adalah struct yang besar.
+
+## Insertion sort
+
+Insertion sort meniru cara menyusun kartu **di tangan**. Kamu mengambil kartu satu per satu, lalu menyelipkannya ke posisi yang tepat di antara kartu yang sudah kamu pegang. Kartu di tangan selalu urut.
+
+Di dalam vector, bagian kiri sampai indeks `i - 1` adalah "kartu di tangan" yang sudah urut. Elemen `data[i]` diambil sebagai **kunci**. Semua elemen di sebelah kirinya yang lebih besar daripada kunci digeser satu posisi ke kanan, lalu kunci diletakkan di celah yang terbuka.
+
+| `i` | Kunci | Digeser ke kanan | Isi data sesudahnya |
+| --- | --- | --- | --- |
+| 1 | `9` | tidak ada | `4 9 2 7 5 8` |
+| 2 | `2` | `9`, `4` | `2 4 9 7 5 8` |
+| 3 | `7` | `9` | `2 4 7 9 5 8` |
+| 4 | `5` | `9`, `7` | `2 4 5 7 9 8` |
+| 5 | `8` | `9` | `2 4 5 7 8 9` |
+
+```cpp tab="C++"
+void insertionSort(vector<int>& data) {
+    int n = data.size();
+    for (int i = 1; i < n; i++) {
+        int kunci = data[i];
+        int j = i - 1;
+        while (j >= 0 && data[j] > kunci) {   // geser yang lebih besar ke kanan
+            data[j + 1] = data[j];
+            j--;
+        }
+        data[j + 1] = kunci;                  // isi celah yang terbuka
+    }
+}
+```
+
+```python tab="Python"
+def insertion_sort(data):
+    for i in range(1, len(data)):
+        kunci = data[i]
+        j = i - 1
+        while j >= 0 and data[j] > kunci:     # geser yang lebih besar ke kanan
+            data[j + 1] = data[j]
+            j -= 1
+        data[j + 1] = kunci                   # isi celah yang terbuka
+```
+
+Urutan syarat `j >= 0 && data[j] > kunci` penting. Berkat [_short-circuit_](/docs/cpp/operator-perbandingan-dan-logika), `data[j]` hanya dibaca jika `j` masih indeks yang sah. Jika dibalik, C++ akan membaca `data[-1]` saat kunci adalah yang terkecil sejauh ini.
+
+**Kenapa insertion sort cocok untuk data yang hampir urut?** Perulangan `while` berhenti begitu bertemu elemen yang tidak lebih besar daripada kunci. Jika data hampir urut, setiap kunci hanya bergeser sedikit, bahkan sering tidak bergeser sama sekali. Untuk data yang sudah urut, setiap kunci cukup dibandingkan sekali, jadi total kerjanya hanya sekitar `n` langkah. Contohnya daftar nilai yang sudah urut, lalu ada satu nilai baru ditambahkan di belakang.
+
+## Membandingkan ketiganya
+
+Untuk melihat perbedaannya, ketiga fungsi di atas diberi penghitung: berapa kali dua elemen dibandingkan, dan berapa kali elemen dipindahkan (pertukaran untuk bubble dan selection sort, pergeseran untuk insertion sort). Hasilnya untuk 1.000 bilangan:
+
+| Data (`n` = 1.000) | Bubble sort | Selection sort | Insertion sort |
+| --- | --- | --- | --- |
+| Sudah urut | 999 / 0 | 499.500 / 0 | 999 / 0 |
+| Hampir urut (10 pasang bersebelahan tertukar) | 1.997 / 10 | 499.500 / 10 | 1.008 / 10 |
+| Acak | ≈ 498.000 / ≈ 258.000 | 499.500 / ≈ 990 | ≈ 259.000 / ≈ 258.000 |
+| Terbalik | 499.500 / 499.500 | 499.500 / 500 | 499.500 / 499.500 |
+
+Setiap sel berisi **banyak perbandingan / banyak perpindahan**. Beberapa hal yang terlihat:
+
+- Pada kasus terburuk (data terbalik), ketiganya melakukan 499.500 perbandingan. Angka ini adalah (n − 1) + (n − 2) + ... + 1 = n(n − 1)/2, sekitar n²/2. Pertumbuhan seperti ini ditulis **O(n²)**: data 10 kali lebih banyak berarti kerja 100 kali lebih banyak. Untuk 100.000 bilangan, itu sekitar 5 miliar perbandingan.
+- Selection sort selalu melakukan n(n − 1)/2 perbandingan, apa pun datanya, tetapi perpindahannya paling sedikit.
+- Bubble sort dengan berhenti lebih awal dan insertion sort sangat cepat untuk data yang sudah atau hampir urut. Insertion sort biasanya yang terbaik di antara ketiganya.
+
+<DeepDive href="/docs/cpp/pendalaman/kompleksitas-waktu" kind="konsep" title="Kompleksitas waktu (Big-O)">
+  Cara menghitung langkah sebuah algoritma, arti O(n²) dan O(n log n), dan perkiraan berapa lama program berjalan untuk data besar.
+</DeepDive>
+
+## Sort bawaan: `sort` dan `sorted`
+
+Ketiga algoritma tadi penting untuk dipahami, tetapi di program sungguhan kamu hampir selalu memakai pengurutan bawaan. Selain lebih singkat, kompleksitasnya **O(n log n)**: 100.000 bilangan diurutkan dengan sekitar 1,7 juta langkah, bukan 5 miliar.
+
+- **C++:** `sort(v.begin(), v.end())` dari `<algorithm>` mengurutkan seluruh vector. `v.begin()` dan `v.end()` menandai awal dan akhir bagian yang diurutkan.
+- **Python:** `data.sort()` mengurutkan list itu sendiri, sedangkan `sorted(data)` membuat list **baru** yang terurut dan membiarkan list aslinya.
+
+```cpp tab="C++"
+#include <iostream>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+void cetak(const vector<int>& data) {
+    for (int i = 0; i < (int)data.size(); i++) {
+        cout << data[i] << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    vector<int> nilai = {70, 95, 60, 85, 95};
+
+    vector<int> urut = nilai;          // salin dulu jika aslinya masih perlu
+    sort(urut.begin(), urut.end());
+    cetak(urut);                       // 60 70 85 95 95
+    cetak(nilai);                      // 70 95 60 85 95
+
+    sort(nilai.begin(), nilai.end());  // mengubah nilai itu sendiri
+    cetak(nilai);                      // 60 70 85 95 95
+    return 0;
+}
+```
+
+```python tab="Python"
+nilai = [70, 95, 60, 85, 95]
+
+urut = sorted(nilai)       # list BARU, nilai tidak berubah
+print(urut)                # [60, 70, 85, 95, 95]
+print(nilai)               # [70, 95, 60, 85, 95]
+
+nilai.sort()               # mengubah nilai itu sendiri
+print(nilai)               # [60, 70, 85, 95, 95]
+```
+
+<Callout type="warning" title="list.sort() tidak mengembalikan list">
+  `nilai.sort()` mengubah list di tempat dan mengembalikan `None`. Akibatnya `nilai = nilai.sort()` justru membuat `nilai` berisi `None`. Pakai `nilai.sort()` saja, atau `nilai = sorted(nilai)`.
+</Callout>
+
+`sort` dan `sorted` juga bisa mengurutkan teks. String dibandingkan huruf demi huruf berdasarkan kode karakternya, sama seperti di materi [String](/docs/cpp/string). Karena kode huruf kapital lebih kecil daripada huruf kecil, `{"citra", "Budi", "ani", "Dodi"}` menjadi `Budi Dodi ani citra`. Mengurutkan satu string juga bisa: `sort(s.begin(), s.end())` mengubah `"kopi"` menjadi `"ikop"`, dan `sorted("kopi")` menghasilkan list huruf `['i', 'k', 'o', 'p']`.
+
+Bagaimana `sort` bisa jauh lebih cepat? Ia memecah data menjadi bagian-bagian kecil, mengurutkan setiap bagian, lalu menyatukannya. Dua algoritma terkenal dengan ide ini, _merge sort_ dan _quick sort_, dibahas di [Divide & Conquer](/docs/cpp/divide-and-conquer). `sort` di g++ adalah gabungan quick sort, heap sort, dan insertion sort, sedangkan Python memakai Timsort, gabungan merge sort dan insertion sort. Insertion sort ikut dipakai karena paling cepat untuk potongan data yang kecil atau hampir urut.
+
+### Urutan turun
+
+`sort` menerima argumen ketiga yang opsional, yaitu **pembanding**: sesuatu yang menjawab pertanyaan "apakah `a` harus berada **sebelum** `b`?". Tanpa argumen ketiga, `sort` memakai `a < b`, sehingga hasilnya urut naik.
+
+`greater<int>()` adalah pembanding siap pakai yang menjawab `a > b`. Hasilnya, elemen yang lebih besar ditaruh lebih dulu. Kamu sudah pernah bertemu `greater` di materi [Queue](/docs/cpp/queue) saat membalik urutan `priority_queue`. Ia berasal dari `<functional>`. Di Python, cukup tambahkan `reverse=True`.
+
+```cpp tab="C++"
+#include <functional>
+
+sort(nilai.begin(), nilai.end(), greater<int>());   // 95 95 85 70 60
+```
+
+```python tab="Python"
+nilai.sort(reverse=True)                  # [95, 95, 85, 70, 60]
+turun = sorted(nilai, reverse=True)       # versi yang membuat list baru
+```
+
+<DeepDive href="/docs/cpp/pustaka/algorithm" kind="pustaka" title="<algorithm>">
+  Daftar fungsi siap pakai untuk vector: `sort`, `stable_sort`, `reverse`, `min_element`, `max_element`, `find`, `count`, `binary_search`, `lower_bound`, dan lainnya, beserta padanannya di Python.
+</DeepDive>
+
+## Mengurutkan struct
+
+Bagaimana mengurutkan `vector<Siswa>`? Compiler tidak tahu apakah siswa harus diurutkan menurut nama atau nilai. Kita yang harus memberitahunya.
+
+**C++** memakai **fungsi pembanding** buatan sendiri. Fungsi ini menerima dua elemen dan mengembalikan `true` jika elemen pertama harus berada **sebelum** elemen kedua. Nama fungsinya dikirim ke `sort` sebagai argumen ketiga **tanpa tanda kurung**, karena kita tidak memanggilnya sendiri. `sort` yang akan memanggilnya setiap kali perlu membandingkan dua siswa.
+
+**Python** memakai **fungsi kunci** lewat `key=`. Fungsi ini menerima satu elemen dan mengembalikan nilai yang dipakai untuk mengurutkan. Python memanggilnya sekali untuk setiap elemen, lalu mengurutkan elemen berdasarkan hasilnya.
+
+```cpp tab="C++"
+#include <iostream>
+#include <algorithm>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Siswa {
+    string nama;
+    int nilai = 0;
+};
+
+// true jika a harus berada SEBELUM b
+bool lebihDulu(const Siswa& a, const Siswa& b) {
+    return a.nilai > b.nilai;           // nilai lebih besar di depan
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<Siswa> kelas(n);
+    for (int i = 0; i < n; i++) {
+        cin >> kelas[i].nama >> kelas[i].nilai;
+    }
+
+    sort(kelas.begin(), kelas.end(), lebihDulu);   // tanpa tanda kurung
+
+    for (int i = 0; i < n; i++) {
+        cout << kelas[i].nama << " " << kelas[i].nilai << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+class Siswa:
+    def __init__(self, nama, nilai):
+        self.nama = nama
+        self.nilai = nilai
+
+
+def ambil_nilai(s):
+    return s.nilai                      # urutkan berdasarkan nilai
+
+
+n = int(input())
+kelas = []
+for i in range(n):
+    data = input().split()
+    kelas.append(Siswa(data[0], int(data[1])))
+
+kelas.sort(key=ambil_nilai, reverse=True)   # tanpa tanda kurung
+
+for s in kelas:
+    print(s.nama, s.nilai)
+```
+
+```txt title="Contoh jalannya program"
+5
+Budi 78
+Dodi 92
+Citra 85
+Ani 88
+Eka 70
+Dodi 92
+Ani 88
+Citra 85
+Budi 78
+Eka 70
+```
+
+Kedua cara berbeda pendekatan. Pembanding C++ menjawab "siapa duluan?" untuk sepasang elemen. Fungsi kunci Python mengubah setiap elemen menjadi satu nilai yang sudah bisa dibandingkan, misalnya angka. Untuk mengurutkan berdasarkan nama, C++ cukup mengganti isi pembanding menjadi `return a.nama < b.nama;`, dan Python mengganti fungsi kuncinya menjadi `return s.nama`.
+
+Fungsi kunci bawaan juga bisa dipakai. `sorted(daftar_kata, key=len)` mengurutkan kata dari yang terpendek, karena `len` adalah fungsi yang menerima satu kata dan mengembalikan panjangnya.
+
+## Beberapa kunci sekaligus
+
+Bagaimana jika ada dua siswa dengan nilai sama? Aturan yang umum: nilai lebih besar di depan, dan jika nilainya sama, urutkan nama menurut abjad.
+
+```cpp tab="C++"
+bool lebihDulu(const Siswa& a, const Siswa& b) {
+    if (a.nilai != b.nilai) {
+        return a.nilai > b.nilai;       // kunci utama: nilai, besar dulu
+    }
+    return a.nama < b.nama;             // nilai sama: nama, A sampai Z
+}
+```
+
+```python tab="Python"
+def kunci_peringkat(s):
+    return (-s.nilai, s.nama)           # tuple: kunci utama, lalu kunci kedua
+
+
+kelas.sort(key=kunci_peringkat)
+```
+
+```txt title="Contoh jalannya program"
+5
+Budi 78
+Dodi 92
+Citra 85
+Ani 92
+Eka 85
+Ani 92
+Dodi 92
+Citra 85
+Eka 85
+Budi 78
+```
+
+Di C++, nama hanya dibandingkan jika nilainya **sama**. Di Python, fungsi kunci mengembalikan tuple `(-s.nilai, s.nama)`. Dua tuple dibandingkan elemen demi elemen dari kiri: elemen pertama lebih dulu, dan elemen kedua baru diperiksa jika elemen pertama sama. Nilai dibuat negatif agar urutan naik pada `-nilai` sama dengan urutan turun pada `nilai`: `-92` lebih kecil daripada `-85`, jadi 92 berada di depan. `reverse=True` tidak bisa dipakai di sini, karena ia juga akan membalik urutan nama.
+
+## Pengurutan yang stabil
+
+Sebuah pengurutan disebut **stabil** (_stable_) jika elemen-elemen yang dianggap **sama** tetap berada dalam urutan aslinya. Misalkan data siswa di atas diurutkan **hanya** berdasarkan nilai. Dodi dan Ani sama-sama 92, dan di data asli Dodi muncul lebih dulu. Pengurutan yang stabil menjamin Dodi tetap di depan Ani.
+
+- Python: `sort()` dan `sorted()` **selalu stabil**, termasuk saat memakai `reverse=True`.
+- C++: `sort` **tidak menjamin** kestabilan. Urutan Dodi dan Ani bisa tertukar, terutama pada data besar. Jika kamu membutuhkannya, pakai `stable_sort`, yang cara pakainya sama persis.
+
+```cpp tab="C++"
+bool nilaiLebihBesar(const Siswa& a, const Siswa& b) {
+    return a.nilai > b.nilai;           // hanya melihat nilai
+}
+
+stable_sort(kelas.begin(), kelas.end(), nilaiLebihBesar);
+// Dodi 92, Ani 92, Citra 85, Eka 85, Budi 78
+```
+
+```python tab="Python"
+kelas.sort(key=ambil_nilai, reverse=True)   # sudah stabil
+# Dodi 92, Ani 92, Citra 85, Eka 85, Budi 78
+```
+
+Sifat ini memberi cara lain untuk mengurutkan dengan beberapa kunci: urutkan dulu berdasarkan kunci **kedua**, lalu urutkan secara stabil berdasarkan kunci **utama**. Siswa yang nilainya sama tidak akan diacak lagi oleh pengurutan kedua, sehingga tetap urut nama.
+
+```python
+def ambil_nama(s):
+    return s.nama
+
+
+kelas.sort(key=ambil_nama)                  # 1. kunci kedua: nama
+kelas.sort(key=ambil_nilai, reverse=True)   # 2. kunci utama: nilai, stabil
+```
+
+Hasilnya sama dengan contoh `kunci_peringkat` di atas. Cara ini berguna jika kunci keduanya tidak bisa dibuat negatif, misalnya nama yang harus diurutkan dari Z ke A.
+
+Di antara tiga algoritma tadi, bubble sort dan insertion sort stabil, karena keduanya hanya memindahkan elemen yang **lebih besar** dan tidak pernah melompati elemen yang sama. Selection sort tidak stabil: satu pertukaran bisa melempar sebuah elemen jauh ke belakang, melewati elemen lain yang nilainya sama.
+
+## Kesalahan yang sering terjadi
+
+### Pembanding memakai `<=`
+
+```cpp
+bool lebihDulu(const Siswa& a, const Siswa& b) {
+    return a.nilai >= b.nilai;          // ✗ seharusnya >
+}
+```
+
+Pembanding harus menjawab "apakah `a` harus berada **sebelum** `b`?". Untuk dua siswa yang nilainya sama, jawabannya harus `false`, karena tidak ada yang wajib di depan. `>=` menjawab `true`, sehingga menurut pembanding ini Dodi harus sebelum Ani **dan** Ani harus sebelum Dodi.
+
+`sort` mengandalkan jawaban yang konsisten. Demi kecepatan, ia tidak selalu memeriksa batas vector, karena dengan pembanding yang benar penelusurannya pasti berhenti sebelum melewati ujung. Dengan `>=` atau `<=`, `sort` bisa terus berjalan melewati ujung vector. Pada percobaan dengan g++, mengurutkan 100.000 bilangan yang semuanya sama dengan pembanding `<=` membuat program berhenti dengan _Segmentation fault_. Dengan `-fsanitize=address`, pembacaan di luar batas sudah terdeteksi mulai 17 elemen. Ini adalah [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior), jadi data kecil yang "kelihatan benar" bukan bukti bahwa pembandingnya benar.
+
+Aturannya: pembanding selalu memakai `<` atau `>`, tidak pernah `<=` atau `>=`. Python tidak punya masalah ini, karena fungsi kunci hanya mengembalikan nilai dan Python sendiri yang membandingkannya.
+
+### Angka yang tersimpan sebagai teks
+
+```cpp tab="C++"
+vector<string> data = {"9", "10", "100", "25"};
+sort(data.begin(), data.end());     // 10 100 25 9
+```
+
+```python tab="Python"
+data = input().split()              # misalnya: 9 10 100 25
+data.sort()                         # ['10', '100', '25', '9']
+```
+
+Teks diurutkan huruf demi huruf. Karakter `'1'` lebih kecil daripada `'9'`, jadi `"10"` dan `"100"` berada di depan `"9"`, sama seperti "buku" berada di depan "duri" di kamus. Kesalahan ini paling sering terjadi di Python, karena `input().split()` menghasilkan list teks. Ubah dulu menjadi angka dengan `list(map(int, input().split()))`. Jika datanya memang harus tetap berupa teks, Python bisa memakai `data.sort(key=int)`.
+
+### Batas perulangan meleset satu
+
+```cpp tab="C++"
+for (int j = 0; j < n - putaran; j++) {        // ✗ seharusnya n - 1 - putaran
+    if (data[j] > data[j + 1]) {
+        swap(data[j], data[j + 1]);
+    }
+}
+```
+
+```python tab="Python"
+for j in range(n - putaran):                   # ✗ seharusnya n - 1 - putaran
+    if data[j] > data[j + 1]:
+        data[j], data[j + 1] = data[j + 1], data[j]
+```
+
+Perulangan yang membandingkan `data[j]` dengan `data[j + 1]` harus berhenti saat `j + 1` mencapai indeks terakhir, yaitu `j < n - 1`. Dengan `j < n`, perbandingan terakhir membaca `data[n]` yang tidak ada. Python berhenti dengan `IndexError: list index out of range`. C++ diam-diam membaca memori di luar vector, dan `-fsanitize=address` melaporkannya sebagai `heap-buffer-overflow`.
+
+Cara cepat memeriksa batas perulangan: coba dengan data terkecil yang masuk akal, misalnya `n = 2`. Hanya ada satu pasangan, jadi `j` hanya boleh bernilai 0.
+
+## Rangkuman
+
+- Mengurutkan memudahkan banyak pekerjaan lain: membuat peringkat, mencari median, menemukan data kembar, dan mencari dengan cepat.
+- Menukar dua nilai butuh variabel sementara, atau `swap(a, b)` di C++ dan `a, b = b, a` di Python.
+- **Bubble sort** menukar pasangan bersebelahan yang terbalik, sehingga elemen terbesar terbawa ke ujung kanan di setiap putaran. Ia bisa berhenti lebih awal jika satu putaran tidak menukar apa pun.
+- **Selection sort** memilih elemen terkecil dari bagian yang belum urut dan memindahkannya ke depan. Perbandingannya selalu sekitar n²/2, tetapi pertukarannya paling banyak `n - 1`.
+- **Insertion sort** menyelipkan setiap elemen ke posisi yang tepat di bagian kiri yang sudah urut. Ia sangat cepat untuk data yang hampir urut.
+- Ketiganya O(n²). Di program sungguhan, pakai `sort(v.begin(), v.end())` atau `list.sort()` / `sorted()` yang O(n log n).
+- Urutan turun: `greater<int>()` dari `<functional>` di C++, `reverse=True` di Python.
+- Struct diurutkan dengan fungsi pembanding `bool lebihDulu(const T& a, const T& b)` di C++, atau fungsi kunci lewat `key=` di Python. Untuk beberapa kunci, bandingkan kunci kedua hanya jika kunci utama sama, atau kembalikan tuple dari fungsi kunci.
+- Pengurutan **stabil** mempertahankan urutan asli elemen yang sama. Python selalu stabil. Di C++, pakai `stable_sort`.
+- Pembanding C++ harus memakai `<` atau `>`, tidak pernah `<=` atau `>=`. Waspadai angka yang tersimpan sebagai teks dan batas perulangan yang meleset satu.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, data dibaca dengan format `n` di baris pertama lalu `n` bilangan bulat di baris kedua, dan beberapa bilangan dalam satu baris output dipisah satu spasi.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Jejak bubble sort">
+  Data `5 9 1 6 3` diurutkan naik dengan bubble sort yang berhenti lebih awal, seperti fungsi `bubbleSort` di materi ini. Tanpa menjalankan program, tuliskan isi data dan banyak pertukaran **setelah setiap putaran**. Berapa putaran yang dijalankan sampai program berhenti?
+
+  <Pembahasan>
+    Telusuri pasangan bersebelahan dari kiri pada setiap putaran. Elemen terbesar yang belum di tempatnya selalu terbawa ke kanan.
+
+    | Putaran | Perbandingan | Pertukaran | Isi data sesudahnya |
+    | --- | --- | --- | --- |
+    | 1 | 4 | 3 (`9↔1`, `9↔6`, `9↔3`) | `5 1 6 3 9` |
+    | 2 | 3 | 2 (`5↔1`, `6↔3`) | `1 5 3 6 9` |
+    | 3 | 2 | 1 (`5↔3`) | `1 3 5 6 9` |
+    | 4 | 1 | 0 | `1 3 5 6 9` |
+
+    Ada **4 putaran** dengan total 6 pertukaran. Walaupun data sudah urut setelah putaran 3, program belum tahu. Baru di putaran 4 terbukti tidak ada pertukaran, sehingga perulangan berhenti. Pada data ini putaran 4 kebetulan juga putaran terakhir (`n - 1` = 4), jadi berhenti lebih awal tidak menghemat apa pun.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Terbesar ke-k">
+  Baris pertama berisi `n` dan `k` (1 ≤ k ≤ n ≤ 100.000). Baris kedua berisi `n` bilangan bulat. Tampilkan bilangan terbesar ke-`k`. Bilangan yang sama tetap dihitung masing-masing, jadi pada `9 9 4` bilangan terbesar ke-2 adalah `9`.
+
+  | Input | Output |
+  | --- | --- |
+  | `6 3` lalu `40 75 12 90 75 33` | `75` |
+  | `3 2` lalu `9 9 4` | `9` |
+  | `4 4` lalu `-5 8 0 3` | `-5` |
+
+  <Pembahasan>
+    Urutkan turun, lalu ambil elemen di indeks `k - 1`, karena indeks dimulai dari 0. Kesalahan yang sering terjadi adalah mengambil `data[k]`, yang meleset satu posisi dan keluar batas saat `k = n`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <functional>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        sort(data.begin(), data.end(), greater<int>());
+        cout << data[k - 1] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, k = map(int, input().split())
+    data = list(map(int, input().split()))
+
+    data.sort(reverse=True)
+    print(data[k - 1])
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Nilai tengah">
+  Baca `n` bilangan bulat, dengan `n` ganjil (1 ≤ n ≤ 999). Tampilkan **median**-nya, yaitu bilangan yang berada tepat di tengah setelah data diurutkan.
+
+  | Input | Output |
+  | --- | --- |
+  | `5` lalu `7 2 9 4 5` | `5` |
+  | `3` lalu `10 10 1` | `10` |
+  | `1` lalu `42` | `42` |
+
+  <Pembahasan>
+    Setelah diurutkan naik, median berada di indeks `n / 2`. Untuk `n = 5`, indeks tengahnya 2, dengan dua elemen di kiri dan dua di kanan. Pembagian bulat `n / 2` di C++ dan `n // 2` di Python membuang sisa, sehingga hasilnya tepat indeks tengah. Rata-rata (`(7 + 2 + 9 + 4 + 5) / 5 = 5,4`) berbeda dengan median, dan median tidak mudah terpengaruh oleh satu nilai yang ekstrem.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        sort(data.begin(), data.end());
+        cout << data[n / 2] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    data.sort()
+    print(data[n // 2])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Menghitung pertukaran">
+  Baca `n` bilangan bulat (1 ≤ n ≤ 1.000). Urutkan naik dengan **bubble sort**, lalu tampilkan banyak pertukaran yang terjadi di baris pertama dan data yang sudah urut di baris kedua.
+
+  ```txt title="Contoh input 1"
+  5
+  5 9 1 6 3
+  ```
+
+  ```txt title="Contoh output 1"
+  6
+  1 3 5 6 9
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  2 2 3 8
+  ```
+
+  ```txt title="Contoh output 2"
+  0
+  2 2 3 8
+  ```
+
+  <Petunjuk>
+    Tambahkan variabel penghitung yang bertambah satu setiap kali `swap` dijalankan. Pakai syarat `>`, bukan `>=`, agar dua bilangan yang sama tidak ditukar.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap pertukaran bubble sort membetulkan tepat satu pasangan yang terbalik, yaitu pasangan `i < j` dengan `data[i] > data[j]`. Karena itu banyak pertukarannya sama dengan banyak pasangan terbalik di data awal. Pada contoh 1, pasangan terbaliknya adalah (5, 1), (5, 3), (9, 1), (9, 6), (9, 3), dan (6, 3), tepat 6 pasangan. Jika syaratnya `>=`, contoh 2 akan menukar kedua angka 2 tanpa guna dan hasilnya menjadi 1.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <utility>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        int banyakTukar = 0;
+        for (int putaran = 0; putaran < n - 1; putaran++) {
+            bool adaTukar = false;
+            for (int j = 0; j < n - 1 - putaran; j++) {
+                if (data[j] > data[j + 1]) {
+                    swap(data[j], data[j + 1]);
+                    banyakTukar++;
+                    adaTukar = true;
+                }
+            }
+            if (!adaTukar) {
+                break;
+            }
+        }
+
+        cout << banyakTukar << endl;
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << data[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    banyak_tukar = 0
+    for putaran in range(n - 1):
+        ada_tukar = False
+        for j in range(n - 1 - putaran):
+            if data[j] > data[j + 1]:
+                data[j], data[j + 1] = data[j + 1], data[j]
+                banyak_tukar += 1
+                ada_tukar = True
+        if not ada_tukar:
+            break
+
+    print(banyak_tukar)
+    print(*data)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Peringkat kelas">
+  Baris pertama berisi `n` (1 ≤ n ≤ 1.000). Setiap baris berikutnya berisi nama siswa (satu kata, tanpa spasi) dan nilainya. Urutkan siswa dari nilai tertinggi. Jika nilainya sama, urutkan nama menurut abjad. Tampilkan setiap siswa dalam format `peringkat nama nilai`.
+
+  Siswa dengan nilai sama mendapat peringkat yang sama, dan peringkat berikutnya melompat. Misalnya dua siswa di peringkat 1, maka siswa berikutnya berada di peringkat 3.
+
+  ```txt title="Contoh input"
+  5
+  Budi 78
+  Dodi 92
+  Citra 85
+  Ani 92
+  Eka 85
+  ```
+
+  ```txt title="Contoh output"
+  1 Ani 92
+  1 Dodi 92
+  3 Citra 85
+  3 Eka 85
+  5 Budi 78
+  ```
+
+  <Petunjuk>
+    Urutkan dulu dengan dua kunci, seperti di bagian "Beberapa kunci sekaligus". Setelah itu, siswa di indeks `i` mendapat peringkat `i + 1`, **kecuali** nilainya sama dengan siswa sebelumnya. Dalam kasus itu, ia memakai peringkat siswa sebelumnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Simpan peringkat di sebuah variabel yang hanya diperbarui saat nilai berubah. Karena peringkat baru selalu `i + 1`, lompatan dari 1 ke 3 terjadi dengan sendirinya. Nama hanya memengaruhi urutan cetak, bukan peringkat.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Siswa {
+        string nama;
+        int nilai = 0;
+    };
+
+    bool lebihDulu(const Siswa& a, const Siswa& b) {
+        if (a.nilai != b.nilai) {
+            return a.nilai > b.nilai;
+        }
+        return a.nama < b.nama;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Siswa> kelas(n);
+        for (int i = 0; i < n; i++) {
+            cin >> kelas[i].nama >> kelas[i].nilai;
+        }
+
+        sort(kelas.begin(), kelas.end(), lebihDulu);
+
+        int peringkat = 0;
+        for (int i = 0; i < n; i++) {
+            if (i == 0 || kelas[i].nilai != kelas[i - 1].nilai) {
+                peringkat = i + 1;          // nilai berubah: peringkat baru
+            }
+            cout << peringkat << " " << kelas[i].nama << " " << kelas[i].nilai << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Siswa:
+        def __init__(self, nama, nilai):
+            self.nama = nama
+            self.nilai = nilai
+
+
+    def kunci_peringkat(s):
+        return (-s.nilai, s.nama)
+
+
+    n = int(input())
+    kelas = []
+    for i in range(n):
+        data = input().split()
+        kelas.append(Siswa(data[0], int(data[1])))
+
+    kelas.sort(key=kunci_peringkat)
+
+    peringkat = 0
+    for i in range(n):
+        if i == 0 or kelas[i].nilai != kelas[i - 1].nilai:
+            peringkat = i + 1               # nilai berubah: peringkat baru
+        print(peringkat, kelas[i].nama, kelas[i].nilai)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Perbaiki urutan produk">
+  Sebuah toko ingin menampilkan produk dari yang **termahal**. Produk dengan harga sama diurutkan menurut nama dari A ke Z. Input berisi `n`, lalu `n` baris `nama harga`. Kedua program berikut menampilkan urutan yang salah. Temukan kesalahan masing-masing dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <algorithm>
+  #include <string>
+  #include <vector>
+  using namespace std;
+
+  struct Produk {
+      string nama;
+      int harga = 0;
+  };
+
+  bool lebihDulu(const Produk& a, const Produk& b) {
+      if (a.harga > b.harga) {
+          return true;
+      }
+      return a.nama < b.nama;
+  }
+
+  int main() {
+      int n;
+      cin >> n;
+      vector<Produk> daftar(n);
+      for (int i = 0; i < n; i++) {
+          cin >> daftar[i].nama >> daftar[i].harga;
+      }
+
+      sort(daftar.begin(), daftar.end(), lebihDulu);
+
+      for (int i = 0; i < n; i++) {
+          cout << daftar[i].nama << " " << daftar[i].harga << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Produk:
+      def __init__(self, nama, harga):
+          self.nama = nama
+          self.harga = harga
+
+
+  def kunci(p):
+      return (p.harga, p.nama)
+
+
+  n = int(input())
+  daftar = []
+  for i in range(n):
+      data = input().split()
+      daftar.append(Produk(data[0], int(data[1])))
+
+  daftar.sort(key=kunci, reverse=True)
+
+  for p in daftar:
+      print(p.nama, p.harga)
+  ```
+
+  ```txt title="Contoh input"
+  4
+  teh 5000
+  kopi 8000
+  air 3000
+  susu 8000
+  ```
+
+  ```txt title="Contoh output yang benar"
+  kopi 8000
+  susu 8000
+  teh 5000
+  air 3000
+  ```
+
+  <Petunjuk>
+    Untuk C++, hitung `lebihDulu(air, teh)` dengan tangan. Apakah hasilnya masuk akal? Untuk Python, pikirkan apa yang dibalik oleh `reverse=True`.
+  </Petunjuk>
+
+  <Pembahasan>
+    **C++:** jika harga `a` **lebih murah** daripada `b`, fungsi tidak berhenti, tetapi lanjut membandingkan nama. Akibatnya `lebihDulu(air, teh)` bernilai `true` karena `"air" < "teh"`, padahal air lebih murah. Pembanding ini bahkan menjawab `true` untuk `lebihDulu(air, kopi)` sekaligus `lebihDulu(kopi, air)`. Jawaban yang saling bertentangan melanggar aturan `sort`, sehingga hasilnya kacau. Saat dicoba dengan g++, urutannya menjadi `susu, air, kopi, teh`. Nama hanya boleh dibandingkan jika harganya **sama**.
+
+    **Python:** `reverse=True` membalik seluruh urutan tuple, termasuk nama. Hasilnya harga memang turun, tetapi nama untuk harga yang sama juga terbalik dari Z ke A: `susu` muncul sebelum `kopi`. Buat harga negatif dan jangan pakai `reverse=True`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Produk {
+        string nama;
+        int harga = 0;
+    };
+
+    bool lebihDulu(const Produk& a, const Produk& b) {
+        if (a.harga != b.harga) {
+            return a.harga > b.harga;       // harga beda: termahal dulu
+        }
+        return a.nama < b.nama;             // harga sama: nama A sampai Z
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Produk> daftar(n);
+        for (int i = 0; i < n; i++) {
+            cin >> daftar[i].nama >> daftar[i].harga;
+        }
+
+        sort(daftar.begin(), daftar.end(), lebihDulu);
+
+        for (int i = 0; i < n; i++) {
+            cout << daftar[i].nama << " " << daftar[i].harga << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Produk:
+        def __init__(self, nama, harga):
+            self.nama = nama
+            self.harga = harga
+
+
+    def kunci(p):
+        return (-p.harga, p.nama)       # harga turun, nama naik
+
+
+    n = int(input())
+    daftar = []
+    for i in range(n):
+        data = input().split()
+        daftar.append(Produk(data[0], int(data[1])))
+
+    daftar.sort(key=kunci)
+
+    for p in daftar:
+        print(p.nama, p.harga)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Urut panjang kata">
+  Baris pertama berisi `n` (1 ≤ n ≤ 1.000). Baris kedua berisi `n` kata yang dipisah spasi. Tampilkan kata-kata itu dari yang **terpendek** dalam satu baris. Kata yang panjangnya sama harus tetap dalam urutan seperti di input.
+
+  ```txt title="Contoh input"
+  6
+  mangga apel jeruk kiwi nanas duku
+  ```
+
+  ```txt title="Contoh output"
+  apel kiwi duku jeruk nanas mangga
+  ```
+
+  <Petunjuk>
+    Syarat "tetap dalam urutan seperti di input" adalah definisi pengurutan yang stabil. Di C++, tulis pembanding yang membandingkan `size()` dua kata, lalu pakai `stable_sort`. Di Python, `len` sudah merupakan fungsi kunci yang tepat.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pembanding hanya melihat panjang, jadi `apel`, `kiwi`, dan `duku` dianggap sama. `stable_sort` menjamin ketiganya tetap dalam urutan input. Dengan `sort` biasa, urutan ketiganya tidak dijamin. Untuk data sekecil contoh ini hasilnya mungkin kebetulan benar, tetapi bisa salah pada data yang lebih besar. Python cukup memakai `key=len`, karena `sort` Python selalu stabil.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    bool lebihPendek(const string& a, const string& b) {
+        return a.size() < b.size();
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<string> kata(n);
+        for (int i = 0; i < n; i++) {
+            cin >> kata[i];
+        }
+
+        stable_sort(kata.begin(), kata.end(), lebihPendek);
+
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << kata[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    kata = input().split()
+
+    kata.sort(key=len)
+    print(*kata)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Pasangan paling dekat">
+  Baca `n` bilangan bulat yang **semuanya berbeda** (2 ≤ n ≤ 100.000, setiap bilangan antara 0 dan 1.000.000.000). Cari selisih terkecil antara dua bilangan mana pun. Tampilkan selisih itu di baris pertama, lalu **semua** pasangan yang selisihnya sebesar itu, satu pasangan per baris dalam format `kecil besar`, diurutkan dari pasangan dengan bilangan kecil terkecil.
+
+  ```txt title="Contoh input 1"
+  6
+  40 12 7 33 15 36
+  ```
+
+  ```txt title="Contoh output 1"
+  3
+  12 15
+  33 36
+  ```
+
+  ```txt title="Contoh input 2"
+  2
+  100 1
+  ```
+
+  ```txt title="Contoh output 2"
+  99
+  1 100
+  ```
+
+  <Petunjuk>
+    Membandingkan setiap pasangan butuh sekitar 5 miliar langkah untuk 100.000 bilangan. Urutkan dulu. Pada data terurut, pasangan dengan selisih terkecil pasti **bersebelahan**. Telusuri sekali untuk mencari selisih terkecil, lalu sekali lagi untuk mencetak pasangan yang selisihnya sama dengan itu.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kenapa cukup memeriksa pasangan bersebelahan? Ambil tiga bilangan terurut `a < b < c`. Selisih `c - a` sama dengan `(c - b) + (b - a)`, jadi pasti lebih besar daripada `b - a`. Pasangan yang melompati sebuah bilangan tidak mungkin menjadi yang terdekat. Pada contoh 1, data terurutnya `7 12 15 33 36 40` dengan selisih bersebelahan `5 3 18 3 4`.
+
+    Hasil pengurutan juga langsung memberi urutan cetak yang diminta. Jangan mencetak pasangan sambil mencari selisih terkecil, karena selisih terkecil baru diketahui setelah penelusuran pertama selesai. Selisih terbesar adalah 1.000.000.000, masih muat di `int`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        sort(data.begin(), data.end());
+
+        int terkecil = data[1] - data[0];
+        for (int i = 1; i + 1 < n; i++) {
+            if (data[i + 1] - data[i] < terkecil) {
+                terkecil = data[i + 1] - data[i];
+            }
+        }
+
+        cout << terkecil << endl;
+        for (int i = 0; i + 1 < n; i++) {
+            if (data[i + 1] - data[i] == terkecil) {
+                cout << data[i] << " " << data[i + 1] << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    data.sort()
+
+    terkecil = data[1] - data[0]
+    for i in range(1, n - 1):
+        if data[i + 1] - data[i] < terkecil:
+            terkecil = data[i + 1] - data[i]
+
+    print(terkecil)
+    for i in range(n - 1):
+        if data[i + 1] - data[i] == terkecil:
+            print(data[i], data[i + 1])
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Mengurutkan tanpa membandingkan">
+  Sebuah ujian diikuti `n` peserta (1 ≤ n ≤ 1.000.000), dan setiap nilai adalah bilangan bulat dari 0 sampai 100. Tampilkan semua nilai dari yang terkecil dalam satu baris. Kerjakan **tanpa** `sort`, `sorted`, maupun algoritma O(n²), karena satu juta data terlalu banyak untuk bubble sort.
+
+  ```txt title="Contoh input"
+  8
+  70 85 70 100 0 85 70 60
+  ```
+
+  ```txt title="Contoh output"
+  0 60 70 70 70 85 85 100
+  ```
+
+  <Petunjuk>
+    Kemungkinan nilainya hanya 101 macam. Siapkan array `hitung` berukuran 101, lalu catat berapa kali setiap nilai muncul. Setelah itu, telusuri `hitung` dari indeks 0 sampai 100 dan cetak setiap nilai sebanyak kemunculannya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Teknik ini disebut **counting sort**. Tidak ada dua nilai yang dibandingkan sama sekali. Untuk contoh di atas, `hitung[70] = 3`, `hitung[85] = 2`, dan `hitung[0]`, `hitung[60]`, serta `hitung[100]` masing-masing 1. Pencatatan butuh `n` langkah dan pencetakan menelusuri 101 kotak sambil mencetak `n` nilai, jadi totalnya O(n + 101), jauh lebih cepat daripada O(n log n).
+
+    Batasannya, counting sort hanya cocok jika rentang nilainya kecil. Untuk nilai sampai satu miliar, array `hitung` akan terlalu besar. Perhatikan juga cara mencetak spasi hanya **di antara** nilai: penanda `pertama` mencatat apakah sudah ada nilai yang tercetak.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        vector<int> hitung(101, 0);
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            hitung[x]++;
+        }
+
+        bool pertama = true;
+        for (int nilai = 0; nilai <= 100; nilai++) {
+            for (int k = 0; k < hitung[nilai]; k++) {
+                if (!pertama) {
+                    cout << " ";
+                }
+                cout << nilai;
+                pertama = false;
+            }
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    hitung = [0] * 101
+    for x in data:
+        hitung[x] += 1
+
+    hasil = []
+    for nilai in range(101):
+        for k in range(hitung[nilai]):
+            hasil.append(nilai)
+    print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Menggabungkan jadwal ruangan">
+  Sebuah ruang rapat dipesan `n` kali (1 ≤ n ≤ 100.000). Setiap pesanan ditulis sebagai dua bilangan bulat `mulai selesai` (0 ≤ mulai < selesai ≤ 1.000.000), dalam urutan acak. Gabungkan pesanan yang **bertumpuk atau bersambung** (satu selesai tepat saat yang lain mulai) menjadi satu rentang waktu. Tampilkan rentang hasil gabungan dari yang paling awal, satu per baris.
+
+  ```txt title="Contoh input 1"
+  5
+  13 15
+  9 11
+  10 12
+  15 16
+  18 20
+  ```
+
+  ```txt title="Contoh output 1"
+  9 12
+  13 16
+  18 20
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  1 10
+  2 3
+  4 5
+  ```
+
+  ```txt title="Contoh output 2"
+  1 10
+  ```
+
+  <Petunjuk>
+    Simpan setiap pesanan di struct `Jadwal`, lalu urutkan berdasarkan `mulai`. Telusuri dari kiri sambil memegang satu rentang "sedang berjalan". Pesanan berikutnya bergabung jika mulainya tidak lewat dari selesainya rentang yang sedang berjalan. Jika lewat, cetak rentang yang sedang berjalan dan mulai rentang baru.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah diurutkan berdasarkan waktu mulai, pesanan yang bisa bergabung pasti datang berurutan. Pada contoh 1, urutannya menjadi `9-11, 10-12, 13-15, 15-16, 18-20`. `10-12` bertumpuk dengan `9-11`, jadi rentangnya menjadi `9-12`. `13` lewat dari `12`, jadi `9-12` dicetak. `15-16` bersambung dengan `13-15` karena `15 <= 15`.
+
+    Jebakan utamanya ada di contoh 2. Saat bergabung, selesainya rentang harus diambil yang **lebih besar** di antara keduanya. Jika langsung ditimpa dengan selesainya pesanan baru, `1-10` akan menyusut menjadi `1-3` karena `2-3` berada di dalamnya. Jangan lupa mencetak rentang terakhir setelah perulangan selesai.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <algorithm>
+    #include <vector>
+    using namespace std;
+
+    struct Jadwal {
+        int mulai = 0;
+        int selesai = 0;
+    };
+
+    bool lebihAwal(const Jadwal& a, const Jadwal& b) {
+        return a.mulai < b.mulai;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Jadwal> pesanan(n);
+        for (int i = 0; i < n; i++) {
+            cin >> pesanan[i].mulai >> pesanan[i].selesai;
+        }
+
+        sort(pesanan.begin(), pesanan.end(), lebihAwal);
+
+        Jadwal sekarang = pesanan[0];               // rentang yang sedang berjalan
+        for (int i = 1; i < n; i++) {
+            if (pesanan[i].mulai <= sekarang.selesai) {
+                if (pesanan[i].selesai > sekarang.selesai) {
+                    sekarang.selesai = pesanan[i].selesai;   // perpanjang
+                }
+            } else {
+                cout << sekarang.mulai << " " << sekarang.selesai << endl;
+                sekarang = pesanan[i];              // mulai rentang baru
+            }
+        }
+        cout << sekarang.mulai << " " << sekarang.selesai << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Jadwal:
+        def __init__(self, mulai, selesai):
+            self.mulai = mulai
+            self.selesai = selesai
+
+
+    def ambil_mulai(j):
+        return j.mulai
+
+
+    n = int(input())
+    pesanan = []
+    for i in range(n):
+        mulai, selesai = map(int, input().split())
+        pesanan.append(Jadwal(mulai, selesai))
+
+    pesanan.sort(key=ambil_mulai)
+
+    awal = pesanan[0].mulai                         # rentang yang sedang berjalan
+    akhir = pesanan[0].selesai
+    for i in range(1, n):
+        if pesanan[i].mulai <= akhir:
+            if pesanan[i].selesai > akhir:
+                akhir = pesanan[i].selesai          # perpanjang
+        else:
+            print(awal, akhir)
+            awal = pesanan[i].mulai                 # mulai rentang baru
+            akhir = pesanan[i].selesai
+    print(awal, akhir)
+    ```
+
+    Versi Python memakai dua variabel `awal` dan `akhir`, bukan satu objek `Jadwal`. Alasannya, `sekarang = pesanan[0]` di Python tidak menyalin objek, sehingga memperpanjang `sekarang.selesai` ikut mengubah isi `pesanan[0]`, seperti yang dijelaskan di materi [Struct](/docs/cpp/struct).
+  </Pembahasan>
+</Soal>

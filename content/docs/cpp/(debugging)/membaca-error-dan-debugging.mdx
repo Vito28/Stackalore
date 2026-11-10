@@ -137,6 +137,7 @@ ZeroDivisionError: division by zero
 Python selalu menunjukkan baris penyebab runtime error. C++ tidak semurah hati itu:
 
 - **Pembagian bilangan bulat dengan nol** biasanya membuat program langsung berhenti dengan pesan singkat seperti `Floating point exception (core dumped)`, **tanpa nomor baris**.
+- **[Rekursi](/docs/cpp/rekursi) yang tidak pernah berhenti** menghabiskan ruang _call stack_, sehingga program berhenti dengan `Segmentation fault`, juga tanpa nomor baris. Python lebih jelas: ia menampilkan `RecursionError`. Penjelasannya ada di [Call Stack & Rekursi](/docs/cpp/pendalaman/call-stack).
 - **Indeks di luar batas** sering tidak menimbulkan pesan apa pun. Program berikut seharusnya hanya menjumlahkan 3 elemen, tetapi perulangannya berjalan 4 kali:
 
 ```cpp title="total.cpp"

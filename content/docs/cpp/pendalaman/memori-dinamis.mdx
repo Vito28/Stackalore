@@ -74,7 +74,7 @@ angka = nullptr;             // tandai bahwa angka tidak menunjuk apa pun lagi
 | Cara membuat | `int x = 42;` | `int* p = new int(42);` |
 | Punya nama? | ya, `x` | tidak, hanya dijangkau lewat pointer |
 | Kapan hilang | otomatis saat bloknya selesai | saat `delete` dipanggil |
-| Ruang | terbatas, umumnya beberapa MB | jauh lebih besar |
+| Ruang | terbatas, umumnya beberapa MB (lihat [Call Stack & Rekursi](/docs/cpp/pendalaman/call-stack)) | jauh lebih besar |
 | Yang bertanggung jawab | compiler | **programmer** |
 
 Beginilah node linked list biasanya dibuat:

@@ -27,7 +27,7 @@ const features = [
   {
     icon: ListChecks,
     title: 'Latihan di setiap materi',
-    description: 'Uji pemahaman dengan soal singkat beserta pembahasannya.',
+    description: 'Sepuluh soal bertingkat, dari mudah sampai sulit, lengkap dengan petunjuk dan pembahasan.',
   },
 ];
 
