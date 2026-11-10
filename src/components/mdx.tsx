@@ -9,6 +9,7 @@ import { BackToLesson } from '@/components/mdx/back-to-lesson';
 import { BufferStepper } from '@/components/mdx/buffer-stepper';
 import { DeepDive, Term } from '@/components/mdx/deep-dive';
 import { ComingSoon, MemoryBoxes, Pipeline, TruthTable } from '@/components/mdx/diagrams';
+import { Pembahasan, Petunjuk, Soal } from '@/components/mdx/exercise';
 import { Flowchart, FlowchartSymbols } from '@/components/mdx/flowchart';
 
 const languageTabs = new Set(['C++', 'Python']);
@@ -39,7 +40,10 @@ export function getMDXComponents(components?: MDXComponents) {
     FlowchartSymbols,
     LessonList,
     MemoryBoxes,
+    Pembahasan,
+    Petunjuk,
     Pipeline,
+    Soal,
     Term,
     TruthTable,
     ...components,

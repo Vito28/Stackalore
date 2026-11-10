@@ -73,17 +73,17 @@ Jika ada satu saja kesalahan penulisan, compiler akan **menolak** membuat progra
   ]}
 />
 
-Jika baris ke-10 salah, baris 1 sampai 9 tetap sempat dijalankan. Kesalahan baru ketahuan saat baris tersebut dicapai.
+Misalnya baris ke-10 memanggil perintah yang namanya salah ketik, seperti `prnt` alih-alih `print`. Baris 1 sampai 9 tetap sempat dijalankan, dan kesalahan itu baru ketahuan saat baris ke-10 dicapai.
 
 | | Compiler (C++) | Interpreter (Python) |
 | --- | --- | --- |
 | Kapan diterjemahkan | Sekali, sebelum dijalankan | Setiap kali dijalankan, baris demi baris |
 | Hasil | File program (`.exe`) | Tidak ada file program |
 | Kecepatan program | Umumnya lebih cepat | Umumnya lebih lambat |
-| Kesalahan penulisan | Ketahuan sebelum program jalan | Ketahuan saat baris itu dijalankan |
+| Salah ketik nama perintah | Ketahuan sebelum program jalan | Ketahuan saat baris itu dijalankan |
 
 <Callout type="info" title="Sedikit lebih detail">
-  Python sebenarnya juga menerjemahkan kode ke bentuk perantara bernama _bytecode_ sebelum menjalankannya. Untuk tahap belajar ini, cukup pahami bahwa Python dijalankan oleh interpreter, sedangkan C++ dikompilasi menjadi program.
+  Python sebenarnya juga menerjemahkan kode ke bentuk perantara bernama _bytecode_ sebelum menjalankannya. Saat menerjemahkan, Python memeriksa tata tulis seluruh file, jadi kesalahan seperti tanda kurung yang tidak ditutup langsung ditolak sebelum baris pertama dijalankan. Untuk tahap belajar ini, cukup pahami bahwa Python dijalankan oleh interpreter, sedangkan C++ dikompilasi menjadi program.
 </Callout>
 
 ## Sintaks dan semantik
@@ -139,7 +139,7 @@ print("Halo, dunia!")
 Halo, dunia!
 ```
 
-Program C++ terlihat lebih panjang karena ada beberapa baris wajib, seperti `#include`, `using namespace std;`, dan `int main()`. Untuk sekarang, anggap saja baris-baris itu sebagai "kerangka" yang selalu ada. Fungsinya dibahas di materi [Program Pertama](/docs/cpp/program-pertama).
+Program C++ terlihat lebih panjang karena ada beberapa baris wajib, seperti `#include`, `using namespace std;`, dan `int main()`. Untuk sekarang, anggap saja baris-baris itu sebagai "kerangka" yang selalu ada. Fungsinya dibahas di materi [Input & Output](/docs/cpp/input-dan-output).
 
 <DeepDive href="/docs/cpp/pendalaman/baris-ajaib" kind="konsep" title="Baris “ajaib” di program C++">
   Penasaran kenapa harus ada `#include <iostream>`, `using namespace std;`, dan `return 0;`? Halaman ini membedahnya satu per satu, termasuk `#include <bits/stdc++.h>` yang sering kamu lihat di internet.
@@ -165,16 +165,324 @@ Belajar C++ lebih dulu membuat kamu memahami apa yang terjadi "di balik layar". 
 - C++ diterjemahkan oleh **compiler** menjadi program. Python dijalankan oleh **interpreter** baris demi baris.
 - **Syntax error** membuat program gagal dijalankan. **Logic error** membuat program berjalan tetapi hasilnya salah.
 
-## Uji pemahaman
+## Latihan
 
-<Accordions>
-  <Accordion title="1. Mengapa kita tidak menulis program langsung dalam bahasa mesin?">
-    Karena bahasa mesin berupa deretan bit yang sangat sulit dibaca, ditulis, dan diperbaiki manusia. Selain itu bahasa mesin berbeda untuk setiap jenis prosesor. Bahasa tingkat tinggi jauh lebih mudah dipahami dan bisa diterjemahkan ke berbagai jenis prosesor.
-  </Accordion>
-  <Accordion title="2. Sebuah program C++ lupa satu titik koma di baris terakhir. Apakah baris-baris sebelumnya tetap dijalankan?">
-    Tidak. C++ memakai compiler, jadi seluruh kode diperiksa sebelum program dibuat. Satu syntax error saja membuat compiler menolak membuat program, sehingga tidak ada baris yang dijalankan.
-  </Accordion>
-  <Accordion title="3. Program menghitung rata-rata dua nilai dengan rumus a + b / 2. Error jenis apa ini?">
-    **Logic error.** Program tetap berjalan, tetapi karena pembagian dikerjakan lebih dulu daripada penjumlahan, hasilnya salah. Rumus yang benar adalah `(a + b) / 2`. Urutan operasi dibahas di [Operator Aritmatika](/docs/cpp/operator-aritmatika#urutan-operasi).
-  </Accordion>
-</Accordions>
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Materi ini belum memakai kode, jadi semua soalnya berupa soal konsep yang cukup dijawab dengan kalimatmu sendiri.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Tiga tingkatan bahasa">
+  Perhatikan tiga potongan instruksi berikut.
+
+  ```txt
+  A.  MOV AL, 61h
+  B.  print("Halo")
+  C.  10110000 01100001
+  ```
+
+  1. Tentukan tingkatan setiap potongan: bahasa mesin, bahasa tingkat rendah, atau bahasa tingkat tinggi.
+  2. Urutkan ketiganya dari yang paling dekat ke bahasa mesin sampai yang paling dekat ke bahasa manusia.
+  3. Sebutkan dua alasan programmer tidak menulis program langsung dalam bahasa mesin.
+
+  <Pembahasan>
+    | Potongan | Tingkatan | Keterangan |
+    | --- | --- | --- |
+    | A | Bahasa tingkat rendah | Assembly. Satu baris mewakili satu instruksi CPU. |
+    | B | Bahasa tingkat tinggi | Python. Bentuknya mirip bahasa manusia. |
+    | C | Bahasa mesin | Deretan bit yang langsung dijalankan CPU. |
+
+    Urutannya **C, A, B**.
+
+    Programmer tidak menulis langsung dalam bahasa mesin karena deretan bit sangat sulit dibaca, ditulis, dan diperbaiki. Selain itu, instruksi mesin bergantung pada jenis prosesor, sedangkan kode bahasa tingkat tinggi bisa diterjemahkan untuk berbagai jenis prosesor.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Compiler atau interpreter">
+  Tentukan apakah setiap pernyataan berikut menggambarkan **compiler** atau **interpreter**.
+
+  1. Menghasilkan file program terpisah, misalnya `halo.exe`.
+  2. Menerjemahkan lalu langsung menjalankan kode, baris demi baris.
+  3. Kode cukup diterjemahkan sekali, lalu programnya bisa dijalankan berkali-kali.
+  4. Dipakai untuk menjalankan kode Python.
+  5. Program yang dihasilkannya umumnya berjalan lebih cepat.
+
+  <Pembahasan>
+    | No | Jawaban | Alasan |
+    | --- | --- | --- |
+    | 1 | Compiler | Hasil kompilasi adalah file program (_executable_) berisi bahasa mesin. |
+    | 2 | Interpreter | Interpreter menerjemahkan sambil menjalankan, tanpa membuat file program. |
+    | 3 | Compiler | File program hasil kompilasi bisa dijalankan ulang tanpa diterjemahkan lagi. |
+    | 4 | Interpreter | Kode Python dijalankan oleh interpreter `python`. |
+    | 5 | Compiler | Penerjemahan sudah selesai sebelum program berjalan, jadi tidak ada waktu yang terpakai untuk menerjemahkan saat program berjalan. |
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Syntax error atau logic error">
+  Setiap potongan kode berikut punya tepat satu kesalahan. Tentukan apakah kesalahannya **syntax error** atau **logic error**, lalu jelaskan alasannya.
+
+  **a.** Tujuan: menampilkan tulisan `Selamat pagi`.
+
+  ```cpp
+  cout << "Selamat pagi" << endl
+  ```
+
+  **b.** Tujuan: menghitung keliling persegi dengan sisi 5. Hasil yang benar adalah 20.
+
+  ```python
+  sisi = 5
+  keliling = sisi * 3
+  print(keliling)
+  ```
+
+  **c.** Tujuan: menampilkan tulisan `Halo`.
+
+  ```python
+  print "Halo"
+  ```
+
+  <Pembahasan>
+    - **a. Syntax error.** Pernyataan C++ harus diakhiri titik koma `;`, jadi compiler menolak membuat program.
+    - **b. Logic error.** Kodenya sah dan program berjalan, tetapi menampilkan `15`. Keliling persegi adalah 4 × sisi, jadi seharusnya `sisi * 4`. Tidak ada pesan error yang memberi tahu kesalahan ini.
+    - **c. Syntax error.** Di Python, isi yang ingin ditampilkan harus berada di dalam tanda kurung: `print("Halo")`. Interpreter menolak menjalankan kode ini.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Dari kode sumber ke output">
+  Langkah-langkah berikut terjadi saat kamu membuat dan menjalankan program C++ `halo.cpp`, tetapi urutannya diacak.
+
+  ```txt
+  A. Tulisan "Halo, dunia!" muncul di layar.
+  B. Compiler g++ menerjemahkan seluruh isi halo.cpp.
+  C. Kamu menulis kode di file halo.cpp.
+  D. Kamu menjalankan halo.exe.
+  E. File halo.exe terbentuk.
+  ```
+
+  1. Urutkan langkah A sampai E.
+  2. Tuliskan urutan langkah untuk program Python `halo.py`. Langkah mana yang tidak ada, dan langkah mana yang menyatu?
+  3. Setelah program berjalan, kamu mengganti tulisan di `halo.cpp` menjadi `Halo, Stacklore!`, lalu langsung menjalankan `halo.exe` lagi tanpa melakukan hal lain. Tulisan apa yang muncul? Mengapa?
+
+  <Petunjuk>
+    Lihat lagi dua diagram di bagian [Dari kode menjadi program](#dari-kode-menjadi-program). Untuk pertanyaan ketiga, ingat bahwa `halo.exe` adalah hasil terjemahan, bukan kode sumbernya.
+  </Petunjuk>
+
+  <Pembahasan>
+    1. **C → B → E → D → A.** Tulis kode, kompilasi, file program terbentuk, jalankan, lalu output muncul.
+    2. Untuk Python: tulis kode di `halo.py` → interpreter `python` menerjemahkan sekaligus menjalankannya → output muncul. Langkah E tidak ada karena interpreter tidak membuat file program. Langkah B dan D menyatu karena penerjemahan dan eksekusi terjadi bersamaan.
+    3. Yang muncul tetap **`Halo, dunia!`**. `halo.exe` adalah terjemahan kode **sebelum** diubah, dan file itu tidak ikut berubah saat `halo.cpp` diedit. Kamu harus mengompilasi ulang agar terbentuk `halo.exe` yang baru. Pemula sering mengalami ini: mengedit kode, lupa mengompilasi ulang, lalu bingung kenapa programnya tidak berubah. Di Python masalah ini tidak terjadi, karena kode diterjemahkan ulang setiap kali dijalankan.
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Memilih C++ atau Python">
+  Untuk setiap kebutuhan berikut, pilih bahasa yang lebih cocok, **C++** atau **Python**, dan berikan satu alasan berdasarkan materi ini.
+
+  1. Game balap 3D yang harus menggambar ulang layar 60 kali per detik.
+  2. Program kecil untuk mengganti nama 200 file foto sekaligus, cukup dipakai sekali.
+  3. Melatih model _machine learning_ untuk mengenali foto kucing.
+  4. Program pengendali mesin cuci yang berjalan di chip dengan memori sangat kecil.
+  5. Lomba _competitive programming_ dengan batas waktu 1 detik untuk setiap kasus uji.
+
+  <Petunjuk>
+    Pakai tabel di bagian **C++ atau Python?** di atas. Pertimbangkan tiga hal: kecepatan program, kendali atas perangkat keras, dan seberapa cepat kodenya bisa ditulis.
+  </Petunjuk>
+
+  <Pembahasan>
+    | No | Pilihan | Alasan |
+    | --- | --- | --- |
+    | 1 | C++ | Program harus sangat cepat. Banyak game dibuat dengan C++. |
+    | 2 | Python | Kodenya ringkas dan cepat ditulis. Kecepatan program tidak penting untuk tugas sekali pakai. |
+    | 3 | Python | Python banyak dipakai untuk data science dan machine learning karena kodenya ringkas untuk bereksperimen. Perhitungan beratnya biasanya dikerjakan pustaka yang ditulis dengan bahasa cepat seperti C++. |
+    | 4 | C++ | C++ dekat ke perangkat keras dan memberi kendali atas memori. Python butuh interpreter yang ikut memakan memori. |
+    | 5 | C++ | Program C++ sangat cepat, jadi lebih aman terhadap batas waktu. Python boleh dipakai, tetapi lebih berisiko melewati batas waktu. |
+
+    Tidak ada jawaban yang mutlak benar. Yang penting, alasanmu didasarkan pada kebutuhan, bukan sekadar bahasa favorit.
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Dua kesalahan sekaligus">
+  Program Python berikut seharusnya menghitung keliling persegi panjang dengan panjang 6 dan lebar 4. Rumusnya keliling = 2 × (panjang + lebar), jadi hasil yang benar adalah 20.
+
+  ```python
+  panjang = 6
+  lebar = 4
+  keliling = panjang + lebar
+  print(keliling
+  ```
+
+  1. Temukan dua kesalahannya, lalu tentukan jenis masing-masing.
+  2. Kesalahan mana yang ketahuan lebih dulu? Mengapa?
+  3. Setelah kesalahan yang ketahuan lebih dulu diperbaiki, apa yang tampil di layar? Bagaimana programmer bisa sadar bahwa masih ada kesalahan?
+
+  <Petunjuk>
+    Satu kesalahan membuat interpreter menolak kode. Kesalahan lainnya baru terlihat jika hasil program dibandingkan dengan jawaban yang benar.
+  </Petunjuk>
+
+  <Pembahasan>
+    1. Baris 4, `print(keliling`, kurang tanda kurung tutup. Ini **syntax error**. Baris 3 memakai rumus yang salah. Ini **logic error**.
+    2. Syntax error ketahuan lebih dulu. Interpreter menolak kode yang tata tulisnya salah, jadi program tidak berjalan sama sekali dan logic error-nya belum sempat terlihat.
+    3. Program menampilkan `10` tanpa pesan error apa pun. Programmer baru sadar ada yang salah jika ia sudah tahu jawaban yang benar (20) lalu membandingkannya. Karena itu, biasakan menguji program dengan contoh yang jawabannya sudah kamu hitung sendiri.
+
+    Versi yang benar:
+
+    ```python
+    panjang = 6
+    lebar = 4
+    keliling = 2 * (panjang + lebar)
+    print(keliling)    # 20
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Benar atau salah?">
+  Tentukan apakah setiap pernyataan berikut **benar** atau **salah**. Jika salah, perbaiki pernyataannya.
+
+  1. C++ adalah bahasa tingkat rendah karena bisa mengatur memori.
+  2. Python tidak perlu diterjemahkan karena kodenya sudah mirip bahasa Inggris.
+  3. Program C++ yang berhasil dikompilasi tanpa error pasti menghasilkan jawaban yang benar.
+  4. Satu baris kode Python bisa mewakili banyak instruksi mesin.
+  5. Setelah dikompilasi, `halo.exe` tetap bisa dijalankan walaupun file `halo.cpp` sudah dihapus.
+
+  <Petunjuk>
+    Waspadai kata mutlak seperti "pasti" dan "tidak perlu". Untuk nomor 5, tanyakan dulu: apa isi `halo.exe`?
+  </Petunjuk>
+
+  <Pembahasan>
+    1. **Salah.** C++ adalah bahasa tingkat **tinggi**. C++ memang memberi kendali yang cukup dekat ke perangkat keras, tetapi kodenya tetap harus diterjemahkan compiler ke bahasa mesin.
+    2. **Salah.** CPU hanya menjalankan bahasa mesin. Kode Python tetap diterjemahkan, yaitu oleh interpreter, setiap kali dijalankan.
+    3. **Salah.** Compiler hanya memeriksa apakah kode mengikuti aturan bahasa. Compiler tidak tahu maksudmu. Rumus luas yang memakai `+` alih-alih `*` tetap lolos kompilasi, tetapi jawabannya salah.
+    4. **Benar.** Inilah ciri bahasa tingkat tinggi. Satu baris `print("Halo, dunia!")` diterjemahkan menjadi banyak instruksi mesin.
+    5. **Benar.** `halo.exe` sudah berisi bahasa mesin, jadi kode sumbernya tidak dibutuhkan untuk menjalankan program. Namun tanpa `halo.cpp`, program itu sulit diubah, karena kodenya harus ditulis ulang lalu dikompilasi lagi.
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Kesalahan di baris terakhir">
+  Ketiga program berikut seharusnya menampilkan `Satu`, `Dua`, dan `Tiga` di baris terpisah. Masing-masing punya satu kesalahan, tepat di perintah yang menampilkan `Tiga`. Untuk setiap program, tebak apa yang muncul di layar saat program itu dicoba dijalankan, lalu jelaskan alasannya.
+
+  ```cpp title="Program A: tiga.cpp"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      cout << "Satu" << endl;
+      cout << "Dua" << endl;
+      cout << "Tiga" << endl
+      return 0;
+  }
+  ```
+
+  ```python title="Program B: tiga_b.py"
+  print("Satu")
+  print("Dua")
+  prnt("Tiga")
+  ```
+
+  ```python title="Program C: tiga_c.py"
+  print("Satu")
+  print("Dua")
+  print("Tiga"
+  ```
+
+  <Petunjuk>
+    Baca lagi kotak **Sedikit lebih detail** di bagian interpreter. Untuk Program B, tanyakan: apakah `prnt("Tiga")` salah secara bentuk penulisan, atau bentuknya benar tetapi nama perintahnya tidak dikenal?
+  </Petunjuk>
+
+  <Pembahasan>
+    **Program A: tidak ada output sama sekali**, hanya pesan error dari compiler. Compiler memeriksa seluruh kode sebelum membuat program. Satu kesalahan saja membuat file program tidak terbentuk, jadi tidak ada baris yang sempat dijalankan.
+
+    ```txt title="Output g++"
+    tiga.cpp: In function ‘int main()’:
+    tiga.cpp:7:27: error: expected ‘;’ before ‘return’
+    ```
+
+    **Program B: `Satu` dan `Dua` tampil, lalu program berhenti dengan error.** Bentuk `prnt("Tiga")` sah menurut aturan penulisan Python, yaitu sebuah nama yang diikuti tanda kurung. Python baru tahu bahwa nama `prnt` tidak ada ketika baris itu dijalankan.
+
+    ```txt title="Output"
+    Satu
+    Dua
+    Traceback (most recent call last):
+      File "tiga_b.py", line 3, in <module>
+        prnt("Tiga")
+        ^^^^
+    NameError: name 'prnt' is not defined. Did you mean: 'print'?
+    ```
+
+    **Program C: tidak ada output sama sekali.** Sebelum menjalankan baris pertama, Python membaca dan menerjemahkan seluruh file ke _bytecode_. Tanda kurung yang tidak ditutup melanggar aturan penulisan, jadi seluruh file ditolak.
+
+    ```txt title="Output"
+      File "tiga_c.py", line 3
+        print("Tiga"
+             ^
+    SyntaxError: '(' was never closed
+    ```
+
+    Kesimpulannya, "baris demi baris" pada interpreter berlaku saat **menjalankan** kode. Pemeriksaan tata tulis tetap dilakukan untuk seluruh file sebelum program mulai berjalan.
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Laporan tiga teman">
+  Tiga temanmu melaporkan masalah pada programnya.
+
+  **Andi** (C++): "Waktu kompilasi muncul pesan berikut, dan file `.exe` tidak terbentuk."
+
+  ```txt
+  harga.cpp:6:22: error: expected ‘;’ before ‘cout’
+  ```
+
+  **Budi** (Python): "Programku berjalan tanpa pesan error dan menampilkan `49980`. Padahal harga Rp50.000 dengan diskon 20% seharusnya dibayar Rp40.000."
+
+  ```python
+  harga = 50000
+  diskon = 20          # dalam persen
+  bayar = harga - diskon
+  print(bayar)
+  ```
+
+  **Citra** (Python): "Programku membagi uang kas sama rata ke semua anggota. Program sempat menampilkan dua baris, lalu berhenti dengan pesan `ZeroDivisionError: division by zero` waktu jumlah anggota kuisi 0."
+
+  1. Tentukan jenis kesalahan Andi dan Budi, beserta alasannya.
+  2. Kesalahan Citra tidak cocok disebut syntax error, tetapi juga tidak cocok disebut logic error. Jelaskan kenapa.
+  3. Kesalahan siapa yang paling sulit ditemukan oleh pemilik programnya sendiri? Mengapa?
+
+  <Petunjuk>
+    Untuk setiap laporan, jawab dua pertanyaan: apakah program sempat berjalan, dan apakah muncul pesan error?
+  </Petunjuk>
+
+  <Pembahasan>
+    | Laporan | Sempat berjalan? | Ada pesan error? | Jenis kesalahan |
+    | --- | --- | --- | --- |
+    | Andi | Tidak | Ya, dari compiler | Syntax error |
+    | Budi | Ya, sampai selesai | Tidak | Logic error |
+    | Citra | Ya, lalu berhenti di tengah jalan | Ya, saat program berjalan | Bukan keduanya |
+
+    1. Kesalahan Andi adalah **syntax error**. Ada pernyataan yang tidak diakhiri `;`, sehingga compiler menolak kodenya dan program tidak pernah terbentuk. Kesalahan Budi adalah **logic error**. Programnya berjalan normal, tetapi rumusnya mengurangi harga dengan 20 **rupiah**, bukan 20 **persen**. Rumus yang benar adalah bayar = harga − harga × diskon ÷ 100.
+    2. Bukan syntax error, karena kodenya lolos pemeriksaan dan program sempat berjalan. Buktinya, dua baris sudah tampil. Bukan logic error biasa, karena program tidak diam-diam memberi hasil yang salah, melainkan berhenti mendadak dengan pesan error. Kesalahan yang baru muncul saat program berjalan, sering kali karena data tertentu seperti pembagi 0, disebut **runtime error**. Jenis ketiga ini dibahas di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging).
+    3. Kesalahan Budi. Tidak ada pesan apa pun yang menunjuk kesalahannya. Budi hanya bisa tahu dengan membandingkan output program dengan jawaban yang sudah ia hitung sendiri.
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Program di komputer lain">
+  Rina menulis `halo.cpp` lalu mengompilasinya di laptopnya menjadi `halo.exe`. Ia mengirim **hanya** `halo.exe` kepada Dodi, yang komputernya memakai jenis prosesor berbeda. Program itu tidak bisa dijalankan di komputer Dodi. Setelah Rina mengirim `halo.cpp` dan Dodi mengompilasinya sendiri, programnya berjalan normal.
+
+  1. Mengapa `halo.exe` dari Rina tidak bisa berjalan di komputer Dodi, padahal `halo.cpp` yang sama bisa?
+  2. Sari menulis program yang sama dalam Python, `halo.py`. File apa yang perlu ia kirim, dan apa yang harus sudah terpasang di komputer penerimanya?
+  3. Dilihat dari sisi penerima, sebutkan satu kelebihan dan satu kekurangan mengirim `halo.exe` dibandingkan mengirim `halo.py`.
+
+  <Petunjuk>
+    `halo.exe` berisi bahasa mesin. Ingat lagi tabel tingkatan bahasa: bahasa mana yang bergantung pada jenis prosesor, dan bahasa mana yang tidak?
+  </Petunjuk>
+
+  <Pembahasan>
+    1. `halo.exe` berisi bahasa mesin, dan instruksi bahasa mesin dibuat untuk jenis prosesor tertentu. Prosesor Dodi memahami kumpulan instruksi yang berbeda, jadi deretan bit di `halo.exe` tidak bisa ia jalankan. Sebaliknya, `halo.cpp` ditulis dalam bahasa tingkat tinggi yang tidak terikat jenis prosesor. Compiler di komputer Dodi menerjemahkannya menjadi bahasa mesin untuk prosesor Dodi sendiri. Perbedaan sistem operasi, misalnya Windows dan Linux, juga bisa membuat file program tidak cocok walaupun prosesornya sama.
+    2. Sari cukup mengirim `halo.py`. Komputer penerima harus sudah memasang interpreter Python, karena interpreter itulah yang menerjemahkan dan menjalankan kodenya di sana.
+    3. Contoh jawaban:
+
+    | | Mengirim `halo.exe` | Mengirim `halo.py` |
+    | --- | --- | --- |
+    | Kelebihan | Penerima tidak perlu memasang compiler, cukup menjalankan. Programnya juga cepat. | Satu file yang sama bisa dipakai di berbagai jenis komputer. |
+    | Kekurangan | Hanya cocok untuk jenis prosesor (dan sistem operasi) tertentu. Untuk komputer jenis lain, kodenya harus dikompilasi ulang. | Penerima harus memasang interpreter Python, dan programnya umumnya lebih lambat. |
+  </Pembahasan>
+</Soal>

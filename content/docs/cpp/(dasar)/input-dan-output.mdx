@@ -1,0 +1,907 @@
+---
+title: Input & Output
+description: Membedah struktur program C++ dan Python, menampilkan output dengan cout dan print(), menulis komentar, lalu membaca input dari keyboard dengan cin dan input().
+sumber:
+  - ref: cppreference
+    judul: "Main function"
+    url: https://en.cppreference.com/w/cpp/language/main_function
+  - ref: cppreference
+    judul: "std::cout"
+    url: https://en.cppreference.com/w/cpp/io/cout
+  - ref: cppreference
+    judul: "std::cin"
+    url: https://en.cppreference.com/w/cpp/io/cin
+  - ref: cppreference
+    judul: "Escape sequences"
+    url: https://en.cppreference.com/w/cpp/language/escape
+  - ref: python-docs
+    judul: "print()"
+    url: https://docs.python.org/3/library/functions.html#print
+  - ref: python-docs
+    judul: "input()"
+    url: https://docs.python.org/3/library/functions.html#input
+  - ref: python-docs
+    judul: "Formatted string literals"
+    url: https://docs.python.org/3/tutorial/inputoutput.html#formatted-string-literals
+---
+
+## Struktur program C++
+
+Hampir setiap program C++ yang kamu tulis di awal belajar memiliki kerangka seperti ini:
+
+```cpp title="halo.cpp"
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Halo, dunia!" << endl;
+    return 0;
+}
+```
+
+Mari bedah per baris:
+
+| Baris | Fungsi singkat |
+| --- | --- |
+| `#include <iostream>` | Memasukkan pustaka **iostream** yang berisi `cout` (output) dan `cin` (input). |
+| `using namespace std;` | Supaya kita cukup menulis `cout`, bukan `std::cout`. |
+| `int main() { ... }` | Fungsi utama. Program **selalu mulai dijalankan dari sini**. |
+| `cout << "Halo, dunia!" << endl;` | Menampilkan tulisan ke layar, lalu pindah baris. |
+| `return 0;` | Memberi tahu sistem operasi bahwa program selesai dengan normal. |
+
+Ada beberapa aturan penting:
+
+- Setiap **pernyataan** (_statement_) diakhiri titik koma `;`.
+- Kurung kurawal `{ }` menandai sebuah **blok**. Isi `main` berada di dalam blok ini.
+- C++ bersifat **case-sensitive**: `cout`, `Cout`, dan `COUT` dianggap berbeda. Hanya `cout` yang benar.
+
+<DeepDive href="/docs/cpp/pendalaman/baris-ajaib" kind="konsep" title="Baris “ajaib” di program C++">
+  Apa sebenarnya yang dilakukan `#include`? Apa itu _namespace_? Kenapa `main` harus `int`? Penjelasan lengkapnya ada di halaman ini.
+</DeepDive>
+
+### Bagaimana dengan Python?
+
+Python tidak butuh kerangka seperti itu. Program langsung dijalankan dari baris paling atas:
+
+```python title="halo.py"
+print("Halo, dunia!")
+```
+
+Sebagai gantinya, Python memakai **indentasi** (spasi di awal baris) untuk menandai blok, bukan kurung kurawal. Tidak ada titik koma di akhir baris.
+
+## Menampilkan output
+
+Untuk menampilkan sesuatu ke layar, C++ memakai `cout` (dibaca _see-out_, singkatan dari _character output_). Python memakai fungsi `print()`.
+
+```cpp tab="C++"
+cout << "Belajar C++";
+```
+
+```python tab="Python"
+print("Belajar C++")
+```
+
+Tanda `<<` di C++ disebut **operator penyisipan** (_insertion operator_). Bayangkan seperti anak panah: data **mengalir** dari kanan menuju `cout`, lalu ditampilkan di layar.
+
+### Menampilkan beberapa nilai sekaligus
+
+Operator `<<` bisa disambung berkali-kali. Teks diapit tanda kutip ganda `"..."`, sedangkan angka bisa ditulis langsung.
+
+```cpp tab="C++"
+cout << "Umur saya " << 19 << " tahun";
+```
+
+```python tab="Python"
+print("Umur saya", 19, "tahun")
+```
+
+```txt title="Output"
+Umur saya 19 tahun
+```
+
+Perhatikan perbedaannya. Di C++, spasi harus ditulis sendiri di dalam teks (`"Umur saya "`). Di Python, `print()` otomatis menambahkan spasi di antara nilai yang dipisah koma. Jika spasi itu tidak diinginkan, tambahkan `sep=""`: `print("A", "B", sep="")` menampilkan `AB`.
+
+### Pindah baris
+
+`cout` **tidak** otomatis pindah baris. Dua `cout` berturut-turut akan menempel:
+
+```cpp
+cout << "Halo";
+cout << "Dunia";   // output: HaloDunia
+```
+
+Ada dua cara untuk pindah baris di C++: `endl` atau karakter khusus `"\n"`.
+
+```cpp tab="C++"
+cout << "Halo" << endl;
+cout << "Dunia\n";
+```
+
+```python tab="Python"
+print("Halo")          # print() otomatis pindah baris
+print("Dunia")
+print("Tanpa", end="") # end="" agar tidak pindah baris
+```
+
+```txt title="Output"
+Halo
+Dunia
+```
+
+Di tahap ini, `endl` dan `"\n"` boleh dianggap sama-sama "pindah baris". Sebenarnya ada perbedaan kecil: `endl` juga **mengosongkan buffer output**, sedangkan `"\n"` tidak. Perbedaan ini mulai terasa saat program mencetak ribuan baris.
+
+<DeepDive href="/docs/cpp/pendalaman/buffer#endl-vs-n" kind="konsep" title="Buffer: endl vs \n">
+  Output tidak langsung muncul di layar, tetapi ditampung dulu di sebuah _buffer_. Pelajari kapan buffer dikosongkan dan mengapa `"\n"` lebih disarankan.
+</DeepDive>
+
+### Escape sequence
+
+Bagaimana cara menampilkan tanda kutip `"` di dalam teks, padahal tanda itu dipakai untuk mengapit teks? Gunakan **escape sequence**, yaitu karakter khusus yang diawali garis miring terbalik `\`. Aturannya sama di C++ dan Python.
+
+| Escape sequence | Arti |
+| --- | --- |
+| `\n` | Baris baru (_newline_) |
+| `\t` | Tab (jarak horizontal) |
+| `\"` | Tanda kutip ganda |
+| `\'` | Tanda kutip tunggal |
+| `\\` | Garis miring terbalik itu sendiri |
+
+```cpp tab="C++"
+cout << "Nama\tNilai\n";
+cout << "Budi\t90\n";
+cout << "Ia berkata, \"Halo!\"\n";
+```
+
+```python tab="Python"
+print("Nama\tNilai")
+print("Budi\t90")
+print("Ia berkata, \"Halo!\"")
+```
+
+```txt title="Output"
+Nama	Nilai
+Budi	90
+Ia berkata, "Halo!"
+```
+
+Karena `\` selalu dianggap awal escape sequence, satu garis miring terbalik di output harus ditulis **dua kali** di kode. Contohnya path Windows: `"C:\data\new"` tidak menampilkan path itu. Bagian `\n` dibaca sebagai baris baru, sedangkan `\d` bukan escape sequence yang dikenal sehingga compiler memberi peringatan. Tulis `"C:\\data\\new"` agar tampil `C:\data\new`.
+
+## Komentar
+
+**Komentar** adalah catatan di dalam kode yang **diabaikan** compiler atau interpreter. Gunakan komentar untuk menjelaskan _mengapa_ kode ditulis seperti itu.
+
+```cpp tab="C++"
+// Komentar satu baris
+
+/* Komentar
+   beberapa baris */
+
+cout << "Halo"; // komentar juga boleh di akhir baris
+```
+
+```python tab="Python"
+# Komentar satu baris
+
+"""
+Teks beberapa baris seperti ini sering
+dipakai sebagai komentar panjang
+"""
+
+print("Halo")  # komentar juga boleh di akhir baris
+```
+
+Komentar juga sering dipakai untuk **menonaktifkan** sebuah baris kode sementara, tanpa menghapusnya. Cukup tambahkan `//` (C++) atau `#` (Python) di depannya.
+
+## Membaca input
+
+Sejauh ini, semua nilai kita tulis langsung di dalam kode. Program seperti itu selalu menghasilkan output yang sama. Agar program bisa dipakai untuk data apa pun, program harus bisa **membaca input** dari pengguna. Namun sebelum itu, kita butuh tempat untuk menyimpan nilai yang dibaca.
+
+### Variabel: tempat menyimpan input
+
+Tempat menyimpan nilai itu disebut **variabel**. Bayangkan variabel sebagai **kotak bernama** di memori. Namanya dipakai untuk menyebut kotak itu, dan isinya adalah nilai yang tersimpan.
+
+Di C++, kotak harus dibuat dulu sebelum dipakai. Caranya, tulis **tipe data** (jenis isi kotak), lalu nama variabelnya. Untuk sekarang, cukup kenali tiga tipe berikut:
+
+| Tipe | Untuk menyimpan | Contoh isi |
+| --- | --- | --- |
+| `int` | Bilangan bulat | `19`, `-7`, `2025` |
+| `double` | Bilangan pecahan | `3.75`, `170.5` |
+| `string` | Teks | `Budi`, `Medan` |
+
+```cpp
+int umur;        // kotak umur, isinya bilangan bulat
+double tinggi;   // kotak tinggi, isinya bilangan pecahan
+string nama;     // kotak nama, isinya teks (butuh #include <string>)
+```
+
+Python tidak perlu menyebut tipe. Variabel langsung tercipta saat pertama kali diisi dengan tanda `=`, misalnya `nama = input()`. Tanda `=` artinya "simpan nilai di sebelah kanan ke variabel di sebelah kiri".
+
+Untuk menampilkan isi variabel, tulis namanya **tanpa** tanda kutip. `cout << nama` menampilkan isi variabel `nama`, sedangkan `cout << "nama"` menampilkan tulisan `nama` apa adanya. Python juga punya cara praktis untuk menyisipkan isi variabel ke dalam teks, yaitu **f-string**: tulis huruf `f` tepat sebelum tanda kutip, lalu letakkan nama variabel di dalam kurung kurawal.
+
+```cpp tab="C++"
+// misalnya variabel nama berisi Budi
+cout << "Halo, " << nama << "!" << endl;   // Halo, Budi!
+```
+
+```python tab="Python"
+# misalnya variabel nama berisi Budi
+print("Halo,", nama)       # Halo, Budi
+print(f"Halo, {nama}!")    # Halo, Budi!
+```
+
+Aturan penamaan, tipe data lainnya, dan apa yang terjadi di memori dibahas lengkap di [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data).
+
+### `cin` dan `input()`
+
+Di C++, input dibaca dengan `cin` (dibaca _see-in_, singkatan dari _character input_). `cin` berasal dari pustaka `<iostream>`, sama seperti `cout`. Di Python, input dibaca dengan fungsi `input()`.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    int umur;
+
+    cout << "Masukkan umur: ";
+    cin >> umur;
+
+    cout << "Tahun depan kamu berumur " << umur + 1 << " tahun" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+umur = int(input("Masukkan umur: "))
+
+print("Tahun depan kamu berumur", umur + 1, "tahun")
+```
+
+```txt title="Contoh jalannya program"
+Masukkan umur: 19
+Tahun depan kamu berumur 20 tahun
+```
+
+Saat baris `cin >> umur;` dicapai, program **berhenti dan menunggu** pengguna mengetik lalu menekan **Enter**. Angka yang diketik kemudian disimpan ke variabel `umur`. Teks di dalam `input("...")` adalah petunjuk yang ditampilkan sebelum menunggu, sama seperti `cout << "Masukkan umur: "` di versi C++.
+
+Ekspresi `umur + 1` menghitung isi `umur` ditambah satu, tanpa mengubah isi variabelnya. Operator hitung seperti `+` dan `*` dibahas tuntas di [Operator Aritmatika](/docs/cpp/operator-aritmatika).
+
+### Arah panah: `<<` dan `>>`
+
+Operator `>>` disebut **operator ekstraksi** (_extraction operator_). Cara mudah mengingatnya: lihat arah panahnya.
+
+| Perintah | Arah data | Artinya |
+| --- | --- | --- |
+| `cout << x` | dari `x` **ke** layar | Keluarkan nilai `x` |
+| `cin >> x` | dari keyboard **ke** `x` | Masukkan data ke dalam `x` |
+
+`cin` otomatis menyesuaikan dengan tipe variabelnya. Jika variabelnya `int`, ketikan dibaca sebagai bilangan bulat. Jika `double`, dibaca sebagai pecahan. Jika `string`, dibaca sebagai teks.
+
+### Python: `input()` selalu menghasilkan teks
+
+Di Python, `input()` **selalu** mengembalikan nilai bertipe `str` (teks), apa pun yang diketik pengguna. Untuk mendapatkan angka, ubah dulu dengan `int()` (bilangan bulat) atau `float()` (pecahan).
+
+```python
+umur = input("Umur: ")         # misalnya diketik 19
+print(umur + 1)                # ✗ TypeError: "19" adalah teks, tidak bisa ditambah 1
+
+umur = int(input("Umur: "))    # ✓ ubah teks "19" menjadi angka 19
+print(umur + 1)                # 20
+```
+
+Di C++, konversi ini tidak perlu karena `cin` sudah tahu tipe tujuannya dari tipe variabel.
+
+### Membaca beberapa input sekaligus
+
+Operator `>>` bisa disambung untuk membaca beberapa nilai:
+
+```cpp tab="C++"
+int panjang, lebar;
+cin >> panjang >> lebar;
+cout << "Luas: " << panjang * lebar << endl;
+```
+
+```python tab="Python"
+panjang, lebar = map(int, input().split())
+print("Luas:", panjang * lebar)
+```
+
+Di versi Python, `input().split()` memecah satu baris menjadi beberapa bagian di setiap spasi, lalu `map(int, ...)` mengubah setiap bagian menjadi `int`. Jika tipenya campuran, misalnya nama dan umur dalam satu baris, pecah dulu lalu ubah bagian yang berupa angka saja:
+
+```python
+nama, umur = input().split()   # diketik: Budi 19
+umur = int(umur)
+```
+
+Kembali ke C++. Yang menarik, semua cara mengetik di bawah ini sama-sama berhasil untuk `cin >> panjang >> lebar`:
+
+```txt title="Tiga cara mengetik yang sama-sama berhasil"
+5 3              ← dipisah spasi
+
+5                ← dipisah Enter
+3
+
+   5      3      ← spasi berlebih pun tidak masalah
+```
+
+Alasannya, `>>` **melewati semua whitespace** (spasi, tab, Enter) sebelum membaca, lalu **berhenti** saat menemukan whitespace berikutnya. Lebih tepatnya, `>>` berhenti di karakter pertama yang **tidak cocok** dengan tipe variabelnya. Untuk `int`, karakter itu bisa berupa spasi, huruf, maupun titik.
+
+<Callout type="warning" title="Python berbeda">
+  Di Python, `input().split()` hanya membaca **satu baris**. Jika pengguna memisahkan dua angka dengan Enter, kode di atas gagal. Untuk membaca dari dua baris, panggil `input()` dua kali.
+</Callout>
+
+### Apa yang sebenarnya terjadi?
+
+Ketikan pengguna **tidak** langsung masuk ke variabel. Semua karakter yang diketik, termasuk spasi dan Enter (`\n`), ditampung dulu di sebuah area memori sementara bernama **<Term href="/docs/cpp/pendalaman/buffer">buffer input</Term>**. `cin >>` kemudian mengambil data dari buffer itu sedikit demi sedikit.
+
+Konsekuensinya cukup mengejutkan. Coba program berikut, lalu pada pertanyaan pertama ketik `10 20` dan tekan Enter:
+
+```cpp
+int a, b;
+cout << "Masukkan a: ";
+cin >> a;
+cout << "Masukkan b: ";
+cin >> b;
+cout << "a = " << a << ", b = " << b << endl;
+```
+
+```txt title="Output"
+Masukkan a: 10 20
+Masukkan b: a = 10, b = 20
+```
+
+Program **tidak menunggu** saat meminta `b`! Penyebabnya: `cin >> a` hanya mengambil `10`, sedangkan ` 20` dan `\n` masih tersisa di buffer. Saat `cin >> b` dijalankan, data sudah tersedia, jadi `cin` langsung membacanya tanpa menunggu ketikan baru.
+
+<DeepDive href="/docs/cpp/pendalaman/buffer" kind="konsep" title="Buffer input & output">
+  Lihat langkah demi langkah bagaimana `cin` membaca isi buffer, mengapa karakter `\n` bisa "tertinggal", dan apa yang terjadi saat input tidak sesuai tipe.
+</DeepDive>
+
+### Membaca teks
+
+`cin >>` juga bisa membaca teks ke variabel `string`. Namun karena `>>` berhenti di whitespace, **hanya satu kata** yang terbaca:
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string nama;
+    cout << "Nama: ";
+    cin >> nama;                 // diketik: Budi Santoso
+    cout << "Halo, " << nama << "!" << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+nama = input("Nama: ")           # diketik: Budi Santoso
+print(f"Halo, {nama}!")
+```
+
+```txt title="Output C++"
+Nama: Budi Santoso
+Halo, Budi!
+```
+
+```txt title="Output Python"
+Nama: Budi Santoso
+Halo, Budi Santoso!
+```
+
+Python membaca satu baris penuh, sedangkan `cin >>` hanya mengambil `Budi`. Kata `Santoso` masih tertinggal di buffer.
+
+Untuk membaca **satu baris utuh** (termasuk spasi), C++ menyediakan fungsi `getline`. Di seri ini kita **fokus memakai `cin`** terlebih dahulu. Selama input berupa angka atau satu kata, `cin` sudah cukup.
+
+<DeepDive href="/docs/cpp/pustaka/getline" kind="pustaka" title="getline: membaca satu baris penuh">
+  Cara membaca nama lengkap atau kalimat, serta jebakan klasik saat `cin >>` dan `getline` dipakai bersamaan, dan cara mengatasinya.
+</DeepDive>
+
+### Jika input tidak sesuai tipe
+
+Apa yang terjadi jika program meminta angka, tetapi pengguna mengetik huruf?
+
+```cpp tab="C++"
+int umur;
+cin >> umur;          // diketik: abc
+cout << umur;         // 0, dan cin masuk ke "mode gagal"
+```
+
+```python tab="Python"
+umur = int(input())   # diketik: abc
+# ValueError: invalid literal for int() with base 10: 'abc'
+```
+
+- **C++** tidak menghentikan program. `umur` diisi `0`, lalu `cin` masuk ke **mode gagal** (_fail state_). Selama mode gagal, semua `cin >>` berikutnya **diabaikan** sampai statusnya dipulihkan.
+- **Python** langsung menghentikan program dengan `ValueError`. Hal yang sama terjadi jika `int()` diberi teks pecahan seperti `"3.5"`, karena `int()` hanya menerima teks bilangan bulat. Pakai `float()` untuk pecahan.
+
+Cara memulihkan `cin` dari mode gagal dibahas di [Buffer: saat input gagal](/docs/cpp/pendalaman/buffer#saat-input-gagal). Untuk sekarang, cukup ketahui bahwa input yang salah tipe membuat `cin` "macet".
+
+### Contoh lengkap
+
+Mari wujudkan flowchart luas persegi panjang dari materi [Algoritma & Flowchart](/docs/cpp/algoritma-dan-flowchart) menjadi program interaktif. Perhatikan juga bahwa variabel boleh langsung diisi saat dibuat, seperti `double luas = panjang * lebar;`.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    double panjang, lebar;
+
+    cout << "=== Luas Persegi Panjang ===" << endl;
+    cout << "Panjang : ";
+    cin >> panjang;
+    cout << "Lebar   : ";
+    cin >> lebar;
+
+    double luas = panjang * lebar;
+    double keliling = 2 * (panjang + lebar);
+
+    cout << "Luas     = " << luas << endl;
+    cout << "Keliling = " << keliling << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+print("=== Luas Persegi Panjang ===")
+panjang = float(input("Panjang : "))
+lebar = float(input("Lebar   : "))
+
+luas = panjang * lebar
+keliling = 2 * (panjang + lebar)
+
+print("Luas     =", luas)
+print("Keliling =", keliling)
+```
+
+```txt title="Contoh jalannya program (C++)"
+=== Luas Persegi Panjang ===
+Panjang : 7.5
+Lebar   : 4
+Luas     = 30
+Keliling = 23
+```
+
+Versi Python menampilkan `30.0` dan `23.0`, karena Python selalu menampilkan bilangan `float` lengkap dengan angka di belakang titik.
+
+<Callout type="info" title="Selalu tampilkan petunjuk">
+  Sebelum `cin`, tampilkan pesan seperti `"Panjang : "` agar pengguna tahu apa yang harus diketik. Tanpa petunjuk, program terlihat seperti "macet" padahal sedang menunggu input. Pengecualiannya adalah soal latihan dan sistem penilai otomatis: di sana output harus persis sama dengan contoh, jadi petunjuk input tidak ditampilkan.
+</Callout>
+
+## Kesalahan yang sering terjadi
+
+| Kode | Masalah |
+| --- | --- |
+| `cout << "Halo"` | Lupa titik koma `;` |
+| `cout << Halo;` | Lupa tanda kutip. `Halo` dianggap nama variabel yang tidak ada. |
+| `cout << "umur";` | Kebalikannya: yang tampil tulisan `umur`, bukan isi variabel `umur`. |
+| `Cout << "Halo";` | Huruf besar. Yang benar `cout`. |
+| `cout >> "Halo";` atau `cin << x;` | Arah panah terbalik. Output memakai `<<`, input memakai `>>`. |
+| `cin >> a, b;` | Hanya `a` yang dibaca. Yang benar `cin >> a >> b;` |
+| `print "Halo"` | Di Python 3, `print` wajib memakai tanda kurung. |
+| `umur = input()` lalu `umur + 1` | `input()` menghasilkan teks. Ubah dulu dengan `int()`. |
+
+## Rangkuman
+
+- Program C++ dimulai dari fungsi `main()` dan setiap pernyataan diakhiri `;`. Program Python dijalankan dari baris paling atas.
+- `cout <<` menampilkan output di C++, `print()` di Python. `cout` tidak otomatis pindah baris, jadi gunakan `endl` atau `"\n"`.
+- Escape sequence seperti `\n`, `\t`, `\"`, dan `\\` dipakai untuk karakter khusus.
+- Komentar memakai `//` atau `/* */` di C++, dan `#` di Python.
+- **Variabel** adalah kotak bernama untuk menyimpan nilai. Di C++ tipenya ditulis dulu, misalnya `int`, `double`, atau `string`.
+- `cin >> variabel` membaca input di C++. Python memakai `input()`, yang **selalu** menghasilkan `str`, jadi ubah dengan `int()` atau `float()`.
+- `>>` melewati whitespace di depan dan berhenti di karakter pertama yang tidak cocok. Karena itu `cin >> a >> b` bisa dipisah spasi maupun Enter.
+- Ketikan ditampung dulu di **buffer input**. Data yang belum terbaca akan dipakai oleh `cin` berikutnya.
+- `cin >>` ke `string` hanya membaca **satu kata**. Input yang salah tipe membuat `cin` masuk ke **mode gagal**.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Di semua soal, program membaca input **tanpa** menampilkan petunjuk seperti `"Masukkan umur: "`, dan outputnya harus persis sama dengan contoh.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Kartu nama">
+  Tulis program yang menampilkan tiga baris berikut, persis sama termasuk spasinya. Program ini tidak membaca input.
+
+  ```txt title="Output"
+  Nama    : Budi Santoso
+  NIM     : 231110001
+  Jurusan : Teknik Informatika
+  ```
+
+  <Pembahasan>
+    Cukup satu perintah output per baris. Di C++, akhiri setiap baris dengan `"\n"` atau `endl`. Spasi sebelum titik dua ditulis sendiri di dalam teks agar titik duanya sejajar.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        cout << "Nama    : Budi Santoso\n";
+        cout << "NIM     : 231110001\n";
+        cout << "Jurusan : Teknik Informatika\n";
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    print("Nama    : Budi Santoso")
+    print("NIM     : 231110001")
+    print("Jurusan : Teknik Informatika")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Sapa pengguna">
+  Baca sebuah nama (satu kata), lalu tampilkan sapaan seperti contoh.
+
+  | Input | Output |
+  | --- | --- |
+  | `Budi` | `Halo, Budi! Selamat belajar.` |
+  | `Sari` | `Halo, Sari! Selamat belajar.` |
+
+  <Pembahasan>
+    Simpan nama di variabel `string`, lalu tampilkan di antara dua potong teks. Perhatikan tanda `!` yang menempel pada nama. Di Python, `print("Halo,", nama, "!")` akan menghasilkan `Halo, Budi !` karena `print()` menambah spasi, jadi lebih mudah memakai f-string.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string nama;
+        cin >> nama;
+        cout << "Halo, " << nama << "! Selamat belajar." << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    nama = input()
+    print(f"Halo, {nama}! Selamat belajar.")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Menempel atau terpisah?">
+  Tebak output potongan program C++ dan Python berikut (lihat kedua tab). Keduanya terlihat mirip, tetapi hasilnya tidak sama persis.
+
+  ```cpp tab="C++"
+  cout << "Satu" << "Dua\n";
+  cout << "Tiga";
+  cout << "Empat" << endl << "Lima\n";
+  ```
+
+  ```python tab="Python"
+  print("Satu", "Dua")
+  print("Tiga", end="")
+  print("Empat")
+  print("Lima")
+  ```
+
+  <Pembahasan>
+    Di C++, nilai yang disambung dengan `<<` menempel tanpa spasi, dan baris baru hanya muncul di tempat ada `\n` atau `endl`. Di Python, `print()` menambah spasi di antara nilai dan pindah baris di akhir, kecuali diberi `end=""`.
+
+    ```txt title="Output C++"
+    SatuDua
+    TigaEmpat
+    Lima
+    ```
+
+    ```txt title="Output Python"
+    Satu Dua
+    TigaEmpat
+    Lima
+    ```
+
+    Bedanya hanya di baris pertama. `Tiga` dan `Empat` menempel di kedua bahasa karena tidak ada pindah baris di antara keduanya.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Folder milik pengguna">
+  Baca nama pengguna (satu kata), lalu tampilkan lokasi folder `Documents` miliknya dalam format Windows.
+
+  | Input | Output |
+  | --- | --- |
+  | `budi` | `C:\Users\budi\Documents` |
+  | `sari99` | `C:\Users\sari99\Documents` |
+
+  <Petunjuk>
+    Satu garis miring terbalik `\` di output harus ditulis sebagai `\\` di dalam kode.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap `\` di output ditulis `\\`. Jika ditulis `"C:\Users\"`, kodenya bahkan tidak bisa dijalankan: `\U` dianggap awal escape sequence yang tidak lengkap, dan `\"` di akhir dianggap tanda kutip yang ikut ditampilkan, bukan penutup teks.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string nama;
+        cin >> nama;
+        cout << "C:\\Users\\" << nama << "\\Documents" << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    nama = input()
+    print(f"C:\\Users\\{nama}\\Documents")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Perbaiki program umur">
+  Program berikut seharusnya membaca umur, lalu menampilkan umur tahun depan. Versi C++ punya **tiga** kesalahan dan versi Python punya **dua**. Temukan semuanya, lalu perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int umur
+      cin << umur;
+      cout << "Tahun depan: " << "umur + 1" << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  umur = input()
+  Print("Tahun depan:", umur + 1)
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `19` | `Tahun depan: 20` |
+  | `7` | `Tahun depan: 8` |
+
+  <Petunjuk>
+    Tidak semua kesalahan membuat program gagal dijalankan. Ada satu kesalahan di C++ yang tetap lolos compile, tetapi outputnya salah.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kesalahan C++: (1) titik koma hilang setelah `int umur`, (2) `cin << umur` arahnya terbalik, harus `>>`, dan (3) `"umur + 1"` diapit kutip sehingga yang tampil tulisan `umur + 1`, bukan hasil hitungannya. Kesalahan ketiga paling licik karena programnya tetap jalan.
+
+    Kesalahan Python: (1) `Print` dengan huruf besar tidak dikenal (`NameError`), dan (2) `input()` menghasilkan teks, sehingga `umur + 1` gagal dengan `TypeError`. Ubah dulu dengan `int()`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int umur;
+        cin >> umur;
+        cout << "Tahun depan: " << umur + 1 << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    umur = int(input())
+    print("Tahun depan:", umur + 1)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Perkenalan diri">
+  Input berupa satu baris berisi nama (satu kata), umur (bilangan bulat), dan kota (satu kata), dipisah spasi. Tampilkan dua baris perkenalan seperti contoh.
+
+  ```txt title="Contoh input"
+  Budi 19 Medan
+  ```
+
+  ```txt title="Contoh output"
+  Perkenalkan, nama saya Budi.
+  Umur saya 19 tahun dan saya tinggal di Medan.
+  ```
+
+  <Petunjuk>
+    Di C++, urutan variabel di `cin >>` harus sama dengan urutan data di input. Di Python, pecah barisnya dengan `input().split()`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Siapkan dua variabel `string` dan satu `int`, lalu baca dengan urutan nama, umur, kota. Perhatikan titik di akhir setiap kalimat. Di Python, `umur` boleh tetap berupa teks karena hanya ditampilkan, tidak dihitung.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string nama, kota;
+        int umur;
+        cin >> nama >> umur >> kota;
+
+        cout << "Perkenalkan, nama saya " << nama << "." << endl;
+        cout << "Umur saya " << umur << " tahun dan saya tinggal di " << kota << "." << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    nama, umur, kota = input().split()
+
+    print(f"Perkenalkan, nama saya {nama}.")
+    print(f"Umur saya {umur} tahun dan saya tinggal di {kota}.")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Kode di balik komentar">
+  Tebak output program berikut. Hati-hati, ada bagian yang terlihat seperti komentar padahal bukan, dan sebaliknya.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      cout << "A";   // cout << "B";
+      /* cout << "C\n";
+      cout << "D"; */ cout << "E\n";
+      cout << "F" /* << "G" */ << "H\n";
+      cout << "K // L\n";
+      // cout << "M\n";
+      return 0;
+  }
+  ```
+
+  <Petunjuk>
+    Komentar `/* ... */` boleh berakhir di tengah baris, dan kode setelah `*/` tetap dijalankan. Lalu, apa arti `//` jika letaknya di dalam tanda kutip?
+  </Petunjuk>
+
+  <Pembahasan>
+    ```txt title="Output"
+    AE
+    FH
+    K // L
+    ```
+
+    - `cout << "B"` berada di dalam komentar `//`, jadi diabaikan. `A` tidak diikuti `\n`, sehingga `E` menempel di sebelahnya.
+    - `C` dan `D` ada di dalam `/* ... */`. Komentar itu berakhir di tengah baris, jadi `cout << "E\n"` tetap dijalankan.
+    - `/* << "G" */` dibuang, sehingga yang tersisa adalah `cout << "F" << "H\n"`.
+    - `//` di dalam tanda kutip hanyalah teks biasa, jadi ikut ditampilkan.
+    - Baris `M` seluruhnya komentar.
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Isi variabel yang tak terduga">
+  Soal ini khusus C++. Program berikut membaca dua `int` dan satu `double`:
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int a, c;
+      double b;
+      cin >> a >> b >> c;
+      cout << "a=" << a << " b=" << b << " c=" << c << endl;
+      return 0;
+  }
+  ```
+
+  Tebak outputnya untuk setiap input berikut:
+
+  1. `12 7.25 4`
+  2. `3.5 8`
+  3. `17-08-1945`
+
+  <Petunjuk>
+    Ingat aturannya: `>>` melewati whitespace di depan, lalu mengambil karakter **selama masih cocok** dengan tipe variabel. Titik cocok untuk `double`, tetapi tidak untuk `int`. Tanda minus di awal angka termasuk bagian dari angka.
+  </Petunjuk>
+
+  <Pembahasan>
+    | Input | `a` (`int`) | `b` (`double`) | `c` (`int`) | Output |
+    | --- | --- | --- | --- | --- |
+    | `12 7.25 4` | `12` | `7.25` | `4` | `a=12 b=7.25 c=4` |
+    | `3.5 8` | `3` | `0.5` | `8` | `a=3 b=0.5 c=8` |
+    | `17-08-1945` | `17` | `-8` | `-1945` | `a=17 b=-8 c=-1945` |
+
+    Input kedua: `cin >> a` mengambil `3` lalu berhenti di titik, karena titik tidak cocok untuk `int`. Sisa `.5` dibaca `b` sebagai `0.5`, lalu `8` masuk ke `c`. Input ketiga: `a` mengambil `17` dan berhenti di `-`. Bagi `b`, teks `-08` adalah bilangan negatif yang sah, yaitu `-8`. Begitu pula `-1945` untuk `c`. Tidak ada yang gagal, tetapi isinya jauh dari maksud pengguna.
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Struk toko">
+  Input berupa satu baris berisi nama barang (satu kata), jumlah barang, dan harga satuan (keduanya bilangan bulat). Tampilkan struk **persis** seperti contoh. Tiga baris pertama selalu sama, apa pun inputnya. Baris pembatas atas dan bawah berisi 18 tanda `=`.
+
+  ```txt title="Contoh input"
+  Pensil 3 2000
+  ```
+
+  ```txt title="Contoh output"
+  /==================\
+  | TOKO "MAJU JAYA" |
+  \==================/
+  Barang : Pensil
+  Jumlah : 3 x 2000
+  Total  : 6000
+  ```
+
+  <Petunjuk>
+    Ada tiga karakter yang butuh escape sequence di sini: `\` di akhir baris pertama, `\` di awal baris ketiga, dan tanda kutip di sekitar nama toko. Total adalah `jumlah * harga`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jebakan utamanya ada di baris pembatas. Jika ditulis `"/====\"`, garis miring terbalik di akhir justru mengubah tanda kutip penutup menjadi `\"`, sehingga teksnya tidak pernah ditutup. Jika ditulis `"\===/"`, `\=` bukan escape sequence yang dikenal: C++ memberi peringatan dan membuang `\`-nya, sedangkan Python (versi 3.12 ke atas) juga memberi peringatan. Tulis `\\` di kedua tempat. Perhatikan juga dua spasi setelah `Total` agar titik duanya sejajar.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string barang;
+        int jumlah, harga;
+        cin >> barang >> jumlah >> harga;
+
+        cout << "/==================\\\n";
+        cout << "| TOKO \"MAJU JAYA\" |\n";
+        cout << "\\==================/\n";
+        cout << "Barang : " << barang << "\n";
+        cout << "Jumlah : " << jumlah << " x " << harga << "\n";
+        cout << "Total  : " << jumlah * harga << "\n";
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    barang, jumlah, harga = input().split()
+    jumlah = int(jumlah)
+    harga = int(harga)
+
+    print("/==================\\")
+    print("| TOKO \"MAJU JAYA\" |")
+    print("\\==================/")
+    print(f"Barang : {barang}")
+    print(f"Jumlah : {jumlah} x {harga}")
+    print(f"Total  : {jumlah * harga}")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Program yang menulis program">
+  Baca satu kata, lalu tampilkan dua baris **kode** yang, jika dijalankan, akan menampilkan kata itu: satu baris C++ dan satu baris Python. Outputnya harus persis seperti contoh, termasuk tanda kutip dan tulisan `\n`.
+
+  ```txt title="Contoh input"
+  Halo
+  ```
+
+  ```txt title="Contoh output"
+  cout << "Halo\n";
+  print("Halo")
+  ```
+
+  <Petunjuk>
+    Tulis dulu output yang diinginkan, lalu ganti setiap `"` dengan `\"` dan setiap `\` dengan `\\`. Jangan lupa, di akhir setiap baris output masih perlu pindah baris sungguhan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kuncinya membedakan dua jenis `\n`. Tulisan `\n` yang harus **tampil** di output ditulis `\\n`, sedangkan pindah baris sungguhan ditulis `\n`. Setiap tanda kutip yang harus tampil ditulis `\"`. Jadi akhir baris pertama di C++ menjadi `"\\n\";\n"`: tampilkan `\n`, tampilkan `"`, tampilkan `;`, lalu pindah baris.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string kata;
+        cin >> kata;
+        cout << "cout << \"" << kata << "\\n\";\n";
+        cout << "print(\"" << kata << "\")\n";
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    kata = input()
+    print(f"cout << \"{kata}\\n\";")
+    print(f"print(\"{kata}\")")
+    ```
+  </Pembahasan>
+</Soal>

@@ -183,7 +183,7 @@ else:
 ```
 
 <Callout type="info" title="Tentang input">
-  Perintah `cin >>` (C++) dan `input()` (Python) dijelaskan lengkap di materi [Input dengan cin](/docs/cpp/input-dengan-cin). Di sana kamu juga akan melihat mengapa `cin >> panjang >> lebar` bisa membaca dua angka yang dipisah spasi maupun Enter.
+  Perintah `cin >>` (C++) dan `input()` (Python) dijelaskan lengkap di materi [Input & Output](/docs/cpp/input-dan-output#membaca-input). Di sana kamu juga akan melihat mengapa `cin >> panjang >> lebar` bisa membaca dua angka yang dipisah spasi maupun Enter.
 </Callout>
 
 ## Tips membuat flowchart
@@ -203,9 +203,78 @@ else:
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Buat flowchart untuk mengubah suhu Celsius menjadi Fahrenheit (F = C × 9/5 + 32).">
+Kerjakan setiap soal sendiri dulu, cukup dengan kertas dan pensil. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Beberapa pembahasan menyertakan kode C++ dan Python sebagai pratinjau. Kamu belum perlu memahami setiap barisnya.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Ciri yang dilanggar">
+  Setiap potongan algoritma berikut melanggar satu ciri algoritma yang baik. Tentukan ciri yang dilanggar: _finite_, _definite_, _input_, _output_, atau _effective_.
+
+  1. Langkah di resep kue: "Aduk adonan sampai rata."
+  2. "1. Tulis angka 1 di papan. 2. Kembali ke langkah 1."
+  3. "1. Baca tiga nilai ujian. 2. Jumlahkan ketiganya. 3. Bagi jumlahnya dengan 3. 4. Selesai."
+  4. "Ukur suhu inti Matahari dengan termometer dapur."
+
+  <Pembahasan>
+    | No | Ciri yang dilanggar | Alasan dan perbaikan |
+    | --- | --- | --- |
+    | 1 | _Definite_ | "Sampai rata" bisa diartikan berbeda oleh setiap orang. Lebih jelas: "Aduk adonan selama 2 menit." |
+    | 2 | _Finite_ | Tidak ada syarat berhenti, jadi langkahnya berulang selamanya. Tambahkan batas, misalnya "Ulangi sampai ada 10 angka di papan." |
+    | 3 | _Output_ | Hasil bagi tidak pernah ditampilkan. Tambahkan langkah "Tampilkan hasil bagi" sebelum selesai. |
+    | 4 | _Effective_ | Langkahnya tidak mungkin benar-benar dikerjakan, karena termometer dapur tidak bisa dibawa ke inti Matahari. |
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Simbol yang tepat">
+  Tentukan simbol flowchart yang tepat untuk setiap langkah berikut: terminal, input/output, proses, atau keputusan. Sebutkan juga bentuknya.
+
+  1. Mulai
+  2. Baca harga barang dan jumlah yang dibeli
+  3. total = harga × jumlah
+  4. Apakah total lebih dari 100000?
+  5. Tampilkan total
+  6. Selesai
+
+  <Pembahasan>
+    | No | Simbol | Bentuk |
+    | --- | --- | --- |
+    | 1 | Terminal | Oval |
+    | 2 | Input/output | Jajar genjang |
+    | 3 | Proses | Persegi panjang |
+    | 4 | Keputusan | Belah ketupat, dengan dua jalur keluar: Ya dan Tidak |
+    | 5 | Input/output | Jajar genjang |
+    | 6 | Terminal | Oval |
+
+    Langkah 2 dan 5 sama-sama memakai jajar genjang, walaupun yang satu membaca dan yang lain menampilkan.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Celsius ke Fahrenheit">
+  Tulis algoritma untuk mengubah suhu Celsius (`C`) menjadi Fahrenheit (`F`) dengan rumus F = C × 9 / 5 + 32. Tulis dalam bentuk **pseudocode** dan **flowchart**.
+
+  | Input | Output |
+  | --- | --- |
+  | `100` | `212` |
+  | `0` | `32` |
+  | `-40` | `-40` |
+
+  <Pembahasan>
+    Polanya sama dengan contoh luas persegi panjang: baca, hitung, tampilkan.
+
+    ```txt title="Pseudocode"
+    ALGORITMA CelsiusKeFahrenheit
+    DEKLARASI
+        C, F : real
+    DESKRIPSI
+        READ(C)
+        F ← C * 9 / 5 + 32
+        WRITE(F)
+    ```
+
+    Tipe `real` dipakai untuk bilangan yang boleh berkoma, karena suhu seperti 36.6 juga harus bisa diubah.
+
     <Flowchart
+      caption="Flowchart Celsius ke Fahrenheit"
       nodes={[
         { type: 'terminal', label: 'Mulai' },
         { type: 'io', label: 'Input C' },
@@ -214,9 +283,112 @@ else:
         { type: 'terminal', label: 'Selesai' },
       ]}
     />
-  </Accordion>
-  <Accordion title="2. Buat flowchart untuk menampilkan bilangan terbesar dari dua bilangan a dan b.">
+
+    Cek dengan contoh ketiga: -40 × 9 / 5 + 32 = -72 + 32 = -40. Hasilnya cocok.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Telusuri isi variabel">
+  Telusuri pseudocode berikut tanpa komputer.
+
+  ```txt title="Pseudocode"
+  ALGORITMA Tebak
+  DEKLARASI
+      a, b : integer
+  DESKRIPSI
+      READ(a, b)
+      a ← a + b
+      b ← a - b
+      a ← a - b
+      WRITE(a, b)
+  ```
+
+  1. Untuk input `a = 7` dan `b = 2`, catat isi `a` dan `b` setelah setiap langkah dalam sebuah tabel. Apa yang ditampilkan?
+  2. Ulangi untuk input `a = 10` dan `b = 25`.
+  3. Apa sebenarnya kegunaan algoritma ini?
+
+  <Petunjuk>
+    `←` mengganti isi variabel, dan nilai lamanya hilang. Di setiap langkah, selalu pakai nilai **terbaru** dari baris tabel sebelumnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    | Langkah | `a` | `b` |
+    | --- | --- | --- |
+    | `READ(a, b)` | 7 | 2 |
+    | `a ← a + b` | 9 | 2 |
+    | `b ← a - b` | 9 | 7 |
+    | `a ← a - b` | 2 | 7 |
+
+    Yang ditampilkan adalah `2 7`. Untuk input 10 dan 25, isinya menjadi 35 dan 25, lalu 35 dan 10, lalu 25 dan 10, sehingga yang ditampilkan `25 10`.
+
+    Algoritma ini **menukar isi `a` dan `b`** tanpa variabel ketiga. Kesalahan yang sering terjadi adalah memakai nilai `a` yang lama (7) di langkah `b ← a - b`, padahal `a` sudah berubah menjadi 9.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b;
+        cin >> a >> b;
+        a = a + b;
+        b = a - b;
+        a = a - b;
+        cout << a << " " << b << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b = map(int, input().split())
+    a = a + b
+    b = a - b
+    a = a - b
+    print(a, b)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Terbesar dari dua bilangan">
+  Tulis **pseudocode** dan **flowchart** untuk membaca dua bilangan bulat `a` dan `b`, lalu menampilkan bilangan yang lebih besar. Jika keduanya sama, tampilkan bilangan itu satu kali.
+
+  Di pseudocode, simbol keputusan ditulis dengan `IF`. Perbandingan boleh memakai simbol matematika seperti `>`, `<`, `≥`, `≤`, `=`, dan `≠`.
+
+  ```txt title="Bentuk IF di pseudocode"
+  IF kondisi THEN
+      langkah jika Ya
+  ELSE
+      langkah jika Tidak
+  ENDIF
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `8 3` | `8` |
+  | `2 9` | `9` |
+  | `5 5` | `5` |
+
+  <Petunjuk>
+    Satu keputusan sudah cukup. Pikirkan jalur mana yang dilewati jika `a` dan `b` sama, dan apa yang ditampilkan di jalur itu.
+  </Petunjuk>
+
+  <Pembahasan>
+    ```txt title="Pseudocode"
+    ALGORITMA Terbesar
+    DEKLARASI
+        a, b : integer
+    DESKRIPSI
+        READ(a, b)
+        IF a > b THEN
+            WRITE(a)
+        ELSE
+            WRITE(b)
+        ENDIF
+    ```
+
     <Flowchart
+      caption="Flowchart bilangan terbesar dari dua bilangan"
       nodes={[
         { type: 'terminal', label: 'Mulai' },
         { type: 'io', label: 'Input a, b' },
@@ -229,8 +401,430 @@ else:
         { type: 'terminal', label: 'Selesai' },
       ]}
     />
-  </Accordion>
-  <Accordion title="3. Langkah “aduk sampai rata” ada di sebuah resep. Ciri algoritma mana yang dilanggar?">
-    Ciri **definite** (jelas). "Sampai rata" bisa diartikan berbeda oleh setiap orang. Versi yang lebih jelas misalnya "aduk selama 2 menit".
-  </Accordion>
-</Accordions>
+
+    Untuk input `5 5`, kondisi `a > b` bernilai Tidak, jadi yang ditampilkan `b`. Karena `b` sama dengan `a`, hasilnya tetap benar, dan keputusan kedua untuk kasus "sama" tidak diperlukan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b;
+        cin >> a >> b;
+
+        if (a > b) {
+            cout << a << endl;
+        } else {
+            cout << b << endl;
+        }
+
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b = map(int, input().split())
+
+    if a > b:
+        print(a)
+    else:
+        print(b)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Tarif parkir">
+  Sebuah tempat parkir memasang tarif Rp5.000 untuk 2 jam pertama, ditambah Rp3.000 untuk setiap jam berikutnya. Tulis **pseudocode** dan **flowchart** yang membaca lama parkir (bilangan bulat, dalam jam, minimal 1) lalu menampilkan biayanya.
+
+  | Input | Output |
+  | --- | --- |
+  | `1` | `5000` |
+  | `2` | `5000` |
+  | `5` | `14000` |
+
+  <Petunjuk>
+    Keputusannya: apakah lama parkir paling banyak 2 jam? Jika tidak, banyak jam tambahannya adalah `lama - 2`.
+  </Petunjuk>
+
+  <Pembahasan>
+    ```txt title="Pseudocode"
+    ALGORITMA TarifParkir
+    DEKLARASI
+        lama, biaya : integer
+    DESKRIPSI
+        READ(lama)
+        IF lama ≤ 2 THEN
+            biaya ← 5000
+        ELSE
+            biaya ← 5000 + (lama - 2) * 3000
+        ENDIF
+        WRITE(biaya)
+    ```
+
+    <Flowchart
+      caption="Flowchart tarif parkir"
+      nodes={[
+        { type: 'terminal', label: 'Mulai' },
+        { type: 'io', label: 'Input lama' },
+        {
+          type: 'decision',
+          label: 'lama ≤ 2 ?',
+          yes: [{ type: 'process', label: 'biaya = 5000' }],
+          no: [{ type: 'process', label: 'biaya = 5000 +\n(lama − 2) × 3000' }],
+        },
+        { type: 'io', label: 'Output biaya' },
+        { type: 'terminal', label: 'Selesai' },
+      ]}
+    />
+
+    Untuk 5 jam, ada 5 − 2 = 3 jam tambahan, jadi biayanya 5000 + 3 × 3000 = 14000. Kesalahan yang sering terjadi adalah mengalikan **seluruh** lama parkir dengan 3000, padahal 2 jam pertama sudah termasuk dalam Rp5.000.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int lama, biaya;
+        cin >> lama;
+
+        if (lama <= 2) {
+            biaya = 5000;
+        } else {
+            biaya = 5000 + (lama - 2) * 3000;
+        }
+
+        cout << biaya << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    lama = int(input())
+
+    if lama <= 2:
+        biaya = 5000
+    else:
+        biaya = 5000 + (lama - 2) * 3000
+
+    print(biaya)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Perbaiki flowchart diskon">
+  Dina ingin membuat algoritma harga setelah diskon. Jika harga lebih dari Rp100.000, harga mendapat diskon 10%. Setelah itu, harga akhir ditampilkan. Flowchart buatannya masih memiliki **lima** kesalahan. Temukan semuanya, lalu gambar versi yang benar.
+
+  <Flowchart
+    caption="Flowchart buatan Dina (masih salah)"
+    nodes={[
+      { type: 'terminal', label: 'Mulai' },
+      { type: 'process', label: 'Input harga' },
+      {
+        type: 'decision',
+        label: 'Harga mahal ?',
+        yes: [{ type: 'io', label: 'harga = harga × 90 / 100' }],
+      },
+    ]}
+  />
+
+  <Petunjuk>
+    Periksa tiga hal: bentuk setiap simbol, kejelasan isi simbol keputusan, dan apakah flowchart punya awal, keluaran, serta akhir.
+  </Petunjuk>
+
+  <Pembahasan>
+    1. **Input memakai persegi panjang.** Membaca input harus memakai jajar genjang.
+    2. **Isi keputusan ambigu.** "Harga mahal" bisa diartikan berbeda oleh setiap orang, sehingga melanggar ciri _definite_. Tulis syaratnya dengan jelas: `harga > 100000 ?`.
+    3. **Perhitungan memakai jajar genjang.** Perhitungan adalah proses, jadi harus memakai persegi panjang.
+    4. **Tidak ada output.** Harga akhir tidak pernah ditampilkan, sehingga melanggar ciri _output_.
+    5. **Tidak ada terminal Selesai.** Flowchart harus diakhiri satu simbol terminal.
+
+    <Flowchart
+      caption="Flowchart diskon yang benar"
+      nodes={[
+        { type: 'terminal', label: 'Mulai' },
+        { type: 'io', label: 'Input harga' },
+        {
+          type: 'decision',
+          label: 'harga > 100000 ?',
+          yes: [{ type: 'process', label: 'harga = harga × 90 / 100' }],
+        },
+        { type: 'io', label: 'Output harga' },
+        { type: 'terminal', label: 'Selesai' },
+      ]}
+    />
+
+    Jalur Tidak memang tidak berisi langkah apa pun: harga yang tidak lebih dari Rp100.000 langsung ditampilkan tanpa diskon.
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Algoritma yang tidak berhenti">
+  Perhatikan algoritma berikut. Langkah 6 menyuruh kita kembali ke langkah 3, sehingga langkah 3 sampai 6 bisa dikerjakan berulang kali.
+
+  ```txt title="Algoritma hitung mundur"
+  1. Mulai.
+  2. Baca bilangan bulat n.
+  3. Jika n sama dengan 0, lompat ke langkah 7.
+  4. Tampilkan n.
+  5. Kurangi n dengan 2.
+  6. Kembali ke langkah 3.
+  7. Tampilkan "Selesai".
+  8. Selesai.
+  ```
+
+  1. Telusuri algoritma untuk `n = 6`. Apa saja yang ditampilkan?
+  2. Telusuri untuk `n = 5`. Apa yang terjadi? Ciri algoritma mana yang dilanggar?
+  3. Untuk nilai `n` yang mana saja algoritma ini berhenti, dan untuk nilai `n` yang mana saja algoritma ini tidak pernah berhenti?
+  4. Ubah **hanya langkah 3** agar algoritma selalu berhenti untuk `n` berapa pun, tanpa mengubah output untuk `n = 6`.
+
+  <Petunjuk>
+    Buat tabel dengan kolom `n` dan "n sama dengan 0?", lalu isi baris demi baris. Untuk `n = 5`, perhatikan apakah `n` pernah bernilai **tepat** 0. Jangan lupa mencoba `n` negatif.
+  </Petunjuk>
+
+  <Pembahasan>
+    **1.** Untuk `n = 6`:
+
+    | `n` di langkah 3 | `n` sama dengan 0? | Yang ditampilkan |
+    | --- | --- | --- |
+    | 6 | Tidak | `6` |
+    | 4 | Tidak | `4` |
+    | 2 | Tidak | `2` |
+    | 0 | Ya, lompat ke langkah 7 | `Selesai` |
+
+    **2.** Untuk `n = 5`, nilai `n` menjadi 5, 3, 1, -1, -3, dan seterusnya. Nilainya melompati 0 dan tidak pernah tepat 0, jadi algoritma terus menampilkan angka tanpa henti. Ciri yang dilanggar adalah _finite_.
+
+    **3.** Algoritma berhenti hanya jika `n` adalah 0 atau bilangan genap positif. Algoritma tidak pernah berhenti untuk semua bilangan ganjil dan semua bilangan genap negatif, karena `n` terus mengecil dan makin menjauh dari 0.
+
+    **4.** Ganti langkah 3 menjadi "Jika n kurang dari atau sama dengan 0, lompat ke langkah 7." Untuk `n = 6` hasilnya tetap sama. Untuk `n = 5`, yang ditampilkan `5`, `3`, `1`, lalu `Selesai`. Untuk `n` negatif, algoritma langsung menampilkan `Selesai`.
+
+    Dalam flowchart, langkah "kembali ke langkah 3" digambar sebagai panah yang naik kembali ke belah ketupat. Pertanyaannya dibalik menjadi `n > 0 ?` supaya jalur Ya berarti "lanjutkan".
+
+    <Flowchart
+      caption="Flowchart hitung mundur yang sudah diperbaiki"
+      nodes={[
+        { type: 'terminal', label: 'Mulai' },
+        { type: 'io', label: 'Input n' },
+        {
+          type: 'loop',
+          label: 'n > 0 ?',
+          body: [
+            { type: 'io', label: 'Output n' },
+            { type: 'process', label: 'n = n − 2' },
+          ],
+        },
+        { type: 'io', label: 'Output "Selesai"' },
+        { type: 'terminal', label: 'Selesai' },
+      ]}
+    />
+
+    Pelajaran dari soal ini: satu input yang berhasil belum membuktikan algoritmanya benar. Input 6 terlihat benar, tetapi input 5 membuat algoritma tidak pernah berhenti. Langkah yang berulang seperti ini akan kamu tulis sebagai kode di materi [Perulangan](/docs/cpp/perulangan).
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Terbesar dari tiga bilangan">
+  Eko menulis algoritma untuk menampilkan bilangan terbesar dari tiga bilangan bulat:
+
+  ```txt title="Algoritma Eko"
+  1. Mulai.
+  2. Baca a, b, c.
+  3. Jika a > b dan a > c, tampilkan a.
+  4. Jika b > a dan b > c, tampilkan b.
+  5. Jika c > a dan c > b, tampilkan c.
+  6. Selesai.
+  ```
+
+  Eko mencobanya dengan input `3 9 5` dan hasilnya benar, yaitu `9`.
+
+  1. Cari input yang membuat algoritma Eko **tidak menampilkan apa pun**. Ciri algoritma mana yang dilanggar?
+  2. Tulis algoritma yang benar dalam pseudocode, lalu gambar flowchart-nya. Algoritmamu harus menghasilkan output berikut.
+
+  | Input | Output |
+  | --- | --- |
+  | `3 9 5` | `9` |
+  | `7 7 2` | `7` |
+  | `-4 -1 -8` | `-1` |
+
+  <Petunjuk>
+    Untuk bagian 1, coba input yang dua bilangannya sama. Untuk bagian 2, bayangkan memegang "juara sementara": mulai dari `a`, lalu bandingkan dengan `b`, lalu dengan `c`. Bagian `ELSE` pada `IF` boleh tidak ditulis jika jalur Tidak memang tidak melakukan apa-apa.
+  </Petunjuk>
+
+  <Pembahasan>
+    **1.** Contohnya `7 7 2`. Langkah 3 bernilai Tidak karena `7 > 7` salah. Langkah 4 juga Tidak karena `7 > 7` salah. Langkah 5 juga Tidak karena `2` bukan yang terbesar. Tidak ada yang ditampilkan, jadi ciri _output_ dilanggar. Input `5 5 5` juga gagal dengan cara yang sama.
+
+    Mengganti `>` dengan `≥` juga belum benar. Untuk `7 7 2`, langkah 3 dan 4 sama-sama bernilai Ya, sehingga `7` tampil **dua kali**.
+
+    **2.** Pakai "juara sementara" bernama `terbesar`. Isi awalnya `a`, lalu juara itu ditantang oleh `b` dan `c` secara bergantian.
+
+    ```txt title="Pseudocode"
+    ALGORITMA TerbesarDariTiga
+    DEKLARASI
+        a, b, c, terbesar : integer
+    DESKRIPSI
+        READ(a, b, c)
+        terbesar ← a
+        IF b > terbesar THEN
+            terbesar ← b
+        ENDIF
+        IF c > terbesar THEN
+            terbesar ← c
+        ENDIF
+        WRITE(terbesar)
+    ```
+
+    <Flowchart
+      caption="Flowchart terbesar dari tiga bilangan"
+      nodes={[
+        { type: 'terminal', label: 'Mulai' },
+        { type: 'io', label: 'Input a, b, c' },
+        { type: 'process', label: 'terbesar = a' },
+        {
+          type: 'decision',
+          label: 'b > terbesar ?',
+          yes: [{ type: 'process', label: 'terbesar = b' }],
+        },
+        {
+          type: 'decision',
+          label: 'c > terbesar ?',
+          yes: [{ type: 'process', label: 'terbesar = c' }],
+        },
+        { type: 'io', label: 'Output terbesar' },
+        { type: 'terminal', label: 'Selesai' },
+      ]}
+    />
+
+    Cara ini selalu menampilkan tepat satu nilai, berapa pun inputnya, dan mudah diperluas untuk empat, lima, atau seratus bilangan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b, c;
+        cin >> a >> b >> c;
+
+        int terbesar = a;
+        if (b > terbesar) {
+            terbesar = b;
+        }
+        if (c > terbesar) {
+            terbesar = c;
+        }
+
+        cout << terbesar << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b, c = map(int, input().split())
+
+    terbesar = a
+    if b > terbesar:
+        terbesar = b
+    if c > terbesar:
+        terbesar = c
+
+    print(terbesar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Pemesanan tiket bioskop">
+  Rancang algoritma pemesanan tiket bioskop. Inputnya adalah banyak kursi yang masih kosong dan banyak tiket yang dipesan, dalam satu baris. Periksa aturan berikut **sesuai urutan**:
+
+  - **Aturan pertama:** satu pesanan maksimal 5 tiket. Jika lebih, tampilkan `Jumlah tiket tidak valid`.
+  - **Aturan kedua:** jika tiket yang dipesan lebih banyak daripada kursi kosong, tampilkan `Kursi tidak cukup`.
+  - Jika kedua aturan terpenuhi, kurangi kursi kosong dengan banyak tiket, lalu tampilkan sisa kursi kosong.
+
+  | Input | Output |
+  | --- | --- |
+  | `40 3` | `37` |
+  | `40 7` | `Jumlah tiket tidak valid` |
+  | `2 4` | `Kursi tidak cukup` |
+
+  Kerjakan tiga bagian berikut.
+
+  1. Tulis algoritmanya dalam pseudocode.
+  2. Susun kasus uji sesedikit mungkin, sehingga **setiap** kemungkinan output muncul minimal sekali. Berapa kasus uji yang dibutuhkan? Lalu tebak output untuk input `3 7`, saat kedua aturan sama-sama dilanggar.
+  3. Telusuri algoritmamu untuk input `40 0` dan `40 -3`. Apa yang janggal? Perbaiki algoritmanya.
+
+  <Petunjuk>
+    Pilihan bertingkat bisa ditulis dengan `ELSE IF`, seperti rantai pertanyaan: jika ini, tampilkan A; jika bukan tetapi itu, tampilkan B; selain itu, kerjakan C. Untuk bagian 3, tanyakan: apakah ada aturan yang melarang pesanan 0 tiket atau pesanan negatif?
+  </Petunjuk>
+
+  <Pembahasan>
+    **1.** Aturan diperiksa berurutan, jadi aturan kedua baru diperiksa jika aturan pertama lolos.
+
+    ```txt title="Pseudocode (versi pertama)"
+    ALGORITMA PesanTiket
+    DEKLARASI
+        kursi, tiket : integer
+    DESKRIPSI
+        READ(kursi, tiket)
+        IF tiket > 5 THEN
+            WRITE("Jumlah tiket tidak valid")
+        ELSE IF tiket > kursi THEN
+            WRITE("Kursi tidak cukup")
+        ELSE
+            kursi ← kursi - tiket
+            WRITE(kursi)
+        ENDIF
+    ```
+
+    **2.** Ada tiga kemungkinan output, dan setiap kasus uji hanya menghasilkan satu output. Jadi dibutuhkan minimal **tiga** kasus uji, misalnya tiga contoh di soal: `40 3`, `40 7`, dan `2 4`. Untuk input `3 7`, aturan pertama sudah dilanggar, jadi outputnya `Jumlah tiket tidak valid`, dan aturan kedua tidak pernah diperiksa.
+
+    **3.** Untuk `40 0`, kedua aturan lolos, lalu algoritma menampilkan `40`, seolah-olah ada pesanan yang berhasil padahal tidak ada tiket yang dipesan. Untuk `40 -3`, hasilnya lebih parah: 40 − (−3) = 43, sehingga kursi kosong **bertambah**. Aturan pertama hanya membatasi tiket dari atas, tidak dari bawah. Perbaikannya, tolak juga pesanan yang kurang dari 1 tiket. `OR` berarti cukup salah satu syarat terpenuhi.
+
+    ```txt title="Pseudocode (sudah diperbaiki)"
+    ALGORITMA PesanTiket
+    DEKLARASI
+        kursi, tiket : integer
+    DESKRIPSI
+        READ(kursi, tiket)
+        IF tiket < 1 OR tiket > 5 THEN
+            WRITE("Jumlah tiket tidak valid")
+        ELSE IF tiket > kursi THEN
+            WRITE("Kursi tidak cukup")
+        ELSE
+            kursi ← kursi - tiket
+            WRITE(kursi)
+        ENDIF
+    ```
+
+    Kebiasaan memeriksa nilai 0 dan nilai negatif seperti ini akan sangat berguna saat kamu menguji program sungguhan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int kursi, tiket;
+        cin >> kursi >> tiket;
+
+        if (tiket < 1 || tiket > 5) {
+            cout << "Jumlah tiket tidak valid" << endl;
+        } else if (tiket > kursi) {
+            cout << "Kursi tidak cukup" << endl;
+        } else {
+            kursi = kursi - tiket;
+            cout << kursi << endl;
+        }
+
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    kursi, tiket = map(int, input().split())
+
+    if tiket < 1 or tiket > 5:
+        print("Jumlah tiket tidak valid")
+    elif tiket > kursi:
+        print("Kursi tidak cukup")
+    else:
+        kursi = kursi - tiket
+        print(kursi)
+    ```
+  </Pembahasan>
+</Soal>

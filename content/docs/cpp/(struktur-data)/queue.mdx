@@ -1,0 +1,1263 @@
+---
+title: Queue
+description: Struktur data "pertama masuk, pertama keluar" (FIFO), std::queue dan deque di kedua bahasa, antrean prioritas, serta simulasi antrean.
+sumber:
+  - ref: cppreference
+    judul: std::queue
+    url: https://en.cppreference.com/w/cpp/container/queue
+  - ref: cppreference
+    judul: std::deque
+    url: https://en.cppreference.com/w/cpp/container/deque
+  - ref: cppreference
+    judul: std::priority_queue
+    url: https://en.cppreference.com/w/cpp/container/priority_queue
+  - ref: python-docs
+    judul: Tutorial, Using Lists as Queues
+    url: https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-queues
+  - ref: python-docs
+    judul: collections.deque
+    url: https://docs.python.org/3/library/collections.html#collections.deque
+  - ref: python-docs
+    judul: heapq, Heap queue algorithm
+    url: https://docs.python.org/3/library/heapq.html
+---
+
+## Antrean di loket
+
+Di loket tiket, orang yang baru datang berdiri di **belakang** antrean, sedangkan petugas melayani orang yang paling **depan**. Siapa yang datang lebih dulu dilayani lebih dulu, dan tidak ada yang boleh menyela.
+
+**Queue** (antrean) adalah struktur data dengan aturan yang sama: elemen **masuk dari belakang** dan **keluar dari depan**. Aturan ini disebut **FIFO** (_First In, First Out_): yang pertama masuk, yang pertama keluar. Bandingkan dengan [Stack](/docs/cpp/stack) yang LIFO. Stack seperti tumpukan piring, sedangkan queue seperti barisan orang.
+
+Queue ada di mana-mana di dalam komputer: dokumen yang menunggu giliran dicetak, pesan yang menunggu dikirim, dan tombol yang kamu tekan sebelum program sempat membacanya. Karakter yang kamu ketik saat program menjalankan `cin` pun menunggu di <Term href="/docs/cpp/pendalaman/buffer">buffer input</Term> dan dibaca sesuai urutan ketikannya.
+
+## Operasi queue
+
+| Operasi | Arti |
+| --- | --- |
+| **enqueue**(x) | Masukkan `x` di belakang antrean |
+| **dequeue** | Keluarkan elemen paling depan |
+| **front** | Lihat elemen paling depan tanpa mengeluarkannya |
+| **back** | Lihat elemen paling belakang |
+| **empty** | Periksa apakah antrean kosong |
+| **size** | Hitung banyak elemen |
+
+Tabel berikut menunjukkan isi sebuah queue yang awalnya kosong. Isinya ditulis dari depan ke belakang, jadi elemen paling kiri adalah yang berikutnya keluar.
+
+| Langkah | Operasi | Isi queue (depan → belakang) | Hasil |
+| --- | --- | --- | --- |
+| 1 | enqueue(Ani) | `Ani` | |
+| 2 | enqueue(Budi) | `Ani Budi` | |
+| 3 | enqueue(Citra) | `Ani Budi Citra` | |
+| 4 | front | `Ani Budi Citra` | `Ani` |
+| 5 | dequeue | `Budi Citra` | `Ani` keluar |
+| 6 | enqueue(Dodi) | `Budi Citra Dodi` | |
+| 7 | dequeue | `Citra Dodi` | `Budi` keluar |
+| 8 | back | `Citra Dodi` | `Dodi` |
+
+Ani datang pertama dan keluar pertama. Dodi datang terakhir, jadi ia harus menunggu semua orang di depannya.
+
+## Queue di C++ dan Python
+
+C++ menyediakan `queue` dari pustaka `<queue>`. Python memakai `deque` dari modul `collections`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <string>
+using namespace std;
+
+int main() {
+    queue<string> q;
+
+    q.push("Ani");                  // enqueue
+    q.push("Budi");
+    q.push("Citra");
+    cout << q.front() << endl;      // Ani
+
+    q.pop();                        // dequeue: Ani keluar
+    q.push("Dodi");
+    q.pop();                        // dequeue: Budi keluar
+
+    cout << q.front() << " " << q.back() << endl;   // Citra Dodi
+    cout << q.size() << endl;                       // 2
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+q = deque()
+
+q.append("Ani")                 # enqueue
+q.append("Budi")
+q.append("Citra")
+print(q[0])                     # Ani
+
+q.popleft()                     # dequeue: Ani keluar
+q.append("Dodi")
+q.popleft()                     # dequeue: Budi keluar
+
+print(q[0], q[-1])              # Citra Dodi
+print(len(q))                   # 2
+```
+
+| Operasi | C++ `queue` | Python `deque` |
+| --- | --- | --- |
+| enqueue | `q.push(x)` | `q.append(x)` |
+| dequeue | `q.pop()` | `q.popleft()` |
+| front | `q.front()` | `q[0]` |
+| back | `q.back()` | `q[-1]` |
+| empty | `q.empty()` | `len(q) == 0` |
+| size | `q.size()` | `len(q)` |
+
+Sama seperti `stack`, `queue` di C++ tidak bisa diakses dengan indeks, dan `pop()` tidak mengembalikan nilai. Ambil dulu dengan `front()`, baru `pop()`. Di Python, `popleft()` membuang **sekaligus** mengembalikan elemen paling depan.
+
+Python juga punya modul bernama `queue`, tetapi modul itu dirancang untuk program yang menjalankan beberapa tugas sekaligus (_multi-thread_). Untuk antrean biasa, pakai `deque`.
+
+## Kenapa tidak memakai list atau vector saja?
+
+List Python sebenarnya bisa dipakai sebagai antrean: `append(x)` untuk masuk dan `pop(0)` untuk keluar. Hasilnya benar, tetapi lambat untuk data besar. Elemen list tersimpan berurutan di memori, jadi saat elemen pertama dibuang, **semua** elemen lain harus digeser satu posisi ke depan. Dengan 100.000 elemen, satu kali `pop(0)` menggeser hampir 100.000 elemen.
+
+Sebagai gambaran, pada satu komputer uji, mengosongkan list berisi 200.000 elemen dengan `pop(0)` memakan waktu sekitar 2 detik, sedangkan `popleft()` pada `deque` hanya sekitar 0,006 detik. Jika datanya digandakan, waktu `pop(0)` naik kira-kira **empat kali lipat**, sementara `popleft()` hanya dua kali lipat. Angka persisnya bergantung pada komputer, tetapi polanya selalu sama.
+
+Masalah yang sama terjadi di C++ jika kamu membuang elemen pertama vector dengan `v.erase(v.begin())`. `deque` di kedua bahasa dirancang agar menambah dan membuang di **kedua ujung** sama-sama cepat, dan `queue` di C++ memakai `deque` di dalamnya.
+
+<DeepDive href="/docs/cpp/pendalaman/kompleksitas-waktu" kind="konsep" title="Kompleksitas waktu">
+  Cara memperkirakan seberapa cepat sebuah operasi saat datanya makin besar, sehingga kamu bisa membandingkan dua solusi tanpa harus mengukur waktunya.
+</DeepDive>
+
+## Jebakan: queue kosong
+
+Seperti stack, mengambil dari queue yang kosong adalah kesalahan.
+
+```cpp tab="C++"
+queue<int> q;
+cout << q.front() << endl;   // ✗ undefined behavior
+q.pop();                     // ✗ undefined behavior
+```
+
+```python tab="Python"
+q = deque()
+print(q[0])                  # ✗ IndexError: deque index out of range
+q.popleft()                  # ✗ IndexError: pop from an empty deque
+```
+
+Saat dicoba dengan `g++`, `q.front()` pada queue kosong justru menampilkan `0` tanpa pesan apa pun. Angka itu tampak wajar, padahal tidak berarti apa-apa. Inilah bahaya [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior): kesalahannya tidak selalu terlihat. Selalu periksa `empty()` sebelum `front()`, `back()`, atau `pop()`.
+
+## Contoh: simulasi loket tiket
+
+Program berikut menjalankan perintah `DATANG nama` (orang masuk antrean) dan `LAYANI` (petugas melayani orang paling depan).
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <string>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    queue<string> antrean;
+
+    for (int i = 0; i < n; i++) {
+        string perintah;
+        cin >> perintah;
+        if (perintah == "DATANG") {
+            string nama;
+            cin >> nama;
+            antrean.push(nama);
+            cout << nama << " masuk, panjang antrean " << antrean.size() << endl;
+        } else if (perintah == "LAYANI") {
+            if (antrean.empty()) {
+                cout << "Antrean kosong" << endl;
+            } else {
+                cout << "Melayani " << antrean.front() << endl;
+                antrean.pop();
+            }
+        }
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+n = int(input())
+antrean = deque()
+
+for i in range(n):
+    bagian = input().split()
+    if bagian[0] == "DATANG":
+        antrean.append(bagian[1])
+        print(f"{bagian[1]} masuk, panjang antrean {len(antrean)}")
+    elif bagian[0] == "LAYANI":
+        if len(antrean) == 0:
+            print("Antrean kosong")
+        else:
+            print("Melayani", antrean.popleft())
+```
+
+```txt title="Contoh input"
+7
+DATANG Ani
+DATANG Budi
+LAYANI
+DATANG Citra
+LAYANI
+LAYANI
+LAYANI
+```
+
+```txt title="Contoh output"
+Ani masuk, panjang antrean 1
+Budi masuk, panjang antrean 2
+Melayani Ani
+Citra masuk, panjang antrean 2
+Melayani Budi
+Melayani Citra
+Antrean kosong
+```
+
+## Contoh: permainan kentang panas
+
+Beberapa pemain duduk melingkar dan mengoper sebuah "kentang panas". Setelah kentang dioper `k` kali, pemain yang sedang memegangnya keluar dari permainan. Permainan berlanjut sampai tersisa satu pemenang.
+
+Lingkaran bisa disimulasikan dengan queue. Pemain paling depan adalah yang sedang memegang kentang. Mengoper berarti mengeluarkan pemain depan lalu memasukkannya lagi di belakang, sehingga kentang berpindah ke pemain berikutnya. Berikut isi queue selama putaran pertama dengan `k = 3`:
+
+| Oper ke- | Isi queue (depan → belakang) |
+| --- | --- |
+| awal | `Ani Budi Citra Dodi Eka` |
+| 1 | `Budi Citra Dodi Eka Ani` |
+| 2 | `Citra Dodi Eka Ani Budi` |
+| 3 | `Dodi Eka Ani Budi Citra` |
+
+Dodi memegang kentang setelah oper ketiga, jadi Dodi keluar.
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <string>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<string> pemain = {"Ani", "Budi", "Citra", "Dodi", "Eka"};
+    int k = 3;
+
+    queue<string> lingkaran;
+    for (string nama : pemain) {
+        lingkaran.push(nama);
+    }
+
+    while (lingkaran.size() > 1) {
+        for (int i = 0; i < k; i++) {               // kentang dioper k kali
+            lingkaran.push(lingkaran.front());      // yang depan pindah ke belakang
+            lingkaran.pop();
+        }
+        cout << lingkaran.front() << " keluar" << endl;
+        lingkaran.pop();
+    }
+    cout << "Pemenang: " << lingkaran.front() << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+pemain = ["Ani", "Budi", "Citra", "Dodi", "Eka"]
+k = 3
+
+lingkaran = deque()
+for nama in pemain:
+    lingkaran.append(nama)
+
+while len(lingkaran) > 1:
+    for i in range(k):                          # kentang dioper k kali
+        lingkaran.append(lingkaran.popleft())   # yang depan pindah ke belakang
+    print(lingkaran[0], "keluar")
+    lingkaran.popleft()
+print("Pemenang:", lingkaran[0])
+```
+
+```txt title="Output"
+Dodi keluar
+Citra keluar
+Eka keluar
+Budi keluar
+Pemenang: Ani
+```
+
+Gerakan "keluar dari depan, masuk lagi di belakang" ini juga dipakai sistem operasi untuk berbagi prosesor secara bergiliran (_round-robin_): setiap program mendapat jatah waktu singkat, lalu kembali ke belakang antrean jika belum selesai. Kamu akan menyimulasikannya di latihan.
+
+## Deque: antrean dua ujung
+
+**Deque** (_double-ended queue_, dibaca "dek") adalah antrean yang bisa ditambah dan dikurangi di **kedua ujung**. Karena itu deque bisa berperan sebagai queue maupun stack. C++ menyediakannya di pustaka `<deque>`, sedangkan `deque` Python yang sudah kamu pakai memang deque sungguhan.
+
+| Operasi | C++ `deque` | Python `deque` |
+| --- | --- | --- |
+| Tambah di depan | `d.push_front(x)` | `d.appendleft(x)` |
+| Tambah di belakang | `d.push_back(x)` | `d.append(x)` |
+| Buang dari depan | `d.pop_front()` | `d.popleft()` |
+| Buang dari belakang | `d.pop_back()` | `d.pop()` |
+| Lihat depan / belakang | `d.front()` / `d.back()` | `d[0]` / `d[-1]` |
+| Elemen ke-`i` | `d[i]` | `d[i]` |
+
+```cpp tab="C++"
+#include <deque>
+
+deque<int> d;
+d.push_back(2);         // 2
+d.push_back(3);         // 2 3
+d.push_front(1);        // 1 2 3
+d.push_front(0);        // 0 1 2 3
+d.pop_back();           // 0 1 2
+d.pop_front();          // 1 2
+
+cout << d.front() << " " << d.back() << " " << d.size() << endl;   // 1 2 2
+```
+
+```python tab="Python"
+from collections import deque
+
+d = deque()
+d.append(2)             # 2
+d.append(3)             # 2 3
+d.appendleft(1)         # 1 2 3
+d.appendleft(0)         # 0 1 2 3
+d.pop()                 # 0 1 2
+d.popleft()             # 1 2
+
+print(d[0], d[-1], len(d))   # 1 2 2
+```
+
+Berbeda dengan `queue`, `deque` C++ boleh diakses dengan indeks dan ditelusuri dengan for-each. Deque berguna saat kamu perlu membandingkan atau membuang data dari kedua sisi, misalnya memeriksa palindrom dari dua ujung, atau menyimpan riwayat terbatas: data baru masuk di belakang, data terlama dibuang dari depan. Python bahkan bisa membuang data terlama secara otomatis dengan `deque(maxlen=3)`.
+
+## Antrean prioritas
+
+Antrean di IGD rumah sakit tidak FIFO. Pasien yang paling gawat ditangani lebih dulu, walaupun datang belakangan. Struktur data untuk situasi ini disebut **antrean prioritas** (_priority queue_): setiap kali mengambil, yang keluar adalah elemen dengan prioritas tertinggi, bukan yang paling lama menunggu.
+
+- **C++** menyediakan `priority_queue` di pustaka `<queue>`. Operasinya `push`, `pop`, `top` (bukan `front`), `empty`, dan `size`. Secara bawaan, yang keluar lebih dulu adalah elemen **terbesar**.
+- **Python** menyediakan modul `heapq`, berisi fungsi-fungsi yang bekerja pada list biasa. Secara bawaan, yang keluar lebih dulu adalah elemen **terkecil**.
+
+```cpp tab="C++"
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <functional>
+using namespace std;
+
+int main() {
+    priority_queue<int> pq;                     // terbesar keluar dulu
+    pq.push(30);
+    pq.push(80);
+    pq.push(50);
+    while (!pq.empty()) {
+        cout << pq.top() << " ";
+        pq.pop();
+    }
+    cout << endl;                               // 80 50 30
+
+    priority_queue<int, vector<int>, greater<int>> pqKecil;   // terkecil keluar dulu
+    pqKecil.push(30);
+    pqKecil.push(80);
+    pqKecil.push(50);
+    while (!pqKecil.empty()) {
+        cout << pqKecil.top() << " ";
+        pqKecil.pop();
+    }
+    cout << endl;                               // 30 50 80
+    return 0;
+}
+```
+
+```python tab="Python"
+import heapq
+
+pq = []                                     # list biasa
+heapq.heappush(pq, 30)
+heapq.heappush(pq, 80)
+heapq.heappush(pq, 50)
+while len(pq) > 0:
+    print(heapq.heappop(pq), end=" ")       # terkecil keluar dulu
+print()                                     # 30 50 80
+
+# Agar terbesar keluar dulu: simpan nilai negatifnya
+pq = []
+for x in [30, 80, 50]:
+    heapq.heappush(pq, -x)
+while len(pq) > 0:
+    print(-heapq.heappop(pq), end=" ")      # balik lagi tandanya
+print()                                     # 80 50 30
+```
+
+| | C++ `priority_queue` | Python `heapq` |
+| --- | --- | --- |
+| Keluar lebih dulu (bawaan) | terbesar | terkecil |
+| Tambah | `pq.push(x)` | `heapq.heappush(pq, x)` |
+| Lihat berikutnya | `pq.top()` | `pq[0]` |
+| Keluarkan | `pq.pop()` | `heapq.heappop(pq)`, sekaligus mengembalikan nilainya |
+| Membalik urutan | `priority_queue<int, vector<int>, greater<int>>` | simpan `-x`, lalu balik tandanya saat keluar |
+
+<Callout type="warning" title="Urutan bawaannya berlawanan">
+  Saat menerjemahkan kode antrean prioritas dari C++ ke Python atau sebaliknya, ingat bahwa urutan bawaannya **berkebalikan**. Kode yang benar di satu bahasa akan mengambil elemen yang salah di bahasa lain jika diterjemahkan mentah-mentah.
+</Callout>
+
+Di dalamnya, kedua bahasa menyusun data dalam bentuk yang disebut **heap**: susunan khusus yang tidak sepenuhnya terurut, tetapi menjamin elemen berikutnya selalu ada di posisi pertama. Karena itu push dan pop tetap cepat walaupun datanya besar. Coba `print(pq)` setelah mem-push 30, 80, dan 50 di Python: hasilnya `[30, 80, 50]`, bukan `[30, 50, 80]`. Hanya `pq[0]` yang dijamin terkecil.
+
+## Rangkuman
+
+- Queue bekerja dengan aturan **FIFO**: elemen masuk dari belakang dan keluar dari depan, sehingga yang pertama masuk keluar pertama.
+- C++: `queue` dari `<queue>` (`push`, `pop`, `front`, `back`). Python: `deque` dari `collections` (`append`, `popleft`, `[0]`, `[-1]`).
+- `pop()` di C++ tidak mengembalikan nilai, sedangkan `popleft()` di Python mengembalikannya.
+- Jangan pakai `list.pop(0)` atau `vector.erase(v.begin())` sebagai antrean untuk data besar, karena semua elemen lain harus digeser. Pakai `deque`.
+- Periksa `empty()` sebelum `front()` atau `pop()`. Di C++ kesalahannya _undefined behavior_ yang bisa tampak normal, di Python menjadi `IndexError`.
+- Deque bisa ditambah dan dikurangi di kedua ujung.
+- Antrean prioritas mengeluarkan elemen berprioritas tertinggi. Bawaan C++ `priority_queue` adalah terbesar dulu, sedangkan Python `heapq` terkecil dulu.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Tebak output queue">
+  Tanpa menjalankannya, tebak output program berikut. Kedua versi menghasilkan output yang sama.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <queue>
+  using namespace std;
+
+  int main() {
+      queue<int> q;
+      for (int i = 1; i <= 5; i++) {
+          q.push(i * 10);
+      }
+      q.pop();
+      q.push(q.front() + q.back());
+      q.pop();
+      cout << q.front() << " " << q.back() << " " << q.size() << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  from collections import deque
+
+  q = deque()
+  for i in range(1, 6):
+      q.append(i * 10)
+  q.popleft()
+  q.append(q[0] + q[-1])
+  q.popleft()
+  print(q[0], q[-1], len(q))
+  ```
+
+  <Pembahasan>
+    Output-nya `30 70 4`.
+
+    | Baris | Isi queue (depan → belakang) |
+    | --- | --- |
+    | perulangan push `i * 10` | `10 20 30 40 50` |
+    | pop | `20 30 40 50` |
+    | push front + back = 20 + 50 | `20 30 40 50 70` |
+    | pop | `30 40 50 70` |
+
+    Depan `30`, belakang `70`, dan ada 4 elemen.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Melayani k pelanggan">
+  Baris pertama berisi `n` dan `k` (1 ≤ k ≤ n). Baris kedua berisi `n` nama pelanggan (masing-masing satu kata) sesuai urutan kedatangan. Masukkan semuanya ke queue, lalu layani `k` orang pertama. Tampilkan `Dilayani: nama` untuk setiap orang yang dilayani, lalu `Sisa: m` (banyak orang yang masih mengantre). Jika masih ada yang mengantre, tampilkan juga `Berikutnya: nama`.
+
+  ```txt title="Contoh input 1"
+  5 2
+  Ani Budi Citra Dodi Eka
+  ```
+
+  ```txt title="Contoh output 1"
+  Dilayani: Ani
+  Dilayani: Budi
+  Sisa: 3
+  Berikutnya: Citra
+  ```
+
+  ```txt title="Contoh input 2"
+  2 2
+  Fajar Gita
+  ```
+
+  ```txt title="Contoh output 2"
+  Dilayani: Fajar
+  Dilayani: Gita
+  Sisa: 0
+  ```
+
+  <Pembahasan>
+    Setiap pelayanan adalah `front` lalu `pop`. Baris `Berikutnya` hanya boleh dicetak jika antrean belum kosong. Tanpa pemeriksaan itu, contoh 2 akan memanggil `front()` pada queue kosong.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        queue<string> antrean;
+        for (int i = 0; i < n; i++) {
+            string nama;
+            cin >> nama;
+            antrean.push(nama);
+        }
+
+        for (int i = 0; i < k; i++) {
+            cout << "Dilayani: " << antrean.front() << endl;
+            antrean.pop();
+        }
+
+        cout << "Sisa: " << antrean.size() << endl;
+        if (!antrean.empty()) {
+            cout << "Berikutnya: " << antrean.front() << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, k = map(int, input().split())
+    nama = input().split()
+
+    antrean = deque()
+    for i in range(n):
+        antrean.append(nama[i])
+
+    for i in range(k):
+        print("Dilayani:", antrean.popleft())
+
+    print("Sisa:", len(antrean))
+    if len(antrean) > 0:
+        print("Berikutnya:", antrean[0])
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Perbaiki urutan layanan">
+  Program berikut membaca `n` nama lalu melayani semuanya sesuai urutan kedatangan, satu nama per baris. Untuk input di bawah, seharusnya tercetak `Ani`, `Budi`, `Citra`. Ternyata versi C++ mencetak `Citra` tiga kali, dan versi Python mencetak `Citra`, `Budi`, `Ani`. Temukan kesalahan masing-masing dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <queue>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      queue<string> antrean;
+      for (int i = 0; i < n; i++) {
+          string nama;
+          cin >> nama;
+          antrean.push(nama);
+      }
+
+      while (!antrean.empty()) {
+          cout << antrean.back() << endl;
+          antrean.pop();
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  from collections import deque
+
+  n = int(input())
+  nama = input().split()
+  antrean = deque()
+  for i in range(n):
+      antrean.append(nama[i])
+
+  while len(antrean) > 0:
+      print(antrean.pop())
+  ```
+
+  ```txt title="Contoh input"
+  3
+  Ani Budi Citra
+  ```
+
+  <Pembahasan>
+    **C++:** yang dicetak `back()`, yaitu orang paling **belakang**, padahal yang dikeluarkan `pop()` adalah orang paling depan. Selama Citra masih mengantre, ia terus berada di belakang, sehingga namanya tercetak tiga kali. Ganti dengan `front()`.
+
+    **Python:** `pop()` pada deque membuang dari **kanan** (belakang), sehingga antrean berubah menjadi stack dan urutannya terbalik. Untuk antrean, pakai `popleft()`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        queue<string> antrean;
+        for (int i = 0; i < n; i++) {
+            string nama;
+            cin >> nama;
+            antrean.push(nama);
+        }
+
+        while (!antrean.empty()) {
+            cout << antrean.front() << endl;
+            antrean.pop();
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n = int(input())
+    nama = input().split()
+    antrean = deque()
+    for i in range(n):
+        antrean.append(nama[i])
+
+    while len(antrean) > 0:
+        print(antrean.popleft())
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Menghitung permintaan terbaru">
+  Sebuah server mencatat waktu (dalam detik) setiap permintaan yang masuk. Waktunya selalu naik. Untuk setiap permintaan pada waktu `t`, tampilkan berapa banyak permintaan yang masuk dalam rentang `t − 60` sampai `t`, termasuk kedua ujungnya dan termasuk permintaan itu sendiri.
+
+  Baris pertama berisi `n`, baris kedua berisi `n` waktu permintaan. Tampilkan satu jawaban per baris.
+
+  ```txt title="Contoh input"
+  6
+  1 30 61 62 100 125
+  ```
+
+  ```txt title="Contoh output"
+  1
+  2
+  3
+  3
+  3
+  2
+  ```
+
+  <Petunjuk>
+    Simpan waktu permintaan di queue. Setiap ada permintaan baru, masukkan waktunya, lalu keluarkan dari depan semua waktu yang **lebih kecil** dari `t − 60`. Isi queue yang tersisa adalah jawabannya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Karena waktu selalu naik, permintaan yang sudah terlalu lama pasti berkumpul di **depan** queue, dan sekali terlalu lama, ia tidak akan pernah dihitung lagi. Pada `t = 62`, waktu `1` lebih kecil dari 62 − 60 = 2, jadi dikeluarkan. Perulangan `while` tidak perlu memeriksa queue kosong, karena `t` sendiri baru saja masuk dan tidak mungkin lebih kecil dari `t − 60`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        queue<int> terbaru;
+
+        for (int i = 0; i < n; i++) {
+            int t;
+            cin >> t;
+            terbaru.push(t);
+            while (terbaru.front() < t - 60) {
+                terbaru.pop();               // sudah terlalu lama
+            }
+            cout << terbaru.size() << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n = int(input())
+    waktu = input().split()
+    terbaru = deque()
+
+    for i in range(n):
+        t = int(waktu[i])
+        terbaru.append(t)
+        while terbaru[0] < t - 60:
+            terbaru.popleft()                # sudah terlalu lama
+        print(len(terbaru))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Jadwal loket">
+  Sebuah loket dengan satu petugas melayani `n` pelanggan sesuai urutan kedatangan. Setiap baris berisi `nama datang durasi`: nama (satu kata), waktu datang, dan lama dilayani. Data sudah terurut menurut waktu datang. Petugas mulai melayani seseorang begitu orang itu sudah datang **dan** loket sudah bebas.
+
+  Simpan pelanggan sebagai struct di dalam queue. Tampilkan `nama mulai selesai` untuk setiap pelanggan, lalu `Total tunggu: X`, dengan waktu tunggu seseorang adalah `mulai − datang`.
+
+  ```txt title="Contoh input"
+  4
+  Ani 0 5
+  Budi 2 3
+  Citra 4 6
+  Dodi 20 2
+  ```
+
+  ```txt title="Contoh output"
+  Ani 0 5
+  Budi 5 8
+  Citra 8 14
+  Dodi 20 22
+  Total tunggu: 7
+  ```
+
+  <Petunjuk>
+    Simpan satu variabel `waktuLoket`, yaitu saat loket bebas berikutnya. Seseorang mulai dilayani pada waktu yang **lebih besar** di antara `waktuLoket` dan waktu datangnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Budi datang pada waktu 2, tetapi loket baru bebas pada waktu 5, jadi ia menunggu 3. Citra menunggu 8 − 4 = 4. Dodi datang pada waktu 20 saat loket sudah menganggur sejak waktu 14, jadi ia langsung dilayani tanpa menunggu. Totalnya 0 + 3 + 4 + 0 = 7. Kesalahan umum adalah selalu memulai dari `waktuLoket`, sehingga Dodi dianggap mulai pada waktu 14 sebelum ia datang.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <string>
+    using namespace std;
+
+    struct Pelanggan {
+        string nama;
+        int datang = 0;
+        int durasi = 0;
+    };
+
+    int main() {
+        int n;
+        cin >> n;
+        queue<Pelanggan> antrean;
+        for (int i = 0; i < n; i++) {
+            Pelanggan p;
+            cin >> p.nama >> p.datang >> p.durasi;
+            antrean.push(p);
+        }
+
+        int waktuLoket = 0;                  // kapan loket bebas berikutnya
+        int totalTunggu = 0;
+        while (!antrean.empty()) {
+            Pelanggan p = antrean.front();
+            antrean.pop();
+
+            int mulai = waktuLoket;
+            if (p.datang > mulai) {
+                mulai = p.datang;            // loket menganggur sampai p datang
+            }
+            int selesai = mulai + p.durasi;
+            totalTunggu += mulai - p.datang;
+            waktuLoket = selesai;
+
+            cout << p.nama << " " << mulai << " " << selesai << endl;
+        }
+        cout << "Total tunggu: " << totalTunggu << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+
+    class Pelanggan:
+        def __init__(self, nama, datang, durasi):
+            self.nama = nama
+            self.datang = datang
+            self.durasi = durasi
+
+
+    n = int(input())
+    antrean = deque()
+    for i in range(n):
+        data = input().split()
+        antrean.append(Pelanggan(data[0], int(data[1]), int(data[2])))
+
+    waktu_loket = 0                          # kapan loket bebas berikutnya
+    total_tunggu = 0
+    while len(antrean) > 0:
+        p = antrean.popleft()
+
+        mulai = max(waktu_loket, p.datang)
+        selesai = mulai + p.durasi
+        total_tunggu += mulai - p.datang
+        waktu_loket = selesai
+
+        print(p.nama, mulai, selesai)
+    print("Total tunggu:", total_tunggu)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Palindrom dengan deque">
+  Baca satu baris kalimat. Tentukan apakah kalimat itu palindrom jika **hanya huruf** yang diperhatikan (spasi, angka, dan tanda baca diabaikan) dan huruf besar dianggap sama dengan huruf kecil. Kerjakan dengan deque: bandingkan dan buang huruf dari kedua ujung.
+
+  | Input | Output |
+  | --- | --- |
+  | `Kasur ini rusak` | `Palindrom` |
+  | `Ibu Ratna antar ubi` | `Palindrom` |
+  | `Belajar C++` | `Bukan palindrom` |
+
+  <Petunjuk>
+    Baca kalimat dengan [`getline`](/docs/cpp/pustaka/getline) karena berisi spasi. Masukkan setiap huruf (sudah dikecilkan) ke deque. Selama deque berisi lebih dari satu huruf, bandingkan depan dan belakang. Jika sama, buang keduanya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah disaring, `Kasur ini rusak` menjadi `kasurinirusak`. Deque cocok karena kita perlu mengambil dari **kedua** ujung. Perulangan berhenti saat tersisa satu huruf (huruf tengah) atau nol huruf, karena keduanya pasti tidak merusak palindrom.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <deque>
+    #include <string>
+    #include <cctype>
+    using namespace std;
+
+    int main() {
+        string kalimat;
+        getline(cin, kalimat);
+
+        deque<char> d;
+        for (char c : kalimat) {
+            if (isalpha(c)) {
+                d.push_back(tolower(c));
+            }
+        }
+
+        bool palindrom = true;
+        while (d.size() > 1) {
+            if (d.front() != d.back()) {
+                palindrom = false;
+                break;
+            }
+            d.pop_front();
+            d.pop_back();
+        }
+
+        if (palindrom) {
+            cout << "Palindrom" << endl;
+        } else {
+            cout << "Bukan palindrom" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    kalimat = input()
+
+    d = deque()
+    for c in kalimat:
+        if c.isalpha():
+            d.append(c.lower())
+
+    palindrom = True
+    while len(d) > 1:
+        if d[0] != d[-1]:
+            palindrom = False
+            break
+        d.popleft()
+        d.pop()
+
+    if palindrom:
+        print("Palindrom")
+    else:
+        print("Bukan palindrom")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="k nilai terbesar">
+  Baris pertama berisi `n` dan `k` (1 ≤ k ≤ n). Baris kedua berisi `n` bilangan bulat. Tampilkan `k` bilangan terbesar, dari yang terbesar ke yang lebih kecil, dipisah spasi. Gunakan antrean prioritas.
+
+  ```txt title="Contoh input 1"
+  7 3
+  40 10 75 30 75 90 5
+  ```
+
+  ```txt title="Contoh output 1"
+  90 75 75
+  ```
+
+  ```txt title="Contoh input 2"
+  4 4
+  3 -1 8 0
+  ```
+
+  ```txt title="Contoh output 2"
+  8 3 0 -1
+  ```
+
+  <Petunjuk>
+    Masukkan semua bilangan ke antrean prioritas, lalu keluarkan `k` kali. Di C++ bawaannya sudah terbesar dulu. Di Python, simpan nilai negatifnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Bilangan yang sama tetap dihitung sendiri-sendiri, jadi `75` muncul dua kali pada contoh 1. Kesalahan umum di Python adalah lupa membalik tanda saat mencetak, sehingga yang keluar `-90 -75 -75`. Python juga punya jalan pintas `heapq.nlargest(k, data)`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        priority_queue<int> pq;              // terbesar keluar dulu
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            pq.push(x);
+        }
+
+        for (int i = 0; i < k; i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << pq.top();
+            pq.pop();
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    import heapq
+
+    n, k = map(int, input().split())
+    data = input().split()
+
+    pq = []
+    for i in range(n):
+        heapq.heappush(pq, -int(data[i]))   # negatif agar terbesar keluar dulu
+
+    hasil = str(-heapq.heappop(pq))
+    for i in range(1, k):
+        hasil += " " + str(-heapq.heappop(pq))
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Penjadwalan round-robin">
+  Sebuah prosesor menjalankan `n` program secara bergiliran. Semua program siap sejak waktu 0, dalam urutan input. Prosesor mengambil program paling depan dan menjalankannya selama `kuantum` satuan waktu, atau kurang jika sisa kebutuhannya lebih kecil. Jika program belum selesai, ia kembali ke **belakang** antrean.
+
+  Baris pertama berisi `n` dan `kuantum`. Setiap baris berikutnya berisi `nama durasi`. Tampilkan `nama waktuSelesai` setiap kali sebuah program selesai, sesuai urutan selesainya.
+
+  ```txt title="Contoh input 1"
+  3 2
+  Browser 5
+  Musik 2
+  Editor 3
+  ```
+
+  ```txt title="Contoh output 1"
+  Musik 4
+  Editor 9
+  Browser 10
+  ```
+
+  ```txt title="Contoh input 2"
+  2 10
+  Unduh 4
+  Kompres 7
+  ```
+
+  ```txt title="Contoh output 2"
+  Unduh 4
+  Kompres 11
+  ```
+
+  <Petunjuk>
+    Simpan struct `Proses` berisi nama dan **sisa** waktu yang dibutuhkan. Setiap giliran, jatahnya adalah yang lebih kecil di antara `kuantum` dan sisa. Majukan jam sebesar jatah itu, kurangi sisanya, lalu putuskan: selesai (cetak) atau kembali ke belakang antrean.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jejak contoh 1 dengan kuantum 2:
+
+    | Jam sebelum | Dijalankan | Jatah | Jam sesudah | Antrean sesudahnya |
+    | --- | --- | --- | --- | --- |
+    | 0 | Browser (sisa 5) | 2 | 2 | Musik, Editor, Browser(3) |
+    | 2 | Musik (sisa 2) | 2 | 4 | Editor, Browser(3), Musik selesai |
+    | 4 | Editor (sisa 3) | 2 | 6 | Browser(3), Editor(1) |
+    | 6 | Browser (sisa 3) | 2 | 8 | Editor(1), Browser(1) |
+    | 8 | Editor (sisa 1) | 1 | 9 | Browser(1), Editor selesai |
+    | 9 | Browser (sisa 1) | 1 | 10 | kosong, Browser selesai |
+
+    Kesalahan umum: selalu menambah jam sebesar `kuantum` walaupun sisa programnya lebih kecil, sehingga Editor tercatat selesai pada waktu 10, bukan 9.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <string>
+    using namespace std;
+
+    struct Proses {
+        string nama;
+        int sisa = 0;
+    };
+
+    int main() {
+        int n, kuantum;
+        cin >> n >> kuantum;
+        queue<Proses> antrean;
+        for (int i = 0; i < n; i++) {
+            Proses p;
+            cin >> p.nama >> p.sisa;
+            antrean.push(p);
+        }
+
+        int jam = 0;
+        while (!antrean.empty()) {
+            Proses p = antrean.front();
+            antrean.pop();
+
+            int jatah = kuantum;
+            if (p.sisa < jatah) {
+                jatah = p.sisa;
+            }
+            jam += jatah;
+            p.sisa -= jatah;
+
+            if (p.sisa > 0) {
+                antrean.push(p);             // belum selesai, kembali ke belakang
+            } else {
+                cout << p.nama << " " << jam << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+
+    class Proses:
+        def __init__(self, nama, sisa):
+            self.nama = nama
+            self.sisa = sisa
+
+
+    n, kuantum = map(int, input().split())
+    antrean = deque()
+    for i in range(n):
+        data = input().split()
+        antrean.append(Proses(data[0], int(data[1])))
+
+    jam = 0
+    while len(antrean) > 0:
+        p = antrean.popleft()
+        jatah = min(kuantum, p.sisa)
+        jam += jatah
+        p.sisa -= jatah
+
+        if p.sisa > 0:
+            antrean.append(p)                # belum selesai, kembali ke belakang
+        else:
+            print(p.nama, jam)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Maksimum jendela geser">
+  Baris pertama berisi `n` dan `k` (1 ≤ k ≤ n ≤ 100.000). Baris kedua berisi `n` bilangan bulat. Bayangkan sebuah "jendela" selebar `k` yang bergeser dari kiri ke kanan, satu posisi setiap langkah. Tampilkan nilai terbesar di dalam jendela untuk setiap posisinya (ada `n − k + 1` posisi), dipisah spasi.
+
+  ```txt title="Contoh input 1"
+  8 3
+  4 2 12 3 8 1 7 5
+  ```
+
+  ```txt title="Contoh output 1"
+  12 12 12 8 8 7
+  ```
+
+  ```txt title="Contoh input 2"
+  5 1
+  5 4 3 2 1
+  ```
+
+  ```txt title="Contoh output 2"
+  5 4 3 2 1
+  ```
+
+  <Petunjuk>
+    Mencari maksimum ulang untuk setiap jendela butuh `k` langkah per posisi, terlalu lambat untuk `n` dan `k` besar. Simpan **indeks** di deque dengan aturan: nilainya selalu menurun dari depan ke belakang. Sebelum memasukkan indeks `i`, buang dari belakang semua indeks yang nilainya tidak lebih besar dari `a[i]`. Buang dari depan indeks yang sudah keluar dari jendela. Maksimum jendela selalu ada di depan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jika `a[i]` lebih besar atau sama dengan elemen lama di belakang deque, elemen lama itu tidak akan pernah menjadi maksimum lagi: `a[i]` lebih baru (bertahan lebih lama di jendela) dan setidaknya sama besar. Karena itu elemen lama aman dibuang. Setiap indeks masuk sekali dan keluar paling banyak sekali, jadi total kerjanya sebanding dengan `n`. Indeks disimpan, bukan nilai, agar kita tahu kapan sebuah elemen sudah keluar dari jendela (`indeks <= i - k`).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <deque>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+
+        deque<int> d;                        // indeks, nilainya menurun dari depan
+        for (int i = 0; i < n; i++) {
+            if (!d.empty() && d.front() <= i - k) {
+                d.pop_front();               // sudah keluar dari jendela
+            }
+            while (!d.empty() && a[d.back()] <= a[i]) {
+                d.pop_back();                // tidak akan pernah jadi maksimum lagi
+            }
+            d.push_back(i);
+
+            if (i >= k - 1) {                // jendela sudah penuh
+                if (i > k - 1) {
+                    cout << " ";
+                }
+                cout << a[d.front()];
+            }
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    from collections import deque
+
+    n, k = map(int, input().split())
+    a = list(map(int, input().split()))
+
+    d = deque()                              # indeks, nilainya menurun dari depan
+    hasil = ""
+    for i in range(n):
+        if len(d) > 0 and d[0] <= i - k:
+            d.popleft()                      # sudah keluar dari jendela
+        while len(d) > 0 and a[d[-1]] <= a[i]:
+            d.pop()                          # tidak akan pernah jadi maksimum lagi
+        d.append(i)
+
+        if i >= k - 1:                       # jendela sudah penuh
+            if i > k - 1:
+                hasil += " "
+            hasil += str(a[d[0]])
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Menggabungkan berkas">
+  Ada `n` berkas (1 ≤ n ≤ 100.000) dengan ukuran masing-masing antara 1 dan 1.000.000.000. Menggabungkan dua berkas berukuran `a` dan `b` membutuhkan waktu `a + b` dan menghasilkan satu berkas berukuran `a + b`. Berkas digabung dua-dua sampai tersisa satu. Tampilkan total waktu **paling kecil** yang mungkin.
+
+  Baris pertama berisi `n`, baris kedua berisi ukuran setiap berkas. Jika hanya ada satu berkas, tidak ada yang perlu digabung dan jawabannya `0`.
+
+  ```txt title="Contoh input 1"
+  4
+  4 3 2 6
+  ```
+
+  ```txt title="Contoh output 1"
+  29
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  5 5 5
+  ```
+
+  ```txt title="Contoh output 2"
+  25
+  ```
+
+  <Petunjuk>
+    Berkas yang digabung lebih awal akan "terhitung lagi" di setiap penggabungan berikutnya, karena ia sudah menjadi bagian dari berkas yang lebih besar. Jadi berkas kecil sebaiknya digabung lebih dulu. Pakai antrean prioritas yang mengeluarkan yang **terkecil** dulu, dan perhatikan bahwa totalnya bisa melewati batas `int`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Selalu ambil dua berkas terkecil, gabungkan, lalu masukkan hasilnya kembali ke antrean. Untuk contoh 1:
+
+    | Langkah | Diambil | Waktu | Isi antrean sesudahnya |
+    | --- | --- | --- | --- |
+    | 1 | 2 dan 3 | 5 | `4 5 6` |
+    | 2 | 4 dan 5 | 9 | `6 9` |
+    | 3 | 6 dan 9 | 15 | `15` |
+
+    Totalnya 5 + 9 + 15 = 29. Urutan lain, misalnya (4 + 3), lalu (2 + 6), lalu (7 + 8), menghasilkan 7 + 8 + 15 = 30. Di C++ pakai `greater` agar terkecil keluar dulu, sedangkan di Python bawaan `heapq` sudah sesuai. Ukuran berkas bisa sampai 10<sup>9</sup>, jadi gunakan `long long`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    #include <functional>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        priority_queue<long long, vector<long long>, greater<long long>> pq;
+        for (int i = 0; i < n; i++) {
+            long long ukuran;
+            cin >> ukuran;
+            pq.push(ukuran);
+        }
+
+        long long total = 0;
+        while (pq.size() > 1) {
+            long long a = pq.top();
+            pq.pop();
+            long long b = pq.top();
+            pq.pop();
+            total += a + b;
+            pq.push(a + b);
+        }
+        cout << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    import heapq
+
+    n = int(input())
+    data = input().split()
+
+    pq = []
+    for i in range(n):
+        heapq.heappush(pq, int(data[i]))    # terkecil keluar dulu
+
+    total = 0
+    while len(pq) > 1:
+        a = heapq.heappop(pq)
+        b = heapq.heappop(pq)
+        total += a + b
+        heapq.heappush(pq, a + b)
+    print(total)
+    ```
+  </Pembahasan>
+</Soal>

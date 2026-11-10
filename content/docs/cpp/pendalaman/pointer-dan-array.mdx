@@ -1,0 +1,264 @@
+---
+title: Pointer & Array
+description: Mengapa elemen array bersebelahan di memori, bagaimana aritmetika pointer bekerja, dan mengapa a[i] sama dengan *(a + i).
+sumber:
+  - ref: cppreference
+    judul: Array declaration
+    url: https://en.cppreference.com/w/cpp/language/array
+  - ref: cppreference
+    judul: Arithmetic operators
+    url: https://en.cppreference.com/w/cpp/language/operator_arithmetic
+  - ref: cppreference
+    judul: "std::vector::data"
+    url: https://en.cppreference.com/w/cpp/container/vector/data
+  - ref: python-docs
+    judul: FAQ, How are lists implemented in CPython?
+    url: https://docs.python.org/3/faq/design.html#how-are-lists-implemented-in-cpython
+---
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & Vector" />
+
+Halaman ini melanjutkan [Pointer](/docs/cpp/pendalaman/pointer). Pastikan kamu sudah paham `&x`, `int* p`, dan `*p` sebelum membaca.
+
+## Elemen array bersebelahan di memori
+
+Di [Array & Vector](/docs/cpp/array-dan-vector) disebutkan bahwa elemen array tersimpan **berurutan**. Kita bisa membuktikannya dengan mencetak alamat setiap elemen. `sizeof(x)` menghasilkan ukuran `x` dalam byte.
+
+```cpp
+int nilai[4] = {80, 75, 90, 60};
+
+for (int i = 0; i < 4; i++) {
+    cout << "&nilai[" << i << "] = " << &nilai[i] << endl;
+}
+cout << "sizeof(int) = " << sizeof(int) << endl;
+```
+
+```txt title="Output (misalnya)"
+&nilai[0] = 0x7ffca2886ed0
+&nilai[1] = 0x7ffca2886ed4
+&nilai[2] = 0x7ffca2886ed8
+&nilai[3] = 0x7ffca2886edc
+sizeof(int) = 4
+```
+
+Alamat di komputermu pasti berbeda, tetapi polanya sama: setiap alamat **bertambah 4**, persis sebesar `sizeof(int)`. Dalam heksadesimal, `d0`, `d4`, `d8`, `dc` berselisih 4 (huruf `c` bernilai 12). Tidak ada celah: elemen-elemen array menempati kotak memori yang **bersebelahan**.
+
+<MemoryBoxes
+  caption="Dengan alamat contoh: jika nilai[0] ada di 1000, elemen berikutnya ada di 1004, 1008, dan 1012."
+  items={[
+    { name: 'nilai[0]', type: 'int · alamat 1000', value: '80' },
+    { name: 'nilai[1]', type: 'int · alamat 1004', value: '75' },
+    { name: 'nilai[2]', type: 'int · alamat 1008', value: '90' },
+    { name: 'nilai[3]', type: 'int · alamat 1012', value: '60' },
+  ]}
+/>
+
+Inilah alasan `nilai[i]` sangat cepat. Alamat elemen ke-`i` cukup **dihitung**, yaitu alamat awal + `i` × 4, tanpa menelusuri elemen-elemen sebelumnya. Akses seperti ini disebut O(1), lihat [Kompleksitas Waktu](/docs/cpp/pendalaman/kompleksitas-waktu).
+
+## Nama array menjadi pointer ke elemen pertama
+
+Dalam hampir semua ekspresi, nama array otomatis diubah menjadi **pointer ke elemen pertamanya**. Peristiwa ini disebut _array decay_ (array "meluruh" menjadi pointer).
+
+```cpp
+int nilai[4] = {80, 75, 90, 60};
+int* p = nilai;                     // sama dengan: int* p = &nilai[0];
+
+cout << (p == &nilai[0]) << endl;   // 1 (true)
+cout << *nilai << endl;             // 80, elemen pertama
+```
+
+Namun array **bukan** pointer. Bedanya terlihat pada `sizeof`, salah satu tempat nama array tidak diubah menjadi pointer:
+
+```cpp
+cout << sizeof(nilai) << endl;      // 16: seluruh array, 4 elemen x 4 byte
+cout << sizeof(p) << endl;          // 8: hanya sebuah pointer
+```
+
+Di komputer 64-bit, ukuran pointer umumnya 8 byte, apa pun tipe yang ditunjuknya.
+
+## Aritmetika pointer
+
+Menambahkan bilangan bulat ke pointer **tidak** memajukan alamatnya sebanyak itu byte. `p + 1` berarti "**satu elemen** setelah `p`", sehingga alamatnya maju sebesar ukuran tipe yang ditunjuk. Untuk `int*`, `p + 1` maju 4 byte.
+
+```cpp
+int nilai[4] = {80, 75, 90, 60};
+int* p = nilai;              // p menunjuk nilai[0], misalnya alamat 1000
+
+cout << *p << endl;          // 80
+cout << *(p + 1) << endl;    // 75, alamat 1004
+cout << *(p + 3) << endl;    // 60, alamat 1012
+
+p++;                         // geser p satu elemen ke depan
+cout << *p << endl;          // 75
+
+int* akhir = &nilai[3];
+cout << akhir - p << endl;   // 2: jaraknya 2 elemen, bukan 8 byte
+```
+
+Kurung pada `*(p + 1)` wajib. Jika `p` menunjuk `nilai[0]`, `*p + 1` berarti "isi kotak yang ditunjuk `p`, lalu ditambah 1", yaitu `81`, bukan `75`.
+
+## `a[i]` sebenarnya adalah `*(a + i)`
+
+Sekarang terlihat apa yang sebenarnya dilakukan tanda kurung siku. Standar C++ **mendefinisikan** `a[i]` sama dengan `*(a + i)`: ambil alamat awal, maju `i` elemen, lalu buka kotaknya.
+
+```cpp
+cout << nilai[2] << endl;        // 90
+cout << *(nilai + 2) << endl;    // 90, persis sama
+```
+
+Ini juga menjelaskan mengapa **indeks dimulai dari 0**. Indeks bukan "elemen ke berapa", melainkan **jarak dari elemen pertama**. Elemen pertama berjarak 0 dari dirinya sendiri, jadi `a[0]` adalah `*(a + 0)`.
+
+<Callout type="info" title="Fakta aneh: 2[nilai]">
+  Karena `nilai[2]` hanyalah `*(nilai + 2)`, dan `nilai + 2` sama dengan `2 + nilai`, maka `2[nilai]` pun sah dan menghasilkan `90`. Jangan pernah menulis kode seperti ini. Ini hanya bukti bahwa `[]` adalah singkatan.
+</Callout>
+
+## Menelusuri array dengan pointer
+
+Aritmetika pointer memungkinkan perulangan tanpa indeks sama sekali:
+
+```cpp
+int nilai[5] = {80, 75, 90, 60, 85};
+
+for (int* p = nilai; p != nilai + 5; p++) {
+    cout << *p << " ";
+}
+cout << endl;
+```
+
+```txt title="Output"
+80 75 90 60 85 
+```
+
+`nilai + 5` menunjuk posisi **tepat setelah** elemen terakhir. Pointer ini boleh dihitung dan dibandingkan, tetapi **tidak boleh** di-dereference karena tidak ada elemen di sana. Pasangan "awal" dan "tepat setelah akhir" inilah ide di balik `begin()` dan `end()` pada `vector`, juga cara kerja `for (int x : nilai)` di balik layar.
+
+## Array sebagai parameter fungsi
+
+Saat array dikirim ke fungsi, yang dikirim **bukan** salinan seluruh array, melainkan pointer ke elemen pertamanya. Parameter `int data[]` sebenarnya adalah `int* data`. Ada dua akibat yang perlu diwaspadai.
+
+**1. `sizeof` tidak lagi menghasilkan ukuran array.**
+
+```cpp
+void cetakUkuran(int data[]) {
+    cout << sizeof(data) << endl;
+}
+
+int nilai[5] = {80, 75, 90, 60, 85};
+cout << sizeof(nilai) << endl;    // 20
+cetakUkuran(nilai);               // 8, bukan 20!
+```
+
+Untungnya `g++ -Wall` memperingatkan kesalahan ini:
+
+```txt title="Warning"
+warning: ‘sizeof’ on array function parameter ‘data’ will return size of ‘int*’ [-Wsizeof-array-argument]
+```
+
+Karena fungsi tidak bisa mengetahui panjang array, panjangnya harus dikirim sebagai parameter tambahan:
+
+```cpp
+int jumlah(const int data[], int n) {
+    int total = 0;
+    for (int i = 0; i < n; i++) {
+        total += data[i];
+    }
+    return total;
+}
+```
+
+**2. Fungsi bisa mengubah array milik pemanggil.** Di materi [Fungsi](/docs/cpp/fungsi), parameter menerima salinan. Itu tetap benar, hanya saja yang disalin adalah pointer-nya, bukan elemen-elemennya:
+
+```cpp
+void nolkan(int data[], int n) {
+    for (int i = 0; i < n; i++) {
+        data[i] = 0;      // yang berubah adalah array milik pemanggil
+    }
+}
+```
+
+Tambahkan `const` seperti pada `jumlah` jika fungsi hanya membaca. Lebih baik lagi, gunakan `vector` yang dikirim sebagai `const vector<int>&`: ukurannya selalu ikut lewat `data.size()`. Lihat [Pass by Value & Pass by Reference](/docs/cpp/pendalaman/pass-by-value-dan-reference).
+
+## Indeks di luar batas
+
+Sekarang terlihat mengapa C++ tidak memeriksa indeks. `nilai[5]` hanyalah `*(nilai + 5)`: hitung alamat, lalu buka kotaknya. Tidak ada langkah yang memeriksa apakah alamat itu masih milik array. Kotak di sana bisa berisi variabel lain atau bukan milik program sama sekali, sehingga hasilnya _undefined behavior_.
+
+Sanitizer bisa menangkapnya:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    int nilai[5] = {80, 75, 90, 60, 85};
+    int i = 5;
+    cout << nilai[i] << endl;
+    return 0;
+}
+```
+
+```bash
+g++ -g -fsanitize=address program.cpp -o program
+./program
+```
+
+```txt title="Output (dipotong)"
+==293853==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x786897a00034 ...
+READ of size 4 at 0x786897a00034 thread T0
+    #0 0x5d33383b348a in main program.cpp:7
+...
+    [32, 52) 'nilai' (line 5) <== Memory access at offset 52 overflows this variable
+```
+
+Laporannya menunjuk baris 7 dan menyebut bahwa akses itu melewati batas variabel `nilai` yang dibuat di baris 5.
+
+<DeepDive href="/docs/cpp/pendalaman/undefined-behavior" kind="konsep" title="Undefined behavior">
+  Kesalahan lain yang tidak menghasilkan error di C++, mengapa hasilnya tidak bisa ditebak, dan cara menangkapnya.
+</DeepDive>
+
+## `vector` juga bersebelahan
+
+Elemen `vector` juga disimpan bersebelahan, sama seperti array. Method `data()` menghasilkan pointer ke elemen pertamanya:
+
+```cpp
+vector<int> v = {10, 20, 30};
+int* p = v.data();                  // sama dengan &v[0]
+
+cout << *(p + 1) << endl;           // 20
+cout << (p + 2 == &v[2]) << endl;   // 1 (true)
+```
+
+Bedanya, `vector` bisa **pindah tempat**. Saat `push_back` membutuhkan ruang lebih besar, `vector` memesan memori baru, menyalin semua elemen ke sana, lalu mengembalikan memori lama. Pointer yang dibuat sebelumnya masih menunjuk tempat lama yang sudah tidak berlaku. Jadi jangan menyimpan pointer ke elemen `vector` lalu menambah elemen baru. Masalah pointer ke memori yang sudah dikembalikan ini dibahas di [Memori Dinamis](/docs/cpp/pendalaman/memori-dinamis).
+
+## Bagaimana dengan Python?
+
+Python tidak punya pointer, jadi juga tidak punya aritmetika pointer. `list` Python mirip array: isinya disimpan berurutan, sehingga `lst[i]` juga cepat. Bedanya, yang disimpan berurutan **bukan nilainya, melainkan referensi** ke objek-objek yang letaknya bisa di mana saja. Itulah sebabnya satu `list` boleh berisi campuran angka, teks, bahkan `list` lain.
+
+Fakta ini menjelaskan jebakan klasik saat membuat list dua dimensi:
+
+```python
+matriks = [[0] * 3] * 3      # jebakan: 3 referensi ke list yang SAMA
+matriks[0][0] = 1
+print(matriks)               # [[1, 0, 0], [1, 0, 0], [1, 0, 0]]
+
+matriks = []
+for _ in range(3):
+    matriks.append([0] * 3)  # setiap baris adalah list baru
+matriks[0][0] = 1
+print(matriks)               # [[1, 0, 0], [0, 0, 0], [0, 0, 0]]
+```
+
+`* 3` pada list luar menyalin **referensinya** tiga kali, bukan isinya. Ketiga baris sebenarnya objek yang sama.
+
+Selain itu, Python selalu memeriksa indeks. Indeks di luar batas langsung menghasilkan `IndexError`, tidak pernah membaca memori milik variabel lain.
+
+## Rangkuman
+
+- Elemen array **bersebelahan** di memori. Alamat elemen berikutnya bertambah sebesar ukuran tipenya.
+- Nama array otomatis menjadi **pointer ke elemen pertama** (_array decay_), kecuali antara lain pada `sizeof`.
+- `p + 1` maju **satu elemen**, bukan satu byte. Selisih dua pointer juga dihitung dalam elemen.
+- `a[i]` sama dengan `*(a + i)`. Itulah sebabnya indeks dimulai dari 0.
+- Array yang dikirim ke fungsi menjadi pointer: `sizeof` tidak lagi memberi ukuran array, panjangnya harus dikirim, dan fungsi bisa mengubah isinya.
+- Tidak ada yang memeriksa batas, sehingga akses di luar batas adalah _undefined behavior_.
+- `v.data()` memberi pointer ke elemen pertama `vector`, tetapi pointer itu tidak berlaku lagi setelah `vector` pindah tempat.
+- `list` Python menyimpan referensi secara berurutan, tidak punya aritmetika pointer, dan selalu memeriksa indeks.
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & Vector" />

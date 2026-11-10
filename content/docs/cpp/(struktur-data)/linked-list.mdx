@@ -1,0 +1,1726 @@
+---
+title: Linked List
+description: Menyimpan data sebagai rantai node yang saling terhubung lewat alamat, lalu menambah, mencari, dan menghapus elemen tanpa menggeser data lain.
+sumber:
+  - ref: cppreference
+    judul: Pointer declaration
+    url: https://en.cppreference.com/w/cpp/language/pointer
+  - ref: cppreference
+    judul: new expression
+    url: https://en.cppreference.com/w/cpp/language/new
+  - ref: cppreference
+    judul: std::list
+    url: https://en.cppreference.com/w/cpp/container/list
+  - ref: python-docs
+    judul: Tutorial, Classes
+    url: https://docs.python.org/3/tutorial/classes.html
+---
+
+## Masalah: menyisipkan di tengah array
+
+Elemen [array dan vector](/docs/cpp/array-dan-vector) tersimpan **berdampingan** di memori, tanpa celah. Susunan rapat ini membuat `data[i]` sangat cepat: komputer cukup menghitung letak elemen ke-`i` dari letak elemen pertama.
+
+Namun susunan rapat juga punya harga. Misalkan kamu ingin menyisipkan `5` di antara `3` dan `7`:
+
+```txt
+sebelum:  [3] [7] [9] [12]
+               \   \   \
+sesudah:  [3] [5] [7] [9] [12]     7, 9, dan 12 harus bergeser satu langkah
+```
+
+Tidak ada ruang kosong di antara `3` dan `7`, jadi semua elemen sesudahnya harus digeser dulu. Untuk vector berisi sejuta elemen, menyisipkan di depan berarti menggeser sejuta elemen. Menghapus elemen di tengah juga sama: elemen di belakangnya harus maju untuk menutup celah.
+
+**Linked list** mengambil jalan lain. Elemennya tidak perlu berdampingan. Setiap elemen cukup tahu **di mana elemen berikutnya berada**.
+
+## Ide linked list: rantai node
+
+Bayangkan permainan berburu harta karun. Setiap kertas petunjuk berisi dua hal: sebuah hadiah, dan **lokasi kertas berikutnya**. Kertas-kertas itu tersebar di seluruh rumah, tetapi kamu tetap bisa mengikuti urutannya asalkan tahu letak kertas pertama.
+
+Linked list bekerja dengan cara yang sama. Setiap elemennya disebut **node** dan berisi dua bagian:
+
+- **data**, yaitu nilai yang disimpan,
+- **next**, yaitu **alamat** node berikutnya di memori.
+
+```txt
+head
+ |
+ v
+[3|•]-->[7|•]-->[9|∅]
+ ^ ^
+ | +-- next: alamat node berikutnya
+ +---- data: nilai yang disimpan
+```
+
+Variabel **head** menyimpan alamat node pertama. Node terakhir tidak menunjuk ke mana pun, ditandai `∅`. Di C++ tanda ini ditulis `nullptr`, di Python `None`. Dari head, semua node bisa dikunjungi dengan mengikuti panah satu per satu.
+
+Di memori, node-node itu boleh berada di mana saja. Urutan list ditentukan oleh isi `next`, bukan oleh letak node:
+
+<MemoryBoxes
+  caption="Contoh isi memori (angka alamatnya hanya ilustrasi). Ikuti next dari head: 0x5f0 → 0x2a8 → 0x7c0 → ∅, sehingga urutannya 3, 7, 9."
+  items={[
+    { name: 'head', type: 'Node*', value: '0x5f0' },
+    { name: 'node di 0x2a8', type: 'Node', value: '7 | 0x7c0' },
+    { name: 'node di 0x5f0', type: 'Node', value: '3 | 0x2a8' },
+    { name: 'node di 0x7c0', type: 'Node', value: '9 | ∅' },
+  ]}
+/>
+
+Sekarang menyisipkan `5` di antara `3` dan `7` cukup dengan mengubah panah, tanpa menggeser satu node pun:
+
+```txt
+sebelum:  [3|•]---------->[7|•]-->[9|∅]
+
+sesudah:  [3|•]-->[5|•]-->[7|•]-->[9|∅]
+          (next milik 3 diarahkan ke 5, next milik 5 diarahkan ke 7)
+```
+
+## Pointer secukupnya
+
+Untuk menyimpan "alamat node berikutnya", C++ memakai **pointer**. Materi utama tidak membahas pointer secara mendalam, jadi bagian ini hanya mengenalkan yang dibutuhkan linked list.
+
+Setiap data tersimpan di suatu tempat di memori, dan tempat itu punya nomor yang disebut **alamat**. **Pointer** adalah variabel yang nilainya berupa alamat. Pointer tidak menyimpan datanya sendiri, melainkan memberi tahu **di mana** data itu berada.
+
+| Kode C++ | Arti |
+| --- | --- |
+| `Node* p;` | `p` adalah pointer ke `Node`: variabel yang menyimpan alamat sebuah `Node` |
+| `nullptr` | Nilai khusus yang berarti "tidak menunjuk ke mana pun" |
+| `new Node{3, nullptr}` | Membuat node baru di memori, lalu menghasilkan alamatnya |
+| `p->data` | Membaca atau mengubah anggota `data` milik node yang ditunjuk `p` |
+| `delete p;` | Mengembalikan memori node yang ditunjuk `p` |
+
+Node ditulis sebagai [struct](/docs/cpp/struct) yang salah satu anggotanya adalah pointer ke struct yang sama. Program berikut membuat list `3 → 7 → 9` secara manual:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* next;     // alamat node berikutnya
+};
+
+int main() {
+    Node* c = new Node{9, nullptr};    // node terakhir, tidak ada sesudahnya
+    Node* b = new Node{7, c};          // 7 menunjuk ke 9
+    Node* head = new Node{3, b};       // 3 menunjuk ke 7
+
+    cout << head->data << endl;               // 3
+    cout << head->next->data << endl;         // 7
+    cout << head->next->next->data << endl;   // 9
+
+    delete head;
+    delete b;
+    delete c;
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data, next=None):
+        self.data = data
+        self.next = next       # node berikutnya, None jika tidak ada
+
+
+c = Node(9)                    # node terakhir, tidak ada sesudahnya
+b = Node(7, c)                 # 7 menunjuk ke 9
+head = Node(3, b)              # 3 menunjuk ke 7
+
+print(head.data)               # 3
+print(head.next.data)          # 7
+print(head.next.next.data)     # 9
+```
+
+Baca `head->next->data` dari kiri ke kanan: mulai dari node yang ditunjuk `head`, ambil `next`-nya (alamat node 7), lalu ambil `data` dari node itu.
+
+<Callout type="info" title="Kenapa memakai new?">
+  Variabel biasa di dalam fungsi hilang saat fungsinya selesai. Node yang dibuat dengan `new` tetap ada sampai kita sendiri menghapusnya dengan `delete`. Karena itulah list bisa tumbuh dan menyusut selama program berjalan. Konsekuensinya, **setiap `new` harus punya pasangan `delete`**.
+</Callout>
+
+### Python: setiap variabel adalah referensi
+
+Di Python, setiap variabel sebenarnya sudah mirip pointer. Variabel adalah **label** yang menunjuk ke sebuah objek, bukan kotak yang berisi objek itu. Baris `b = Node(7, c)` tidak menyalin node `c` ke dalam `b`. Anggota `next` milik `b` hanya ikut menunjuk ke objek yang sama dengan `c`. Karena itu Python tidak butuh tanda `*` atau `->`, cukup titik.
+
+Python juga tidak punya `delete` untuk node. Begitu sebuah objek tidak lagi ditunjuk oleh apa pun, baik variabel maupun anggota objek lain, Python membebaskan memorinya secara otomatis (_garbage collection_).
+
+<DeepDive href="/docs/cpp/pendalaman/pointer" kind="konsep" title="Pointer">
+  Mengambil alamat variabel dengan `&x`, membaca isi alamat dengan `*p`, hubungan `p->data` dengan `(*p).data`, dan beda pointer dengan reference.
+</DeepDive>
+
+<DeepDive href="/docs/cpp/pendalaman/memori-dinamis" kind="konsep" title="Memori dinamis: new dan delete">
+  Beda memori stack dan heap, apa yang terjadi saat `new` dan `delete` dijalankan, serta penyebab memory leak dan dangling pointer.
+</DeepDive>
+
+## Menelusuri list
+
+Untuk mengunjungi semua node, siapkan pointer `p` yang mulai dari `head`, lalu pindahkan ke node berikutnya sampai `p` bernilai `nullptr`. Fungsi `cetak` berikut menampilkan isi list dipisah spasi:
+
+```cpp tab="C++"
+void cetak(Node* head) {
+    Node* p = head;
+    while (p != nullptr) {
+        cout << p->data;
+        if (p->next != nullptr) {     // masih ada node sesudahnya?
+            cout << " ";
+        }
+        p = p->next;                  // pindah ke node berikutnya
+    }
+    cout << endl;
+}
+```
+
+```python tab="Python"
+def cetak(head):
+    p = head
+    while p is not None:
+        print(p.data, end="")
+        if p.next is not None:        # masih ada node sesudahnya?
+            print(" ", end="")
+        p = p.next                    # pindah ke node berikutnya
+    print()
+```
+
+Jejak `cetak` untuk list `3 → 7 → 9`:
+
+| Putaran | `p` menunjuk ke | Dicetak | `p` sesudah `p = p->next` |
+| --- | --- | --- | --- |
+| 1 | node 3 | `3` dan spasi | node 7 |
+| 2 | node 7 | `7` dan spasi | node 9 |
+| 3 | node 9 | `9` saja, karena `next`-nya `nullptr` | `nullptr` |
+| 4 | `nullptr` | perulangan berhenti | |
+
+Pola ini adalah dasar hampir semua operasi linked list: menghitung panjang, menjumlahkan isi, dan mencari nilai. Di C++, pola yang sama sering ditulis lebih ringkas dengan `for`:
+
+```cpp
+for (Node* p = head; p != nullptr; p = p->next) {
+    // kerjakan sesuatu dengan p->data
+}
+```
+
+Perhatikan bahwa linked list **tidak bisa melompat** langsung ke node kelima seperti `data[4]`. Untuk sampai ke sana, empat node sebelumnya harus dilewati satu per satu.
+
+## Membebaskan seluruh list
+
+Contoh pertama tadi memakai tiga `delete` untuk tiga node. Untuk list yang panjang, gunakan perulangan. Ada satu jebakan: setelah sebuah node di-`delete`, anggota `next`-nya tidak boleh dibaca lagi. Jadi **simpan dulu alamat node berikutnya**, baru hapus node yang sekarang:
+
+```cpp tab="C++"
+void hapusSemua(Node* head) {
+    while (head != nullptr) {
+        Node* berikut = head->next;   // 1. simpan alamat node berikutnya
+        delete head;                  // 2. hapus node sekarang
+        head = berikut;               // 3. pindah ke node yang disimpan tadi
+    }
+}
+```
+
+```python tab="Python"
+# Python cukup melepas head. Node pertama tidak lagi ditunjuk siapa pun
+# sehingga dibebaskan, lalu node-node sesudahnya menyusul berantai.
+head = None
+```
+
+`head` di dalam `hapusSemua` adalah salinan milik fungsi, jadi menggesernya tidak mengubah `head` milik pemanggil. Setelah memanggil `hapusSemua(head)`, variabel `head` di `main` masih berisi alamat lama yang sudah tidak sah. Jangan memakainya lagi, atau isi ulang dengan `head = nullptr;` jika list akan dipakai kembali.
+
+## Menambah di depan
+
+Menambah node di awal list hanya butuh dua langkah: buat node baru yang `next`-nya menunjuk ke head lama, lalu jadikan node baru itu head.
+
+```txt
+sebelum:          head-->[3|•]-->[7|•]-->[9|∅]
+sesudah:  head-->[1|•]-->[3|•]-->[7|•]-->[9|∅]
+```
+
+```cpp tab="C++"
+Node* tambahDepan(Node* head, int nilai) {
+    Node* baru = new Node{nilai, head};   // node baru menunjuk ke head lama
+    return baru;                          // node baru menjadi head
+}
+
+// pemakaian di main:
+head = tambahDepan(head, 1);
+```
+
+```python tab="Python"
+def tambah_depan(head, nilai):
+    return Node(nilai, head)              # node baru menunjuk ke head lama
+
+
+# pemakaian:
+head = tambah_depan(head, 1)
+```
+
+Fungsi mengembalikan head yang baru, lalu pemanggil menyimpannya kembali ke `head`. Ini sesuai anjuran di materi [Fungsi](/docs/cpp/fungsi#parameter-menerima-salinan): parameter hanyalah salinan, jadi hasilnya dikirim lewat `return`.
+
+Fungsi ini juga benar untuk list kosong (`head == nullptr`): node baru menunjuk ke `nullptr` dan menjadi satu-satunya node. Berapa pun panjang list-nya, menambah di depan selalu butuh langkah yang sama.
+
+<Callout title="Menambah di depan membalik urutan">
+  Jika bilangan `1 2 3` dimasukkan satu per satu dengan `tambahDepan`, isi list menjadi `3 2 1`. Bilangan yang terakhir masuk berada paling depan. Untuk menjaga urutan input, tambahkan di belakang.
+</Callout>
+
+## Menambah di belakang
+
+### Tanpa pointer tail
+
+Cara langsung: telusuri sampai node terakhir, yaitu node yang `next`-nya `nullptr`, lalu sambungkan node baru di belakangnya. List kosong ditangani terpisah karena tidak punya node terakhir.
+
+```cpp tab="C++"
+Node* tambahBelakang(Node* head, int nilai) {
+    Node* baru = new Node{nilai, nullptr};
+    if (head == nullptr) {
+        return baru;                      // list kosong: node baru menjadi head
+    }
+    Node* p = head;
+    while (p->next != nullptr) {          // berhenti TEPAT di node terakhir
+        p = p->next;
+    }
+    p->next = baru;
+    return head;                          // head tidak berubah
+}
+```
+
+```python tab="Python"
+def tambah_belakang(head, nilai):
+    baru = Node(nilai)
+    if head is None:
+        return baru                       # list kosong: node baru menjadi head
+    p = head
+    while p.next is not None:             # berhenti TEPAT di node terakhir
+        p = p.next
+    p.next = baru
+    return head                           # head tidak berubah
+```
+
+Perhatikan kondisinya: `p->next != nullptr`, bukan `p != nullptr`. Kita ingin berhenti **di** node terakhir agar bisa mengubah `next`-nya, bukan berhenti setelah melewatinya.
+
+Cara ini benar, tetapi lambat untuk list panjang karena setiap penambahan menelusuri seluruh list dari awal.
+
+### Dengan pointer tail
+
+Solusinya, simpan satu pointer lagi, `tail`, yang selalu menunjuk ke node terakhir. Menambah di belakang kini cukup dua langkah: sambungkan node baru ke `tail`, lalu geser `tail` ke node baru. Program berikut membaca `n` bilangan, menyusunnya menjadi list sesuai urutan input, mencetaknya, lalu membebaskan memori. Bagian atas program (`#include`, `struct Node`, `cetak`, dan `hapusSemua`) sama dengan kode di atas.
+
+```cpp tab="C++"
+int main() {
+    int n;
+    cin >> n;
+
+    Node* head = nullptr;
+    Node* tail = nullptr;
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        Node* baru = new Node{x, nullptr};
+        if (head == nullptr) {
+            head = baru;              // node pertama: sekaligus head dan tail
+        } else {
+            tail->next = baru;        // sambungkan di belakang node terakhir
+        }
+        tail = baru;                  // node baru kini menjadi yang terakhir
+    }
+
+    cetak(head);
+    hapusSemua(head);
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+angka = list(map(int, input().split()))
+
+head = None
+tail = None
+for x in angka:
+    baru = Node(x)
+    if head is None:
+        head = baru               # node pertama: sekaligus head dan tail
+    else:
+        tail.next = baru          # sambungkan di belakang node terakhir
+    tail = baru                   # node baru kini menjadi yang terakhir
+
+cetak(head)
+```
+
+```txt title="Contoh jalannya program"
+5
+4 8 15 16 23
+4 8 15 16 23
+```
+
+## Mencari nilai
+
+Mencari di linked list sama dengan [pencarian linear](/docs/cpp/array-dan-vector#mencari-elemen) di array: periksa node satu per satu dari depan. Fungsi berikut mengembalikan posisi kemunculan pertama (dihitung dari 0), atau `-1` jika tidak ada:
+
+```cpp tab="C++"
+int cariPosisi(Node* head, int dicari) {
+    int posisi = 0;
+    for (Node* p = head; p != nullptr; p = p->next) {
+        if (p->data == dicari) {
+            return posisi;
+        }
+        posisi++;
+    }
+    return -1;                    // sudah sampai ujung, tidak ditemukan
+}
+```
+
+```python tab="Python"
+def cari_posisi(head, dicari):
+    posisi = 0
+    p = head
+    while p is not None:
+        if p.data == dicari:
+            return posisi
+        posisi += 1
+        p = p.next
+    return -1                     # sudah sampai ujung, tidak ditemukan
+```
+
+## Menghapus sebuah nilai
+
+Untuk membuang sebuah node, node **sebelumnya** harus dialihkan agar melompati node itu. Setelah tidak ada lagi yang menunjuk ke sana, node tersebut di-`delete`.
+
+```txt
+hapus 7:
+
+sebelum:  head-->[3|•]-->[7|•]-->[9|∅]
+
+sesudah:  head-->[3|•]---------->[9|∅]      node 7 di-delete
+```
+
+Ada dua kasus:
+
+1. **Yang dihapus adalah head.** Tidak ada node sebelumnya, jadi head pindah ke node kedua.
+2. **Yang dihapus ada di tengah atau di akhir.** Cari node `prev` yang `next`-nya adalah target, lalu sambungkan `prev` langsung ke node sesudah target.
+
+Fungsi berikut menghapus kemunculan **pertama** dari sebuah nilai, lalu mengembalikan head (yang mungkin berubah):
+
+```cpp tab="C++"
+Node* hapusNilai(Node* head, int x) {
+    if (head == nullptr) {
+        return nullptr;                       // list kosong, tidak ada yang dihapus
+    }
+    if (head->data == x) {                    // kasus 1: target adalah head
+        Node* sisa = head->next;
+        delete head;
+        return sisa;
+    }
+    Node* prev = head;                        // kasus 2: cari node SEBELUM target
+    while (prev->next != nullptr && prev->next->data != x) {
+        prev = prev->next;
+    }
+    if (prev->next != nullptr) {              // ketemu: target = prev->next
+        Node* target = prev->next;
+        prev->next = target->next;            // lompati target
+        delete target;                        // baru hapus
+    }
+    return head;
+}
+```
+
+```python tab="Python"
+def hapus_nilai(head, x):
+    if head is None:
+        return None                           # list kosong, tidak ada yang dihapus
+    if head.data == x:                        # kasus 1: target adalah head
+        return head.next
+    prev = head                               # kasus 2: cari node SEBELUM target
+    while prev.next is not None and prev.next.data != x:
+        prev = prev.next
+    if prev.next is not None:                 # ketemu: target = prev.next
+        prev.next = prev.next.next            # lompati target
+    return head
+```
+
+Kondisi `prev->next != nullptr && prev->next->data != x` aman karena [short-circuit](/docs/cpp/operator-perbandingan-dan-logika#evaluasi-short-circuit): jika `prev->next` sudah `nullptr`, bagian kanan `&&` tidak dijalankan, sehingga `prev->next->data` tidak pernah dibaca dari `nullptr`. Jika urutan kedua kondisi itu ditukar, program bisa crash saat nilai yang dicari tidak ada.
+
+Urutan langkah di C++ juga penting: sambungkan dulu `prev->next = target->next`, **baru** `delete target`. Jika dibalik, `target->next` dibaca dari node yang sudah dihapus.
+
+## Kesalahan yang sering terjadi
+
+Linked list adalah tempat pertama banyak orang bertemu kesalahan memori. Kenali empat yang paling umum.
+
+### Mengakses `nullptr`
+
+`p->data` saat `p` bernilai `nullptr` berarti membaca dari "alamat kosong". Di C++ ini _undefined behavior_ dan biasanya membuat program berhenti dengan pesan `Segmentation fault`. Contohnya `tambahBelakang` tanpa pengecekan list kosong: `while (p->next != nullptr)` langsung membaca `nullptr->next`. Python lebih jelas, ia berhenti dengan `AttributeError: 'NoneType' object has no attribute 'next'`.
+
+Aturannya: sebelum menulis `p->...`, pastikan `p` tidak mungkin `nullptr` di titik itu.
+
+### Kehilangan head
+
+```cpp
+// ✗ di main: head ikut digeser, setelah perulangan head bernilai nullptr
+while (head != nullptr) {
+    cout << head->data << " ";
+    head = head->next;
+}
+```
+
+Setelah perulangan ini, tidak ada lagi variabel yang menyimpan alamat node pertama. Node-node itu masih ada di memori, tetapi tidak bisa dijangkau, apalagi di-`delete`. Gunakan pointer terpisah (`Node* p = head;`) untuk menelusuri.
+
+### Lupa `delete` (memory leak)
+
+Setiap node dari `new` tetap memakai memori sampai di-`delete`. Program yang terus membuat node tanpa membebaskannya akan memakan memori makin banyak. Kondisi ini disebut **memory leak**. Untuk program pendek, sistem operasi mengambil kembali semua memori saat program selesai. Namun pada program yang berjalan lama, seperti server atau game, kebocoran kecil menumpuk sampai memori habis.
+
+### Memakai node yang sudah di-`delete`
+
+```cpp
+// ✗ p->next dibaca SETELAH node p dihapus
+while (p != nullptr) {
+    delete p;
+    p = p->next;
+}
+```
+
+Setelah `delete p`, memori itu bukan milik kita lagi, tetapi `p` masih menyimpan alamatnya. Pointer seperti ini disebut **dangling pointer**. Membacanya adalah _undefined behavior_: kadang program langsung crash, kadang terlihat baik-baik saja saat dicoba lalu salah di waktu lain. Perbaikannya sudah kamu lihat di `hapusSemua`: simpan `next` lebih dulu.
+
+<Callout title="Minta compiler membantu">
+  Kompilasi dengan `g++ -std=c++17 -fsanitize=address,undefined -g program.cpp`. Program yang dihasilkan akan langsung berhenti dengan laporan jelas jika mengakses `nullptr`, memakai node yang sudah di-`delete`, atau lupa membebaskan memori (dicek saat program selesai).
+</Callout>
+
+<DeepDive href="/docs/cpp/pendalaman/undefined-behavior" kind="konsep" title="Undefined behavior">
+  Kenapa C++ tidak memeriksa akses memori seperti ini, kesalahan lain yang termasuk _undefined behavior_, dan cara menangkapnya dengan sanitizer.
+</DeepDive>
+
+## Stack dan queue di atas linked list
+
+Linked list sering menjadi "mesin" di balik struktur data lain.
+
+- [Stack](/docs/cpp/stack) cukup memakai head sebagai puncak. **Push** berarti menambah di depan, **pop** berarti menghapus head. Keduanya tidak perlu menelusuri list.
+- [Queue](/docs/cpp/queue) memakai head dan tail. **Enqueue** menambah di belakang lewat `tail`, **dequeue** menghapus head. Elemen masuk dari belakang dan keluar dari depan, persis seperti antrean.
+
+```cpp tab="C++"
+Node* top = nullptr;              // puncak stack = head list
+
+top = new Node{5, top};           // push 5
+top = new Node{8, top};           // push 8, stack: 8 5
+
+if (top != nullptr) {             // pop
+    cout << top->data << endl;    // 8
+    Node* lama = top;
+    top = top->next;
+    delete lama;
+}
+```
+
+```python tab="Python"
+top = None                        # puncak stack = head list
+
+top = Node(5, top)                # push 5
+top = Node(8, top)                # push 8, stack: 8 5
+
+if top is not None:               # pop
+    print(top.data)               # 8
+    top = top.next
+```
+
+Di program nyata, `std::stack`, `std::queue`, dan `deque` di Python sudah menangani semua ini. Membuatnya sendiri berguna untuk memahami cara kerjanya.
+
+## `std::list` dan perbandingan dengan array
+
+C++ menyediakan linked list siap pakai di pustaka `<list>`. Setiap node `std::list` menunjuk ke node sesudah **dan** sebelumnya (_doubly linked list_), dan memorinya diurus otomatis tanpa `new`/`delete`:
+
+```cpp
+#include <list>
+
+list<int> data = {3, 7, 9};
+data.push_front(1);      // 1 3 7 9
+data.push_back(12);      // 1 3 7 9 12
+data.remove(7);          // hapus semua 7: 1 3 9 12
+
+for (int x : data) {
+    cout << x << " ";
+}
+// data[2] tidak ada: list tidak bisa diakses lewat indeks
+```
+
+Python tidak punya linked list bawaan. `list` milik Python sebenarnya array yang bisa membesar, seperti `vector`. Untuk menambah dan mengambil di kedua ujung dengan cepat, Python memakai `deque` yang sudah kamu kenal di materi [Queue](/docs/cpp/queue).
+
+Tabel berikut membandingkan keduanya. Notasi O di setiap sel menggambarkan banyak langkah saat data berisi `n` elemen: O(1) berarti jumlah langkahnya tetap, sedangkan O(n) berarti sebanding dengan banyak data. Notasi ini dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+| Operasi | Array / vector | Linked list |
+| --- | --- | --- |
+| Akses elemen ke-`i` | Langsung, O(1) | Telusuri `i` node, O(n) |
+| Tambah atau hapus di depan | Geser semua elemen, O(n) | Ubah satu pointer, O(1) |
+| Tambah di belakang | `push_back`, O(1) rata-rata | O(1) jika menyimpan `tail` |
+| Sisip atau hapus di tengah (node sebelumnya sudah dipegang) | Geser elemen di belakangnya, O(n) | Ubah satu atau dua pointer, O(1) |
+| Mencari sebuah nilai | Periksa satu per satu, O(n) | Periksa satu per satu, O(n) |
+| Memori tambahan | Tidak ada | Satu pointer di setiap node |
+
+<Callout type="info" title="Dalam praktik, vector sering tetap menang">
+  Prosesor membaca memori yang berdampingan jauh lebih cepat daripada memori yang tersebar. Karena itu `vector` sering lebih cepat daripada linked list, bahkan untuk menyisipkan di tengah pada data yang tidak terlalu besar. Pakai `vector` sebagai pilihan awal. Linked list tetap penting dipelajari karena menjadi dasar banyak struktur data lain dan melatih cara berpikir tentang alamat.
+</Callout>
+
+## Rangkuman
+
+- Linked list menyimpan data dalam **node**. Setiap node berisi data dan **alamat** node berikutnya (`next`). Node terakhir menunjuk ke `nullptr` (Python: `None`).
+- **Pointer** adalah variabel yang menyimpan alamat. `new Node{...}` membuat node, `p->data` mengakses anggota lewat pointer, dan `delete p` membebaskannya.
+- Telusuri list dengan pointer terpisah: `for (Node* p = head; p != nullptr; p = p->next)`. Jangan menggeser `head` itu sendiri.
+- Menambah dan menghapus di depan selalu cepat. Menambah di belakang cepat jika menyimpan pointer `tail`.
+- Untuk menghapus node, alihkan `next` milik node sebelumnya, baru `delete`. Kasus head ditangani terpisah.
+- Di C++, setiap `new` butuh pasangan `delete`. Waspadai akses `nullptr`, memory leak, dan dangling pointer. Python membebaskan memori secara otomatis.
+- Linked list unggul untuk sisip/hapus di posisi yang sudah diketahui, tetapi tidak bisa diakses lewat indeks. `std::list` adalah versi siap pakai di C++.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, list dibaca dengan format `n` di baris pertama lalu `n` bilangan di baris kedua, dan isi list dicetak dipisah satu spasi. Solusi C++ selalu membebaskan semua node sebelum program selesai.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Panjang dan total list">
+  Baca bilangan bulat dalam satu baris sampai bertemu `0` (angka `0` tidak ikut disimpan). Masukkan setiap bilangan ke belakang linked list. Lalu tulis dua fungsi yang **menelusuri list**: `panjang(head)` yang menghitung banyak node dan `total(head)` yang menjumlahkan isinya. Tampilkan kedua hasil dipisah spasi.
+
+  | Input | Output |
+  | --- | --- |
+  | `4 8 15 16 0` | `4 43` |
+  | `7 0` | `1 7` |
+  | `0` | `0 0` |
+
+  <Pembahasan>
+    Kedua fungsi memakai pola penelusuran yang sama, hanya isi perulangannya yang berbeda. Untuk list kosong, perulangan tidak berjalan sama sekali sehingga keduanya mengembalikan `0`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    int panjang(Node* head) {
+        int hitung = 0;
+        for (Node* p = head; p != nullptr; p = p->next) {
+            hitung++;
+        }
+        return hitung;
+    }
+
+    int total(Node* head) {
+        int jumlah = 0;
+        for (Node* p = head; p != nullptr; p = p->next) {
+            jumlah += p->data;
+        }
+        return jumlah;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    int main() {
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        while (true) {
+            int x;
+            cin >> x;
+            if (x == 0) {
+                break;
+            }
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+
+        cout << panjang(head) << " " << total(head) << endl;
+        hapusSemua(head);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def panjang(head):
+        hitung = 0
+        p = head
+        while p is not None:
+            hitung += 1
+            p = p.next
+        return hitung
+
+
+    def total(head):
+        jumlah = 0
+        p = head
+        while p is not None:
+            jumlah += p.data
+            p = p.next
+        return jumlah
+
+
+    head = None
+    tail = None
+    for x in map(int, input().split()):
+        if x == 0:
+            break
+        baru = Node(x)
+        if head is None:
+            head = baru
+        else:
+            tail.next = baru
+        tail = baru
+
+    print(panjang(head), total(head))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output">
+  Tanpa menjalankannya, tentukan output program berikut.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  struct Node {
+      int data;
+      Node* next;
+  };
+
+  int main() {
+      Node* head = nullptr;
+      for (int i = 1; i <= 4; i++) {
+          head = new Node{i * 10, head};
+      }
+      head->next->data = 99;
+
+      for (Node* p = head; p != nullptr; p = p->next) {
+          cout << p->data << " ";
+      }
+      cout << endl;
+
+      while (head != nullptr) {
+          Node* berikut = head->next;
+          delete head;
+          head = berikut;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Node:
+      def __init__(self, data, next=None):
+          self.data = data
+          self.next = next
+
+
+  head = None
+  for i in range(1, 5):
+      head = Node(i * 10, head)
+  head.next.data = 99
+
+  p = head
+  while p is not None:
+      print(p.data, end=" ")
+      p = p.next
+  print()
+  ```
+
+  <Pembahasan>
+    Output-nya `40 99 20 10`.
+
+    Setiap putaran membuat node baru **di depan** head lama, jadi node yang dibuat terakhir berada paling depan:
+
+    | `i` | Node baru | Isi list sesudahnya |
+    | --- | --- | --- |
+    | 1 | 10 | 10 |
+    | 2 | 20 | 20 10 |
+    | 3 | 30 | 30 20 10 |
+    | 4 | 40 | 40 30 20 10 |
+
+    Lalu `head->next` adalah node kedua (30), dan datanya diganti menjadi 99. Kesalahan yang sering terjadi adalah menjawab `10 99 30 40`, yaitu lupa bahwa menambah di depan membalik urutan.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Angka terakhir tidak tercetak">
+  Fungsi berikut seharusnya mencetak seluruh isi list. Untuk list `3 → 7 → 9`, ternyata hasilnya hanya `3 7`. Jelaskan penyebabnya dan perbaiki fungsinya. Apa yang terjadi jika fungsi ini dipanggil dengan list kosong?
+
+  ```cpp tab="C++"
+  void cetak(Node* head) {
+      Node* p = head;
+      while (p->next != nullptr) {
+          cout << p->data << " ";
+          p = p->next;
+      }
+      cout << endl;
+  }
+  ```
+
+  ```python tab="Python"
+  def cetak(head):
+      p = head
+      while p.next is not None:
+          print(p.data, end=" ")
+          p = p.next
+      print()
+  ```
+
+  <Petunjuk>
+    Saat `p` sampai di node 9, berapa nilai `p->next`? Apakah badan perulangan masih dijalankan?
+  </Petunjuk>
+
+  <Pembahasan>
+    Kondisi `p->next != nullptr` berarti "masih ada node **sesudah** `p`". Saat `p` sampai di node terakhir (9), `p->next` sudah `nullptr`, sehingga perulangan berhenti sebelum 9 dicetak. Untuk list kosong, `p` sendiri sudah `nullptr`, jadi `p->next` membaca dari `nullptr`: C++ biasanya crash dengan `Segmentation fault` dan Python berhenti dengan `AttributeError`.
+
+    Perbaikannya, periksa node-nya sendiri: `p != nullptr`. Kondisi `p->next != nullptr` hanya tepat jika kita memang ingin berhenti **di** node terakhir, seperti pada `tambahBelakang`.
+
+    ```cpp tab="C++"
+    void cetak(Node* head) {
+        Node* p = head;
+        while (p != nullptr) {
+            cout << p->data << " ";
+            p = p->next;
+        }
+        cout << endl;
+    }
+    ```
+
+    ```python tab="Python"
+    def cetak(head):
+        p = head
+        while p is not None:
+            print(p.data, end=" ")
+            p = p.next
+        print()
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Apakah dua list sama?">
+  Baca dua list, A lalu B, masing-masing dengan format `n` lalu `n` bilangan. Tulis fungsi `sama(a, b)` yang menelusuri **kedua list bersamaan** dan menentukan apakah isinya sama persis (panjang sama dan setiap posisi bernilai sama). Tampilkan `SAMA` atau `BEDA`. Jangan menghitung panjang list lebih dulu.
+
+  ```txt title="Contoh input"
+  3
+  1 2 3
+  3
+  1 2 3
+  ```
+
+  ```txt title="Contoh output"
+  SAMA
+  ```
+
+  Jika list B diganti menjadi `2` lalu `1 2`, output-nya `BEDA`.
+
+  <Petunjuk>
+    Gerakkan dua pointer, satu di setiap list, selama **keduanya** belum `nullptr`. Begitu ada nilai yang berbeda, jawabannya pasti `BEDA`. Setelah perulangan selesai, kedua list sama hanya jika kedua pointer **bersamaan** sampai di `nullptr`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Perulangan berhenti saat salah satu list habis. Jika saat itu list lainnya belum habis, panjangnya berbeda. Itulah arti `return p == nullptr && q == nullptr;` di akhir fungsi. Kesalahan yang sering terjadi adalah langsung mengembalikan `true` setelah perulangan, sehingga `1 2` dianggap sama dengan `1 2 3`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    Node* bacaList() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+        return head;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    bool sama(Node* a, Node* b) {
+        Node* p = a;
+        Node* q = b;
+        while (p != nullptr && q != nullptr) {
+            if (p->data != q->data) {
+                return false;
+            }
+            p = p->next;
+            q = q->next;
+        }
+        return p == nullptr && q == nullptr;   // keduanya habis bersamaan?
+    }
+
+    int main() {
+        Node* a = bacaList();
+        Node* b = bacaList();
+
+        if (sama(a, b)) {
+            cout << "SAMA" << endl;
+        } else {
+            cout << "BEDA" << endl;
+        }
+
+        hapusSemua(a);
+        hapusSemua(b);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def baca_list():
+        n = int(input())
+        angka = list(map(int, input().split()))
+        head = None
+        tail = None
+        for x in angka:
+            baru = Node(x)
+            if head is None:
+                head = baru
+            else:
+                tail.next = baru
+            tail = baru
+        return head
+
+
+    def sama(a, b):
+        p = a
+        q = b
+        while p is not None and q is not None:
+            if p.data != q.data:
+                return False
+            p = p.next
+            q = q.next
+        return p is None and q is None     # keduanya habis bersamaan?
+
+
+    a = baca_list()
+    b = baca_list()
+    if sama(a, b):
+        print("SAMA")
+    else:
+        print("BEDA")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Hapus semua kemunculan">
+  Baca sebuah list, lalu sebuah bilangan `x` di baris ketiga. Hapus **semua** node yang bernilai `x`, lalu cetak isi list. Jika list menjadi kosong, cetak `kosong`.
+
+  ```txt title="Contoh input"
+  7
+  5 1 5 5 2 5 3
+  5
+  ```
+
+  ```txt title="Contoh output"
+  1 2 3
+  ```
+
+  Untuk input `3`, `4 4 4`, `4`, output-nya `kosong`.
+
+  <Petunjuk>
+    Tangani head lebih dulu dengan `while`, bukan `if`, karena beberapa node terdepan bisa sama-sama bernilai `x`. Setelah itu, telusuri dengan `prev`. Jika `prev->next` harus dihapus, **jangan** geser `prev`, karena node baru di `prev->next` juga perlu diperiksa.
+  </Petunjuk>
+
+  <Pembahasan>
+    Bagian pertama membuang `x` di depan sampai head bukan `x` (atau list habis). Bagian kedua memeriksa node sesudah `prev`: jika harus dihapus, node itu dilompati dan `prev` tetap di tempat. Jika tidak, barulah `prev` maju. Pada contoh `5 1 5 5 2 5 3`, menggeser `prev` setelah menghapus akan melewatkan `5` yang kedua dari pasangan `5 5`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    Node* bacaList() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+        return head;
+    }
+
+    void cetak(Node* head) {
+        for (Node* p = head; p != nullptr; p = p->next) {
+            cout << p->data;
+            if (p->next != nullptr) {
+                cout << " ";
+            }
+        }
+        cout << endl;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    Node* hapusSemuaX(Node* head, int x) {
+        while (head != nullptr && head->data == x) {     // x di bagian depan
+            Node* sisa = head->next;
+            delete head;
+            head = sisa;
+        }
+        if (head == nullptr) {
+            return nullptr;
+        }
+        Node* prev = head;                               // head pasti bukan x
+        while (prev->next != nullptr) {
+            if (prev->next->data == x) {
+                Node* target = prev->next;
+                prev->next = target->next;               // prev tidak digeser
+                delete target;
+            } else {
+                prev = prev->next;
+            }
+        }
+        return head;
+    }
+
+    int main() {
+        Node* head = bacaList();
+        int x;
+        cin >> x;
+
+        head = hapusSemuaX(head, x);
+        if (head == nullptr) {
+            cout << "kosong" << endl;
+        } else {
+            cetak(head);
+        }
+        hapusSemua(head);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def baca_list():
+        n = int(input())
+        angka = list(map(int, input().split()))
+        head = None
+        tail = None
+        for x in angka:
+            baru = Node(x)
+            if head is None:
+                head = baru
+            else:
+                tail.next = baru
+            tail = baru
+        return head
+
+
+    def cetak(head):
+        p = head
+        while p is not None:
+            print(p.data, end="")
+            if p.next is not None:
+                print(" ", end="")
+            p = p.next
+        print()
+
+
+    def hapus_semua_x(head, x):
+        while head is not None and head.data == x:     # x di bagian depan
+            head = head.next
+        if head is None:
+            return None
+        prev = head                                    # head pasti bukan x
+        while prev.next is not None:
+            if prev.next.data == x:
+                prev.next = prev.next.next             # prev tidak digeser
+            else:
+                prev = prev.next
+        return head
+
+
+    head = baca_list()
+    x = int(input())
+
+    head = hapus_semua_x(head, x)
+    if head is None:
+        print("kosong")
+    else:
+        cetak(head)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Sisipkan dengan terurut">
+  Baca `n` bilangan. Masukkan bilangan satu per satu ke linked list sehingga list **selalu terurut naik** setelah setiap penyisipan. Jangan mengurutkan di akhir dan jangan memakai array. Cetak isi list.
+
+  ```txt title="Contoh input"
+  6
+  5 2 9 1 5 7
+  ```
+
+  ```txt title="Contoh output"
+  1 2 5 5 7 9
+  ```
+
+  <Petunjuk>
+    Ada dua kasus. Jika list kosong atau nilai baru tidak lebih besar dari head, sisipkan di depan. Selain itu, cari node `p` terakhir yang masih lebih kecil dari nilai baru: geser `p` selama `p->next` ada dan `p->next->data` masih lebih kecil. Sisipkan node baru di antara `p` dan `p->next`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Menyisipkan di antara `p` dan `p->next` membutuhkan dua langkah dengan urutan tertentu: node baru dibuat dengan `next` menunjuk ke `p->next`, baru kemudian `p->next` diarahkan ke node baru. Jika dibalik, alamat sisa list hilang. Karena setiap penyisipan menjaga urutan, list sudah terurut saat semua bilangan selesai dibaca.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    void cetak(Node* head) {
+        for (Node* p = head; p != nullptr; p = p->next) {
+            cout << p->data;
+            if (p->next != nullptr) {
+                cout << " ";
+            }
+        }
+        cout << endl;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    Node* sisipTerurut(Node* head, int x) {
+        if (head == nullptr || x <= head->data) {
+            return new Node{x, head};          // kasus 1: jadi head baru
+        }
+        Node* p = head;
+        while (p->next != nullptr && p->next->data < x) {
+            p = p->next;
+        }
+        p->next = new Node{x, p->next};        // kasus 2: di antara p dan p->next
+        return head;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            head = sisipTerurut(head, x);
+        }
+
+        cetak(head);
+        hapusSemua(head);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def cetak(head):
+        p = head
+        while p is not None:
+            print(p.data, end="")
+            if p.next is not None:
+                print(" ", end="")
+            p = p.next
+        print()
+
+
+    def sisip_terurut(head, x):
+        if head is None or x <= head.data:
+            return Node(x, head)               # kasus 1: jadi head baru
+        p = head
+        while p.next is not None and p.next.data < x:
+            p = p.next
+        p.next = Node(x, p.next)               # kasus 2: di antara p dan p.next
+        return head
+
+
+    n = int(input())
+    head = None
+    for x in map(int, input().split()):
+        head = sisip_terurut(head, x)
+
+    cetak(head)
+    ```
+
+    Pada `new Node{x, p->next}`, nilai `p->next` yang lama dipakai lebih dulu untuk membuat node baru, baru kemudian hasilnya disimpan ke `p->next`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Stack dari linked list">
+  Buat stack bilangan bulat memakai linked list buatanmu sendiri (tanpa `std::stack`, `vector`, atau list Python). Baris pertama berisi `q`, banyak perintah. Setiap baris berikutnya berisi salah satu perintah:
+
+  - `PUSH x`: masukkan `x` ke puncak stack, tanpa output.
+  - `POP`: keluarkan elemen puncak dan cetak nilainya.
+  - `TOP`: cetak elemen puncak tanpa mengeluarkannya.
+
+  Jika `POP` atau `TOP` dijalankan saat stack kosong, cetak `kosong`.
+
+  ```txt title="Contoh input"
+  7
+  PUSH 4
+  PUSH 9
+  TOP
+  POP
+  POP
+  POP
+  TOP
+  ```
+
+  ```txt title="Contoh output"
+  9
+  9
+  4
+  kosong
+  kosong
+  ```
+
+  <Petunjuk>
+    Puncak stack adalah head list. `PUSH` sama dengan menambah di depan, `POP` sama dengan menghapus head. Ingat untuk memeriksa `top == nullptr` sebelum membaca `top->data`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Dengan puncak di head, setiap perintah hanya menyentuh node terdepan, jadi tidak perlu menelusuri list sama sekali. Di akhir program, node yang masih tersisa di stack harus dibebaskan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    int main() {
+        int q;
+        cin >> q;
+
+        Node* top = nullptr;
+        for (int i = 0; i < q; i++) {
+            string perintah;
+            cin >> perintah;
+
+            if (perintah == "PUSH") {
+                int x;
+                cin >> x;
+                top = new Node{x, top};
+            } else if (top == nullptr) {
+                cout << "kosong" << endl;
+            } else if (perintah == "TOP") {
+                cout << top->data << endl;
+            } else {                              // POP
+                cout << top->data << endl;
+                Node* lama = top;
+                top = top->next;
+                delete lama;
+            }
+        }
+
+        while (top != nullptr) {                  // bebaskan sisa stack
+            Node* berikut = top->next;
+            delete top;
+            top = berikut;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    q = int(input())
+    top = None
+    for i in range(q):
+        bagian = input().split()
+        perintah = bagian[0]
+
+        if perintah == "PUSH":
+            top = Node(int(bagian[1]), top)
+        elif top is None:
+            print("kosong")
+        elif perintah == "TOP":
+            print(top.data)
+        else:                                     # POP
+            print(top.data)
+            top = top.next
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Membalik list">
+  Baca sebuah list, lalu **balik urutannya** dengan mengubah arah `next` setiap node. Jangan membuat node baru dan jangan memakai array. Cetak isi list setelah dibalik.
+
+  | Input | Output |
+  | --- | --- |
+  | `5` lalu `1 2 3 4 5` | `5 4 3 2 1` |
+  | `1` lalu `7` | `7` |
+
+  <Petunjuk>
+    Telusuri list sekali dengan tiga pointer: `prev` (node sebelumnya, awalnya `nullptr`), `cur` (node sekarang), dan `berikut`. Di setiap langkah: simpan `cur->next` ke `berikut`, arahkan `cur->next` ke `prev`, lalu geser `prev` dan `cur` satu langkah. Saat `cur` menjadi `nullptr`, `prev` adalah head yang baru.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap node cukup "memutar" panahnya agar menunjuk ke belakang. Masalahnya, begitu `cur->next` diubah, jalan menuju sisa list hilang. Karena itu `berikut` disimpan **sebelum** panahnya diputar. Jejak untuk `1 2 3`:
+
+    | Langkah | `prev` | `cur` | Bagian yang sudah dibalik |
+    | --- | --- | --- | --- |
+    | awal | `nullptr` | 1 | (belum ada) |
+    | 1 | 1 | 2 | 1 |
+    | 2 | 2 | 3 | 2 → 1 |
+    | 3 | 3 | `nullptr` | 3 → 2 → 1 |
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    Node* bacaList() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+        return head;
+    }
+
+    void cetak(Node* head) {
+        for (Node* p = head; p != nullptr; p = p->next) {
+            cout << p->data;
+            if (p->next != nullptr) {
+                cout << " ";
+            }
+        }
+        cout << endl;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    Node* balik(Node* head) {
+        Node* prev = nullptr;
+        Node* cur = head;
+        while (cur != nullptr) {
+            Node* berikut = cur->next;   // simpan jalan ke sisa list
+            cur->next = prev;            // putar panah ke belakang
+            prev = cur;                  // geser prev
+            cur = berikut;               // geser cur
+        }
+        return prev;                     // node terakhir kini menjadi head
+    }
+
+    int main() {
+        Node* head = bacaList();
+        head = balik(head);
+        cetak(head);
+        hapusSemua(head);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def baca_list():
+        n = int(input())
+        angka = list(map(int, input().split()))
+        head = None
+        tail = None
+        for x in angka:
+            baru = Node(x)
+            if head is None:
+                head = baru
+            else:
+                tail.next = baru
+            tail = baru
+        return head
+
+
+    def cetak(head):
+        p = head
+        while p is not None:
+            print(p.data, end="")
+            if p.next is not None:
+                print(" ", end="")
+            p = p.next
+        print()
+
+
+    def balik(head):
+        prev = None
+        cur = head
+        while cur is not None:
+            berikut = cur.next           # simpan jalan ke sisa list
+            cur.next = prev              # putar panah ke belakang
+            prev = cur                   # geser prev
+            cur = berikut                # geser cur
+        return prev                      # node terakhir kini menjadi head
+
+
+    head = baca_list()
+    head = balik(head)
+    cetak(head)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Node tengah sekali jalan">
+  Baca sebuah list berisi minimal satu node, lalu cetak nilai node tengahnya. Jika banyak node genap, ada dua node tengah: ambil yang **kedua**. Aturannya, list hanya boleh ditelusuri **satu kali** dan panjangnya tidak boleh dihitung lebih dulu.
+
+  | Input | Output |
+  | --- | --- |
+  | `5` lalu `1 2 3 4 5` | `3` |
+  | `4` lalu `10 20 30 40` | `30` |
+  | `1` lalu `8` | `8` |
+
+  <Petunjuk>
+    Pakai dua pointer yang sama-sama mulai dari head: `lambat` maju satu node per langkah, `cepat` maju dua node per langkah. Saat `cepat` tidak bisa maju dua langkah lagi, `lambat` tepat berada di tengah.
+  </Petunjuk>
+
+  <Pembahasan>
+    Karena `cepat` bergerak dua kali lebih jauh, saat `cepat` mencapai ujung, `lambat` baru menempuh separuh jalan. Kondisi perulangan `cepat != nullptr && cepat->next != nullptr` memastikan `cepat->next->next` aman dibaca. Untuk 4 node, `lambat` berpindah 1 → 2 → 3 sementara `cepat` berpindah 1 → 3 → `nullptr`, sehingga hasilnya node ketiga (30), yaitu node tengah yang kedua.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    Node* bacaList() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+        return head;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    int main() {
+        Node* head = bacaList();
+
+        Node* lambat = head;
+        Node* cepat = head;
+        while (cepat != nullptr && cepat->next != nullptr) {
+            lambat = lambat->next;           // satu langkah
+            cepat = cepat->next->next;       // dua langkah
+        }
+        cout << lambat->data << endl;
+
+        hapusSemua(head);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def baca_list():
+        n = int(input())
+        angka = list(map(int, input().split()))
+        head = None
+        tail = None
+        for x in angka:
+            baru = Node(x)
+            if head is None:
+                head = baru
+            else:
+                tail.next = baru
+            tail = baru
+        return head
+
+
+    head = baca_list()
+
+    lambat = head
+    cepat = head
+    while cepat is not None and cepat.next is not None:
+        lambat = lambat.next             # satu langkah
+        cepat = cepat.next.next          # dua langkah
+    print(lambat.data)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Gabung dua list terurut">
+  Baca dua list A dan B (masing-masing minimal satu node) yang isinya sudah terurut naik. Gabungkan menjadi satu list terurut naik **dengan menyambung ulang node yang sudah ada**: jangan membuat node baru, jangan memakai array, dan jangan mengurutkan ulang. Cetak hasilnya.
+
+  ```txt title="Contoh input"
+  4
+  1 4 6 9
+  3
+  2 4 10
+  ```
+
+  ```txt title="Contoh output"
+  1 2 4 4 6 9 10
+  ```
+
+  <Petunjuk>
+    Siapkan `head` dan `tail` untuk list hasil, keduanya awalnya `nullptr`. Selama A dan B sama-sama belum habis, ambil node terdepan yang lebih kecil, majukan list asalnya, lalu sambungkan node itu di belakang `tail`. Setelah salah satu habis, sisa list lainnya sudah terurut, jadi cukup disambungkan sekaligus.
+  </Petunjuk>
+
+  <Pembahasan>
+    Idenya mirip menggabungkan dua tumpukan kartu yang sudah terurut: bandingkan kartu teratas, ambil yang lebih kecil, ulangi. Node pertama yang diambil menjadi `head`, dan node berikutnya disambungkan lewat `tail`. Karena tidak ada node baru, cukup satu `hapusSemua` pada list hasil untuk membebaskan semua node dari A dan B. Fungsi ini juga benar jika salah satu list kosong: perulangannya tidak berjalan dan hasilnya langsung list yang lain.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Node {
+        int data;
+        Node* next;
+    };
+
+    Node* bacaList() {
+        int n;
+        cin >> n;
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            Node* baru = new Node{x, nullptr};
+            if (head == nullptr) {
+                head = baru;
+            } else {
+                tail->next = baru;
+            }
+            tail = baru;
+        }
+        return head;
+    }
+
+    void cetak(Node* head) {
+        for (Node* p = head; p != nullptr; p = p->next) {
+            cout << p->data;
+            if (p->next != nullptr) {
+                cout << " ";
+            }
+        }
+        cout << endl;
+    }
+
+    void hapusSemua(Node* head) {
+        while (head != nullptr) {
+            Node* berikut = head->next;
+            delete head;
+            head = berikut;
+        }
+    }
+
+    Node* gabung(Node* a, Node* b) {
+        Node* head = nullptr;
+        Node* tail = nullptr;
+        while (a != nullptr && b != nullptr) {
+            Node* kecil;
+            if (a->data <= b->data) {
+                kecil = a;
+                a = a->next;
+            } else {
+                kecil = b;
+                b = b->next;
+            }
+            if (head == nullptr) {
+                head = kecil;
+            } else {
+                tail->next = kecil;
+            }
+            tail = kecil;
+        }
+
+        Node* sisa = (a != nullptr) ? a : b;     // salah satu sudah habis
+        if (head == nullptr) {
+            return sisa;
+        }
+        tail->next = sisa;
+        return head;
+    }
+
+    int main() {
+        Node* a = bacaList();
+        Node* b = bacaList();
+
+        Node* hasil = gabung(a, b);
+        cetak(hasil);
+        hapusSemua(hasil);                     // semua node A dan B ada di sini
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self, data, next=None):
+            self.data = data
+            self.next = next
+
+
+    def baca_list():
+        n = int(input())
+        angka = list(map(int, input().split()))
+        head = None
+        tail = None
+        for x in angka:
+            baru = Node(x)
+            if head is None:
+                head = baru
+            else:
+                tail.next = baru
+            tail = baru
+        return head
+
+
+    def cetak(head):
+        p = head
+        while p is not None:
+            print(p.data, end="")
+            if p.next is not None:
+                print(" ", end="")
+            p = p.next
+        print()
+
+
+    def gabung(a, b):
+        head = None
+        tail = None
+        while a is not None and b is not None:
+            if a.data <= b.data:
+                kecil = a
+                a = a.next
+            else:
+                kecil = b
+                b = b.next
+            if head is None:
+                head = kecil
+            else:
+                tail.next = kecil
+            tail = kecil
+
+        sisa = a if a is not None else b       # salah satu sudah habis
+        if head is None:
+            return sisa
+        tail.next = sisa
+        return head
+
+
+    a = baca_list()
+    b = baca_list()
+    cetak(gabung(a, b))
+    ```
+  </Pembahasan>
+</Soal>

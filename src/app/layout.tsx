@@ -55,7 +55,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             links: [
               ['Pengantar C++', '/docs/cpp'],
               ['Algoritma & Flowchart', '/docs/cpp/algoritma-dan-flowchart'],
-              ['Input dengan cin', '/docs/cpp/input-dengan-cin'],
+              ['Input & Output', '/docs/cpp/input-dan-output'],
               ['Buffer Input & Output', '/docs/cpp/pendalaman/buffer'],
             ],
           }}

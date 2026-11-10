@@ -261,3 +261,14 @@ kbd,
   font-size: 11.5px;
   font-weight: 600;
 }
+
+/* Exercises (<Soal>, <Petunjuk>, <Pembahasan>) */
+.soal-body > :first-child,
+.soal-reveal-body > :first-child {
+  margin-top: 1rem;
+}
+
+.soal-body > :last-child,
+.soal-reveal-body > :last-child {
+  margin-bottom: 1rem;
+}

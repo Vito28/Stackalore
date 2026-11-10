@@ -1,0 +1,278 @@
+---
+title: Pointer
+description: Alamat memori, operator & dan *, nullptr, operator ->, pointer sebagai parameter fungsi, dan bedanya dengan reference.
+sumber:
+  - ref: cppreference
+    judul: Pointer declaration
+    url: https://en.cppreference.com/w/cpp/language/pointer
+  - ref: cppreference
+    judul: nullptr
+    url: https://en.cppreference.com/w/cpp/language/nullptr
+  - ref: cppreference
+    judul: Member access operators
+    url: https://en.cppreference.com/w/cpp/language/operator_member_access
+  - ref: python-docs
+    judul: Data model, Objects, values and types
+    url: https://docs.python.org/3/reference/datamodel.html#objects-values-and-types
+  - ref: python-docs
+    judul: id()
+    url: https://docs.python.org/3/library/functions.html#id
+---
+
+<BackToLesson href="/docs/cpp/linked-list" label="Linked List" />
+
+Di [Linked List](/docs/cpp/linked-list), setiap node menyimpan petunjuk ke node berikutnya. Petunjuk itu adalah **pointer**. Halaman ini membahas pointer dari awal: apa yang sebenarnya disimpan, arti tanda `&` dan `*`, dan kesalahan yang paling sering terjadi.
+
+## Memori: deretan kotak bernomor
+
+Bayangkan memori komputer sebagai deretan kotak yang sangat panjang. Setiap kotak menampung 1 byte dan punya **nomor urut** yang disebut **alamat** (_address_). Saat kamu membuat variabel, compiler memesan beberapa kotak berurutan untuknya: `int` biasanya memakai 4 kotak, `double` 8 kotak. Alamat sebuah variabel adalah alamat kotak pertamanya.
+
+<MemoryBoxes
+  caption="Dua variabel int di memori. Alamat 1000 dan 1004 hanya contoh agar mudah dibaca."
+  items={[
+    { name: 'umur', type: 'int · alamat 1000', value: '19' },
+    { name: 'nilai', type: 'int · alamat 1004', value: '85' },
+  ]}
+/>
+
+Selama ini kamu hanya memakai **nama** variabel (`umur`) dan **isinya** (`19`). Pointer memperkenalkan hal ketiga: **alamatnya**.
+
+## Operator `&`: alamat sebuah variabel
+
+Tanda `&` di depan nama variabel menghasilkan alamat variabel itu:
+
+```cpp
+int umur = 19;
+double tinggi = 165.5;
+
+cout << umur << endl;      // isi kotak: 19
+cout << &umur << endl;     // alamat kotak umur
+cout << &tinggi << endl;   // alamat kotak tinggi
+```
+
+```txt title="Output (misalnya)"
+19
+0x7ffe7246d08c
+0x7ffe7246d090
+```
+
+Alamat asli ditulis dalam **heksadesimal** (bilangan basis 16, diawali `0x`). Angkanya hampir pasti **berbeda** di komputermu, bahkan berubah setiap kali program dijalankan. Yang penting bukan angkanya, melainkan bahwa setiap variabel punya alamat.
+
+## Variabel pointer
+
+**Pointer** adalah variabel yang isinya **alamat** variabel lain. Tipenya ditulis dengan tanda `*` setelah tipe yang ditunjuk:
+
+```cpp
+int umur = 19;
+int* p = &umur;      // p adalah "pointer ke int", isinya alamat umur
+```
+
+`int* p` dibaca "`p` adalah pointer ke `int`". Karena `p` menyimpan alamat `umur`, kita bilang **`p` menunjuk `umur`**.
+
+<MemoryBoxes
+  caption="p juga sebuah kotak. Isinya 1000, yaitu alamat umur. Istilah 'menunjuk' sebenarnya hanyalah angka alamat ini."
+  items={[
+    { name: 'umur', type: 'int · alamat 1000', value: '19' },
+    { name: 'p', type: 'int* · alamat 1008', value: '1000' },
+  ]}
+/>
+
+Pointer juga punya tipe. Pointer ke `int` hanya boleh menyimpan alamat `int`:
+
+```cpp
+double* q = &umur;   // ✗ umur bertipe int, bukan double
+```
+
+```txt title="Error"
+error: cannot convert ‘int*’ to ‘double*’ in initialization
+```
+
+<Callout type="warning" title="Jebakan: dua pointer dalam satu baris">
+  `int* p, q;` **tidak** membuat dua pointer. Tanda `*` hanya menempel pada `p`, sehingga `q` adalah `int` biasa. Posisi spasi tidak berpengaruh: `int* p`, `int *p`, dan `int * p` sama saja. Agar aman, buat satu pointer per baris.
+</Callout>
+
+## Dereference `*p`: membuka kotak yang ditunjuk
+
+Jika `p` menunjuk sebuah variabel, `*p` berarti **kotak yang ditunjuk `p`**. Lewat `*p` kita bisa membaca isinya, bahkan mengubahnya. Operasi ini disebut **dereference**.
+
+```cpp
+int umur = 19;
+int* p = &umur;          // p menyimpan alamat umur
+
+cout << p << endl;       // alamat umur, misalnya 0x7ffdbdc7ad08
+cout << *p << endl;      // 19, isi kotak yang ditunjuk p
+
+*p = 20;                 // isi kotak yang ditunjuk p diubah
+cout << umur << endl;    // 20, umur ikut berubah
+
+int hasil = *p * 2;      // *p dulu (20), lalu dikali 2
+cout << hasil << endl;   // 40
+```
+
+Baris `*p = 20;` tidak mengubah `p`. Yang berubah adalah kotak **di alamat yang disimpan `p`**, yaitu `umur`. Ingat bedanya: `p` (tanpa bintang) adalah alamatnya, `*p` (dengan bintang) adalah isi kotaknya.
+
+### Tanda `*` dan `&` punya beberapa arti
+
+Inilah sumber kebingungan terbesar soal pointer. Arti `*` dan `&` bergantung pada **di mana** tanda itu ditulis:
+
+| Tanda | Ditulis di | Contoh | Arti |
+| --- | --- | --- | --- |
+| `*` | deklarasi, setelah tipe | `int* p` | `p` adalah pointer ke `int` |
+| `*` | ekspresi, di depan satu nilai | `*p` | kotak yang ditunjuk `p` (dereference) |
+| `*` | ekspresi, di antara dua nilai | `a * b` | perkalian |
+| `&` | deklarasi, setelah tipe | `int& r = x` | `r` adalah reference (nama lain) untuk `x` |
+| `&` | ekspresi, di depan satu nilai | `&x` | alamat `x` |
+| `&` | ekspresi, di antara dua nilai | `a & b` | operasi [bitwise](/docs/cpp/operator-bitwise) AND |
+
+Jadi `*p` yang sering kamu lihat (juga `*a`, `*node`, dan seterusnya) **tidak ada hubungannya dengan perkalian**. Pada `*p * 2` di atas, bintang pertama adalah dereference dan bintang kedua adalah perkalian.
+
+Dalam ekspresi, `&` dan `*` saling **berkebalikan**. `&umur` mengubah variabel menjadi alamatnya, sedangkan `*p` mengubah alamat kembali menjadi variabelnya. Karena itu `*&umur` sama dengan `umur`.
+
+## `nullptr`: pointer yang tidak menunjuk apa pun
+
+Pointer yang dibuat tanpa nilai awal berisi alamat sembarang. Menulis ke `*p` saat itu berarti menulis ke memori entah milik siapa, dan itu [undefined behavior](/docs/cpp/pendalaman/undefined-behavior). Jika belum ada yang bisa ditunjuk, isilah dengan **`nullptr`**, nilai khusus yang berarti "tidak menunjuk apa pun":
+
+```cpp
+int* p = nullptr;
+```
+
+`nullptr` berguna sebagai penanda. Di linked list, node terakhir punya `next` bernilai `nullptr`, artinya "tidak ada node berikutnya". Namun pointer kosong **tidak boleh** di-dereference, karena memang tidak ada kotak yang bisa dibuka:
+
+```cpp
+int* p = nullptr;          // p tidak menunjuk apa pun
+
+cout << "Sebelum" << endl;
+cout << *p << endl;        // dereference nullptr: undefined behavior
+cout << "Sesudah" << endl;
+```
+
+```txt title="Output (Linux)"
+Sebelum
+Segmentation fault (core dumped)
+```
+
+Compiler tidak memberi error, tetapi program **crash** saat baris itu dijalankan, dan `Sesudah` tidak pernah tampil. _Segmentation fault_ berarti program mencoba mengakses memori yang bukan miliknya. Di Windows, program biasanya berhenti dengan _return value_ `3221225477`, kode untuk akses memori yang dilarang.
+
+Aturannya sederhana: **periksa sebelum membuka**, misalnya dengan `if (p != nullptr)`. Kode lama memakai `NULL` atau `0` untuk pointer kosong. Sejak C++11, gunakan `nullptr`.
+
+## Pointer ke struct dan operator `->`
+
+Pointer juga bisa menunjuk [struct](/docs/cpp/struct). Untuk mengakses anggotanya, buka dulu kotaknya dengan `*`, lalu ambil anggotanya dengan `.`:
+
+```cpp
+struct Titik {
+    int x;
+    int y;
+};
+
+Titik t = {3, 4};
+Titik* p = &t;
+
+cout << (*p).x << endl;    // 3
+cout << p->x << endl;      // 3, cara singkat untuk hal yang sama
+
+p->y = 10;                 // mengubah t.y lewat pointer
+cout << t.y << endl;       // 10
+```
+
+Tanda kurung pada `(*p).x` wajib, karena `.` dikerjakan lebih dulu daripada `*`. Tanpa kurung, `*p.x` dibaca sebagai `*(p.x)`, dan compiler menolak karena `p` adalah pointer, bukan struct:
+
+```txt title="Error untuk *p.x"
+error: request for member ‘x’ in ‘p’, which is of pointer type ‘Titik*’ (maybe you meant to use ‘->’ ?)
+```
+
+Menulis `(*p).x` berulang kali melelahkan, jadi C++ menyediakan operator **`->`**: `p->x` sama persis dengan `(*p).x`. Pegangannya: jika memegang struct-nya langsung, pakai titik (`t.x`). Jika memegang pointer ke struct, pakai panah (`p->x`). Inilah yang kamu lihat di linked list, misalnya `node->next`.
+
+## Pointer sebagai parameter fungsi
+
+Di [Pass by Value & Pass by Reference](/docs/cpp/pendalaman/pass-by-value-dan-reference), fungsi `tukar` memakai reference agar bisa mengubah variabel pemanggil. Pointer adalah cara kedua, warisan bahasa C: kirim **alamat** variabelnya.
+
+```cpp
+void tukar(int* a, int* b) {
+    int sementara = *a;
+    *a = *b;
+    *b = sementara;
+}
+
+int x = 1, y = 2;
+tukar(&x, &y);              // kirim ALAMAT x dan y
+cout << x << " " << y;      // 2 1
+```
+
+Parameter `a` sebenarnya tetap menerima **salinan**, sesuai aturan pass by value. Namun yang disalin adalah alamat, sehingga `a` menunjuk kotak yang sama dengan `x`. Lewat `*a`, fungsi bisa mengubah `x` milik `main`.
+
+| | Dengan reference | Dengan pointer |
+| --- | --- | --- |
+| Parameter | `void tukar(int& a, int& b)` | `void tukar(int* a, int* b)` |
+| Cara memanggil | `tukar(x, y)` | `tukar(&x, &y)` |
+| Di dalam fungsi | `a = b` | `*a = *b` |
+
+## Pointer vs reference
+
+Pointer dan reference sama-sama memberi akses ke variabel lain, tetapi sifatnya berbeda:
+
+```cpp
+int a = 1, b = 2;
+
+int* p = &a;     // p menunjuk a
+p = &b;          // sekarang p menunjuk b
+*p = 5;          // b menjadi 5, a tetap 1
+
+int& r = a;      // r adalah nama lain untuk a, selamanya
+r = b;           // BUKAN memindahkan r: nilai b (5) disalin ke a
+```
+
+| | Pointer `int* p` | Reference `int& r` |
+| --- | --- | --- |
+| Isinya | sebuah alamat | bukan kotak baru, hanya nama lain |
+| Boleh kosong? | boleh, `nullptr` | tidak, harus langsung terhubung ke variabel |
+| Bisa pindah ke variabel lain? | bisa: `p = &b` | tidak bisa |
+| Cara memakai nilainya | `*p` atau `p->x` | langsung `r` atau `r.x` |
+| Pemakaian umum | linked list, [memori dinamis](/docs/cpp/pendalaman/memori-dinamis) | parameter fungsi |
+
+Pegangan praktisnya: **gunakan reference jika bisa, pointer jika perlu**. Pointer dibutuhkan saat sesuatu boleh "tidak ada" (`nullptr`) atau harus bisa berpindah, seperti pointer yang berjalan dari node ke node di linked list.
+
+Kamu mungkin juga menemukan `const int* p`. Artinya isi kotak tidak boleh diubah **lewat** `p` (`*p = 5` ditolak compiler), mirip `const` reference untuk parameter yang hanya dibaca.
+
+## Bagaimana dengan Python?
+
+Python **tidak punya pointer**. Tidak ada `&`, tidak ada `*p`, dan kamu tidak bisa menghitung dengan alamat memori. Namun idenya tetap ada: setiap variabel Python adalah **nama yang menunjuk sebuah objek**. Penugasan `b = a` tidak menyalin objeknya, melainkan membuat `b` menunjuk objek yang sama.
+
+```python
+a = [1, 2, 3]
+b = a              # b menunjuk objek yang SAMA dengan a
+c = [1, 2, 3]      # objek baru yang isinya kebetulan sama
+
+print(a == c)      # True: isinya sama
+print(a is c)      # False: objeknya berbeda
+print(a is b)      # True: objeknya sama
+
+b.append(4)
+print(a)           # [1, 2, 3, 4]
+```
+
+- **`==`** membandingkan **isi**, sedangkan **`is`** memeriksa apakah dua nama menunjuk **objek yang sama**. `a is b` mirip membandingkan dua pointer `p == q` di C++.
+- **`id(a)`** menghasilkan identitas objek, berupa bilangan bulat yang unik selama objek itu hidup. Di CPython (Python yang umum dipakai), angka ini adalah alamat objek di memori. `a is b` sama dengan `id(a) == id(b)`.
+- Objek **mutable** seperti `list` bisa diubah isinya, jadi perubahan lewat satu nama terlihat lewat nama lain. Objek **immutable** seperti `int` dan `str` tidak bisa diubah, jadi `y += 1` membuat `y` menunjuk objek baru:
+
+```python
+x = 5
+y = x          # y menunjuk objek 5 yang sama
+y += 1         # y dipindahkan ke objek baru, 6. Objek 5 tidak berubah
+print(x, y)    # 5 6
+```
+
+Padanan `nullptr` di Python adalah `None`. Bedanya, memakai `None` seolah-olah objek tidak membuat program crash, tetapi berhenti dengan pesan yang jelas, misalnya `AttributeError: 'NoneType' object has no attribute 'x'`. Python juga tidak membedakan `.` dan `->`: atribut selalu diakses dengan titik, karena setiap nama memang sudah menunjuk objeknya.
+
+## Rangkuman
+
+- Setiap variabel menempati kotak memori yang punya **alamat**. `&x` menghasilkan alamat `x`.
+- **Pointer** (`int* p`) adalah variabel yang isinya alamat. `*p` membuka kotak yang ditunjuk untuk dibaca atau diubah.
+- Arti `*` dan `&` bergantung tempatnya: di deklarasi membentuk tipe, di depan satu nilai berarti dereference atau alamat, di antara dua nilai berarti perkalian atau bitwise AND.
+- **`nullptr`** berarti tidak menunjuk apa pun. Men-dereference-nya adalah _undefined behavior_ dan biasanya membuat program crash, jadi periksa dulu.
+- `p->x` adalah singkatan dari `(*p).x`.
+- Fungsi bisa mengubah variabel pemanggil jika menerima alamatnya: `tukar(&x, &y)`.
+- Pointer boleh kosong dan bisa berpindah, reference tidak. Gunakan reference jika bisa, pointer jika perlu.
+- Python tidak punya pointer, tetapi setiap nama menunjuk objek. `is` dan `id()` memeriksa identitas objek, `==` memeriksa isinya.
+
+<BackToLesson href="/docs/cpp/linked-list" label="Linked List" />

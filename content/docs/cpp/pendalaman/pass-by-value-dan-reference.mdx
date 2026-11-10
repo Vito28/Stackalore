@@ -122,6 +122,12 @@ error: assignment of read-only location ...
   Jika fungsi menghasilkan satu nilai, `return` lebih mudah dibaca daripada parameter reference: `a = tambahSatu(a);` jelas menunjukkan bahwa `a` berubah, sedangkan `tambahSatu(a);` tidak.
 </Callout>
 
+Selain reference, ada cara kedua agar fungsi bisa mengubah variabel pemanggil, warisan bahasa C: kirim **alamat** variabelnya sebagai **pointer**, misalnya `tukar(&x, &y)`.
+
+<DeepDive href="/docs/cpp/pendalaman/pointer" kind="konsep" title="Pointer">
+  Alamat memori, operator `&` dan `*`, `nullptr`, fungsi `tukar` versi pointer, dan kapan memilih pointer atau reference.
+</DeepDive>
+
 ## Bagaimana dengan Python?
 
 Python tidak punya tanda `&`. Setiap variabel Python adalah **nama yang menunjuk sebuah objek**, dan parameter menerima **nama baru untuk objek yang sama**. Hasilnya bergantung pada apa yang dilakukan fungsi terhadap objek tersebut:

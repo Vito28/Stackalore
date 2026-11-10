@@ -1,0 +1,1465 @@
+---
+title: Struct
+description: Mengelompokkan data yang saling berkaitan menjadi satu tipe baru, menyimpannya di vector, serta mengirim dan mengembalikannya lewat fungsi.
+sumber:
+  - ref: cppreference
+    judul: Class declaration
+    url: https://en.cppreference.com/w/cpp/language/class
+  - ref: cppreference
+    judul: Aggregate initialization
+    url: https://en.cppreference.com/w/cpp/language/aggregate_initialization
+  - ref: python-docs
+    judul: Tutorial, Classes
+    url: https://docs.python.org/3/tutorial/classes.html
+  - ref: python-docs
+    judul: dataclasses, Data Classes
+    url: https://docs.python.org/3/library/dataclasses.html
+---
+
+## Masalah: data yang terpisah-pisah
+
+Setiap mahasiswa punya nama, NIM, dan nilai. Dengan bekal [Array & vector](/docs/cpp/array-dan-vector), cara pertama yang terpikir biasanya tiga vector terpisah:
+
+```cpp tab="C++"
+vector<string> nama = {"Budi", "Ani", "Citra"};
+vector<int> nim = {2301, 2302, 2303};
+vector<int> nilai = {78, 92, 85};
+
+// data Ani tersebar di tiga tempat: nama[1], nim[1], nilai[1]
+```
+
+```python tab="Python"
+nama = ["Budi", "Ani", "Citra"]
+nim = [2301, 2302, 2303]
+nilai = [78, 92, 85]
+
+# data Ani tersebar di tiga tempat: nama[1], nim[1], nilai[1]
+```
+
+Teknik ini disebut **array paralel**: elemen dengan indeks yang sama dianggap milik orang yang sama. Kelihatannya rapi, tetapi rapuh:
+
+- Menghapus atau menyisipkan satu mahasiswa harus dilakukan di **ketiga** vector. Lupa satu saja, data setelahnya bergeser ke orang yang salah, dan program tidak memberi error apa pun.
+- Fungsi yang mengolah satu mahasiswa butuh tiga parameter. Makin banyak atribut (alamat, angkatan, IPK), makin panjang daftar parameternya.
+- Tidak ada yang mencegah `nilai` berisi 4 elemen sementara `nama` hanya 3.
+
+Yang sebenarnya kita butuhkan adalah satu wadah bernama `Mahasiswa` yang berisi nama, NIM, dan nilai sekaligus. Wadah seperti ini disebut **struct**.
+
+## Mendefinisikan struct
+
+`struct` membuat **tipe data baru** yang tersusun dari beberapa variabel. Setiap variabel di dalamnya disebut **anggota** (_member_) dan diakses dengan tanda titik, misalnya `m.nama`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Mahasiswa {
+    string nama;
+    int nim;
+    int nilai;
+};                      // titik koma ini wajib
+
+int main() {
+    Mahasiswa m;        // variabel m bertipe Mahasiswa
+    m.nama = "Ani";
+    m.nim = 2302;
+    m.nilai = 92;
+
+    cout << m.nama << " (" << m.nim << "): " << m.nilai << endl;   // Ani (2302): 92
+    return 0;
+}
+```
+
+```python tab="Python"
+class Mahasiswa:
+    def __init__(self, nama, nim, nilai):
+        self.nama = nama
+        self.nim = nim
+        self.nilai = nilai
+
+
+m = Mahasiswa("Ani", 2302, 92)
+print(f"{m.nama} ({m.nim}): {m.nilai}")   # Ani (2302): 92
+```
+
+Definisi `struct Mahasiswa { ... };` hanyalah **cetakan**. Ia belum menyimpan data apa pun, sama seperti kata `int` belum berisi angka. Data baru ada saat kita membuat variabel dari cetakan itu, misalnya `Mahasiswa m;`. Satu cetakan bisa dipakai untuk membuat variabel sebanyak apa pun.
+
+<MemoryBoxes
+  caption="Satu variabel m berisi tiga anggota. Ketiganya selalu bepergian bersama."
+  items={[
+    { name: 'm.nama', type: 'string', value: '"Ani"' },
+    { name: 'm.nim', type: 'int', value: '2302' },
+    { name: 'm.nilai', type: 'int', value: '92' },
+  ]}
+/>
+
+<Callout type="warning" title="Jangan lupa titik koma">
+  Definisi struct diakhiri `};`. Tanpa titik koma itu, `g++` menolak dengan pesan `expected ';' after struct definition`.
+</Callout>
+
+Nama tipe struct biasanya diawali huruf kapital (`Mahasiswa`, `Titik`) agar mudah dibedakan dari nama variabel (`m`, `titikAwal`).
+
+### Padanannya di Python: `class`
+
+Python tidak punya `struct`. Padanan terdekatnya adalah `class` yang hanya berisi fungsi khusus `__init__`:
+
+- `__init__` dipanggil otomatis saat objek dibuat dengan `Mahasiswa("Ani", 2302, 92)`. Dua garis bawah di depan dan di belakang nama menandai fungsi khusus milik Python.
+- `self` adalah objek yang sedang dibuat. Baris `self.nama = nama` membuat anggota `nama` pada objek itu, lalu mengisinya dengan parameter `nama`.
+- Hasilnya disebut **objek**. Anggotanya diakses dengan titik, persis seperti di C++.
+
+`class` di Python sebenarnya bisa melakukan jauh lebih banyak, misalnya memiliki fungsinya sendiri dan mewarisi class lain. Itu termasuk pemrograman berorientasi objek (OOP) yang tidak dibahas di sini. Untuk saat ini, kita memakai `class` hanya sebagai pembungkus data.
+
+## Memberi nilai awal
+
+Mengisi anggota satu per satu cukup merepotkan. C++ mengizinkan semua anggota diisi sekaligus dengan kurung kurawal:
+
+```cpp
+Mahasiswa a = {"Budi", 2301, 78};   // urutan mengikuti urutan anggota di definisi
+Mahasiswa b{"Citra", 2303, 85};     // tanda = boleh dihilangkan
+
+a = {"Budi", 2301, 80};             // mengisi ulang semua anggota sekaligus
+```
+
+Urutan nilai harus sama dengan urutan anggota di definisi struct. Jika tipenya tidak cocok, misalnya `{2301, "Budi", 78}`, compiler menolak karena `2301` tidak bisa dijadikan `string`. Namun jika dua anggota bertipe sama, seperti `nim` dan `nilai`, menukar urutannya **tidak** menimbulkan error: `{"Budi", 78, 2301}` akan diterima dengan NIM 78. Periksa urutannya dengan teliti.
+
+<Callout type="warning" title="Anggota yang belum diisi">
+  `Mahasiswa d;` tanpa nilai awal membuat `d.nim` dan `d.nilai` berisi angka sisa memori, sama seperti `int x;` biasa. Membacanya termasuk [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior). Cara aman: beri nilai bawaan langsung di definisi, misalnya `int nim = 0;` dan `int nilai = 0;`. Anggota `string` otomatis berisi teks kosong.
+</Callout>
+
+```cpp
+struct Mahasiswa {
+    string nama;        // otomatis ""
+    int nim = 0;        // nilai bawaan
+    int nilai = 0;
+};
+
+Mahasiswa d;                     // nama "", nim 0, nilai 0
+Mahasiswa e = {"Dodi"};          // nama "Dodi", sisanya memakai nilai bawaan
+```
+
+Di Python, nilai awal diberikan lewat argumen saat membuat objek. Parameter `__init__` juga boleh punya [nilai bawaan](/docs/cpp/fungsi), misalnya `def __init__(self, nama, nim=0, nilai=0):`.
+
+## Menyalin dan membandingkan
+
+Di C++, `=` menyalin **semua** anggota. Hasilnya dua variabel yang berdiri sendiri. Di Python, `=` hanya membuat **nama kedua untuk objek yang sama**.
+
+```cpp tab="C++"
+Mahasiswa a = {"Budi", 2301, 78};
+Mahasiswa b = a;          // b adalah salinan lengkap a
+b.nilai = 100;
+
+cout << a.nilai << " " << b.nilai << endl;   // 78 100
+```
+
+```python tab="Python"
+a = Mahasiswa("Budi", 2301, 78)
+b = a                     # b dan a menunjuk objek yang SAMA
+b.nilai = 100
+
+print(a.nilai, b.nilai)   # 100 100
+```
+
+Perilaku Python ini sama dengan list yang dibahas di [Pass by Value & Pass by Reference](/docs/cpp/pendalaman/pass-by-value-dan-reference). Untuk mendapatkan salinan yang benar-benar terpisah, buat objek baru: `b = Mahasiswa(a.nama, a.nim, a.nilai)`.
+
+Membandingkan dua struct secara langsung dengan `a == b` juga tidak bekerja seperti pada angka. C++ menolaknya dengan `error: no match for 'operator=='`, karena compiler tidak tahu cara membandingkan `Mahasiswa`. Python menerimanya, tetapi hasilnya `False` untuk dua objek berbeda walaupun isinya sama persis, karena secara bawaan Python hanya menganggap sama jika keduanya objek yang sama. Di kedua bahasa, bandingkan anggota yang menjadi pembeda: `a.nim == b.nim`.
+
+## Vector berisi struct
+
+Kekuatan struct terasa saat digabung dengan [vector](/docs/cpp/array-dan-vector). Satu elemen vector kini berisi **seluruh** data satu mahasiswa, sehingga menghapus, menyisipkan, atau memindahkan elemen tidak mungkin memisahkan nama dari nilainya.
+
+Contoh: membaca data `n` mahasiswa, lalu mencari yang nilainya tertinggi.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Mahasiswa {
+    string nama;
+    int nim = 0;
+    int nilai = 0;
+};
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<Mahasiswa> kelas(n);
+    for (int i = 0; i < n; i++) {
+        cin >> kelas[i].nama >> kelas[i].nim >> kelas[i].nilai;
+    }
+
+    int terbaik = 0;                        // indeks kandidat terbaik
+    for (int i = 1; i < n; i++) {
+        if (kelas[i].nilai > kelas[terbaik].nilai) {
+            terbaik = i;
+        }
+    }
+
+    Mahasiswa m = kelas[terbaik];
+    cout << "Nilai tertinggi: " << m.nama << " (" << m.nim << ") dengan " << m.nilai << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+class Mahasiswa:
+    def __init__(self, nama, nim, nilai):
+        self.nama = nama
+        self.nim = nim
+        self.nilai = nilai
+
+
+n = int(input())
+kelas = []
+for i in range(n):
+    data = input().split()
+    kelas.append(Mahasiswa(data[0], int(data[1]), int(data[2])))
+
+terbaik = 0                                 # indeks kandidat terbaik
+for i in range(1, n):
+    if kelas[i].nilai > kelas[terbaik].nilai:
+        terbaik = i
+
+m = kelas[terbaik]
+print(f"Nilai tertinggi: {m.nama} ({m.nim}) dengan {m.nilai}")
+```
+
+```txt title="Contoh jalannya program"
+4
+Budi 2301 78
+Ani 2302 92
+Citra 2303 85
+Dodi 2304 92
+Nilai tertinggi: Ani (2302) dengan 92
+```
+
+Cara membaca `kelas[i].nilai`: ambil elemen ke-`i` dari `kelas`, lalu ambil anggota `nilai` dari elemen itu. Karena pembandingnya `>`, bukan `>=`, mahasiswa yang muncul lebih dulu menang jika nilainya sama (Ani, bukan Dodi).
+
+Menambah data ke vector berisi struct bisa langsung dengan kurung kurawal: `kelas.push_back({"Eka", 2305, 70});`. Padanannya di Python: `kelas.append(Mahasiswa("Eka", 2305, 70))`.
+
+<Callout type="info" title="Perulangan for-each menghasilkan salinan">
+  Di C++, `for (Mahasiswa m : kelas)` memberi `m` berupa **salinan** setiap elemen. Mengubah `m.nilai` di dalamnya tidak mengubah isi `kelas`. Di Python, `for m in kelas:` memberi nama untuk objek aslinya, jadi `m.nilai += 5` benar-benar mengubah data di dalam list.
+</Callout>
+
+## Struct sebagai parameter fungsi
+
+Struct bisa dikirim ke [fungsi](/docs/cpp/fungsi) seperti tipe lain. Ada tiga pilihan di C++:
+
+```cpp
+// 1. By value: fungsi menerima SALINAN seluruh struct
+void cetak(Mahasiswa m) {
+    cout << m.nama << ": " << m.nilai << endl;
+}
+
+// 2. const reference: tidak disalin, dan fungsi dilarang mengubahnya
+void cetakHemat(const Mahasiswa& m) {
+    cout << m.nama << ": " << m.nilai << endl;
+}
+
+// 3. Reference: fungsi mengubah struct milik pemanggil
+void beriBonus(Mahasiswa& m, int bonus) {
+    m.nilai += bonus;
+    if (m.nilai > 100) {
+        m.nilai = 100;
+    }
+}
+```
+
+| Cara | Penulisan parameter | Disalin? | Bisa mengubah milik pemanggil? |
+| --- | --- | --- | --- |
+| By value | `Mahasiswa m` | Ya, semua anggota | Tidak |
+| Const reference | `const Mahasiswa& m` | Tidak | Tidak (ditolak compiler) |
+| Reference | `Mahasiswa& m` | Tidak | Ya |
+
+Struct sering berisi `string` dan bisa memiliki banyak anggota, sehingga menyalinnya di setiap pemanggilan membuang waktu. Pegangannya: pakai **`const Mahasiswa&`** jika fungsi hanya membaca, dan `Mahasiswa&` jika fungsi memang bertugas mengubahnya.
+
+Python tidak punya pilihan ini. Parameter selalu menjadi nama untuk **objek yang sama**, jadi `m.nilai += bonus` di dalam fungsi langsung terlihat oleh pemanggil:
+
+```python
+def beri_bonus(m, bonus):
+    m.nilai += bonus
+    if m.nilai > 100:
+        m.nilai = 100
+
+
+budi = Mahasiswa("Budi", 2301, 95)
+beri_bonus(budi, 10)
+print(budi.nilai)         # 100
+```
+
+<DeepDive href="/docs/cpp/pendalaman/pass-by-value-dan-reference" kind="konsep" title="Pass by value vs pass by reference">
+  Apa arti tanda `&`, kenapa `const` reference menghemat salinan, dan bagaimana Python memperlakukan objek yang dikirim ke fungsi.
+</DeepDive>
+
+## Mengembalikan struct dari fungsi
+
+Fungsi hanya bisa mengembalikan **satu** nilai. Dengan struct, satu nilai itu boleh berisi beberapa anggota. Contoh: satu fungsi yang menghitung nilai terkecil, terbesar, dan rata-rata sekaligus.
+
+```cpp tab="C++"
+struct Statistik {
+    int terkecil = 0;
+    int terbesar = 0;
+    double rata = 0;
+};
+
+Statistik hitungStatistik(const vector<int>& data) {
+    Statistik s;
+    s.terkecil = data[0];
+    s.terbesar = data[0];
+    double total = 0;
+    for (int x : data) {
+        if (x < s.terkecil) s.terkecil = x;
+        if (x > s.terbesar) s.terbesar = x;
+        total += x;
+    }
+    s.rata = total / data.size();
+    return s;
+}
+
+int main() {
+    vector<int> nilai = {78, 92, 85, 60};
+    Statistik st = hitungStatistik(nilai);
+    cout << "Terkecil: " << st.terkecil << endl;   // 60
+    cout << "Terbesar: " << st.terbesar << endl;   // 92
+    cout << "Rata-rata: " << st.rata << endl;      // 78.75
+    return 0;
+}
+```
+
+```python tab="Python"
+class Statistik:
+    def __init__(self, terkecil, terbesar, rata):
+        self.terkecil = terkecil
+        self.terbesar = terbesar
+        self.rata = rata
+
+
+def hitung_statistik(data):
+    terkecil = data[0]
+    terbesar = data[0]
+    total = 0
+    for x in data:
+        if x < terkecil:
+            terkecil = x
+        if x > terbesar:
+            terbesar = x
+        total += x
+    return Statistik(terkecil, terbesar, total / len(data))
+
+
+st = hitung_statistik([78, 92, 85, 60])
+print("Terkecil:", st.terkecil)    # 60
+print("Terbesar:", st.terbesar)    # 92
+print("Rata-rata:", st.rata)       # 78.75
+```
+
+Bandingkan dengan cara tanpa struct: kita harus menulis tiga fungsi terpisah yang masing-masing menelusuri data, atau memakai tiga parameter reference. Hasil yang dibungkus struct jauh lebih mudah dibaca: `st.rata` langsung menjelaskan dirinya sendiri.
+
+## Struct di dalam struct
+
+Anggota struct boleh bertipe struct lain. Misalnya tanggal lahir yang terdiri dari hari, bulan, dan tahun:
+
+```cpp tab="C++"
+struct Tanggal {
+    int hari = 1, bulan = 1, tahun = 2000;
+};
+
+struct Mahasiswa {
+    string nama;
+    Tanggal lahir;
+};
+
+Mahasiswa m = {"Ani", {17, 8, 2005}};    // kurung kurawal bersarang
+cout << m.lahir.tahun << endl;            // 2005
+m.lahir.bulan = 9;                        // ubah bulannya saja
+```
+
+```python tab="Python"
+class Tanggal:
+    def __init__(self, hari, bulan, tahun):
+        self.hari = hari
+        self.bulan = bulan
+        self.tahun = tahun
+
+
+class Mahasiswa:
+    def __init__(self, nama, lahir):
+        self.nama = nama
+        self.lahir = lahir
+
+
+m = Mahasiswa("Ani", Tanggal(17, 8, 2005))
+print(m.lahir.tahun)                      # 2005
+m.lahir.bulan = 9                         # ubah bulannya saja
+```
+
+Titik dibaca berurutan dari kiri: `m.lahir.tahun` berarti anggota `tahun` dari anggota `lahir` milik `m`.
+
+## Jalan pintas Python: `@dataclass`
+
+Menulis `__init__` yang isinya hanya `self.x = x` berulang-ulang cukup membosankan. Modul `dataclasses` menyediakan penanda `@dataclass` yang membuatkan `__init__` secara otomatis:
+
+```python
+from dataclasses import dataclass
+
+
+@dataclass
+class Mahasiswa:
+    nama: str
+    nim: int
+    nilai: int = 0          # nilai bawaan juga bisa
+
+
+a = Mahasiswa("Ani", 2302, 92)
+b = Mahasiswa("Ani", 2302, 92)
+
+print(a)                    # Mahasiswa(nama='Ani', nim=2302, nilai=92)
+print(a == b)               # True, isinya dibandingkan
+```
+
+Selain lebih ringkas, `@dataclass` memberi dua bonus: `print` menampilkan isi objek (class biasa hanya menampilkan sesuatu seperti `<__main__.Mahasiswa object at 0x7f...>`), dan `==` membandingkan isi anggota. Tulisan `nim: int` hanyalah [keterangan tipe](/docs/cpp/fungsi) yang tidak diperiksa saat program berjalan. Satu hal yang tidak berubah: `b = a` tetap membuat dua nama untuk objek yang sama.
+
+<Callout type="info" title="struct atau class di C++?">
+  C++ juga punya kata kunci `class`. Untuk pembungkus data seperti di halaman ini, keduanya hampir sama. Bedanya hanya pada hak akses bawaan anggotanya, yang baru penting saat belajar OOP. Kebiasaan umumnya: pakai `struct` untuk kumpulan data sederhana.
+</Callout>
+
+## Bahan dasar struktur data berikutnya
+
+Struct adalah batu bata untuk materi-materi berikutnya. [Stack](/docs/cpp/stack) dan [Queue](/docs/cpp/queue) bisa menyimpan elemen bertipe struct, misalnya antrean pelanggan yang masing-masing punya nama dan waktu kedatangan. [Linked List](/docs/cpp/linked-list) bahkan dibangun dari struct kecil bernama _node_ yang berisi data dan sambungan ke node berikutnya. Jadi pastikan kamu nyaman membuat struct, mengisinya, dan mengirimnya ke fungsi.
+
+## Rangkuman
+
+- Array paralel (beberapa vector dengan indeks yang sama) mudah tidak sinkron. Struct mengumpulkan data yang saling berkaitan menjadi satu tipe baru.
+- Definisi `struct Nama { ... };` adalah cetakan dan **diakhiri titik koma**. Anggota diakses dengan titik: `m.nama`.
+- Isi semua anggota sekaligus dengan `{...}` sesuai urutan definisi. Beri nilai bawaan (`int nilai = 0;`) agar tidak ada anggota berisi sampah.
+- Di C++, `=` menyalin seluruh struct. Di Python, `=` membuat nama kedua untuk objek yang sama.
+- `vector<Mahasiswa>` menyimpan seluruh data satu orang dalam satu elemen. Aksesnya `kelas[i].nilai`.
+- Kirim struct ke fungsi sebagai `const Mahasiswa&` jika hanya dibaca, `Mahasiswa&` jika diubah. Fungsi bisa mengembalikan struct untuk menghasilkan beberapa nilai sekaligus.
+- Padanan Python adalah `class` dengan `__init__`, atau versi ringkasnya `@dataclass`.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Jarak Manhattan">
+  Buat struct `Titik` berisi `x` dan `y` (bilangan bulat), serta fungsi `jarakManhattan(a, b)` yang menerima dua `Titik`. Jarak Manhattan dua titik adalah |x1 − x2| + |y1 − y2|, yaitu jarak jika hanya boleh berjalan mendatar dan tegak seperti di jalan kota yang berpetak.
+
+  Program membaca satu baris `x1 y1 x2 y2`, lalu menampilkan jaraknya.
+
+  | Input | Output |
+  | --- | --- |
+  | `1 2 4 6` | `7` |
+  | `-3 5 2 -1` | `11` |
+  | `0 0 0 0` | `0` |
+
+  <Pembahasan>
+    Simpan setiap titik dalam satu variabel `Titik`, lalu hitung selisih tiap sumbu. Nilai mutlak bisa memakai `abs()` dari [`<cmath>`](/docs/cpp/pustaka/cmath) (Python: `abs()` bawaan).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <cmath>
+    using namespace std;
+
+    struct Titik {
+        int x = 0;
+        int y = 0;
+    };
+
+    int jarakManhattan(Titik a, Titik b) {
+        return abs(a.x - b.x) + abs(a.y - b.y);
+    }
+
+    int main() {
+        Titik p, q;
+        cin >> p.x >> p.y >> q.x >> q.y;
+        cout << jarakManhattan(p, q) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Titik:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+
+    def jarak_manhattan(a, b):
+        return abs(a.x - b.x) + abs(a.y - b.y)
+
+
+    x1, y1, x2, y2 = map(int, input().split())
+    p = Titik(x1, y1)
+    q = Titik(x2, y2)
+    print(jarak_manhattan(p, q))
+    ```
+
+    `Titik` hanya berisi dua `int`, jadi mengirimnya _by value_ tidak masalah.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Perbaiki struct Buku">
+  Program berikut seharusnya mencetak `Laskar 2005 530`. Versi C++ gagal dikompilasi dan versi Python berhenti dengan error. Temukan semua kesalahannya, lalu perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <string>
+  using namespace std;
+
+  struct Buku {
+      string judul;
+      int tahun;
+      int halaman;
+  }
+
+  int main() {
+      Buku b = {"Laskar", 2005, 529};
+      Buku.halaman += 1;
+      cout << b.judul << " " << b.tahun << " " << b.halaman << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Buku:
+      def __init__(self, judul, tahun, halaman):
+          self.judul = judul
+          self.tahun = tahun
+          halaman = halaman
+
+
+  b = Buku("Laskar", 2005, 529)
+  b.halaman += 1
+  print(b.judul, b.tahun, b.halaman)
+  ```
+
+  <Pembahasan>
+    **C++** punya dua kesalahan. Pertama, definisi struct tidak diakhiri titik koma (`expected ';' after struct definition`). Kedua, `Buku.halaman` memakai nama **tipe**, padahal yang punya data adalah **variabel** `b`. Ingat, struct hanya cetakan.
+
+    **Python** lupa `self.` pada baris terakhir `__init__`. Baris `halaman = halaman` hanya mengisi variabel lokal, sehingga objek tidak punya anggota `halaman` dan `b.halaman += 1` gagal dengan `AttributeError: 'Buku' object has no attribute 'halaman'`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    struct Buku {
+        string judul;
+        int tahun;
+        int halaman;
+    };
+
+    int main() {
+        Buku b = {"Laskar", 2005, 529};
+        b.halaman += 1;
+        cout << b.judul << " " << b.tahun << " " << b.halaman << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Buku:
+        def __init__(self, judul, tahun, halaman):
+            self.judul = judul
+            self.tahun = tahun
+            self.halaman = halaman
+
+
+    b = Buku("Laskar", 2005, 529)
+    b.halaman += 1
+    print(b.judul, b.tahun, b.halaman)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tebak output: salinan atau asli">
+  Tanpa menjalankannya, tebak output kedua program berikut. Hati-hati, hasilnya **tidak sama**.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <string>
+  #include <vector>
+  using namespace std;
+
+  struct Akun {
+      string nama;
+      int saldo = 0;
+  };
+
+  int main() {
+      vector<Akun> daftar = {{"Ani", 100}, {"Budi", 50}};
+      for (Akun a : daftar) {
+          a.saldo += 10;
+      }
+      Akun salinan = daftar[0];
+      salinan.saldo = 0;
+      cout << daftar[0].saldo << " " << daftar[1].saldo << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Akun:
+      def __init__(self, nama, saldo):
+          self.nama = nama
+          self.saldo = saldo
+
+
+  daftar = [Akun("Ani", 100), Akun("Budi", 50)]
+  for a in daftar:
+      a.saldo += 10
+  salinan = daftar[0]
+  salinan.saldo = 0
+  print(daftar[0].saldo, daftar[1].saldo)
+  ```
+
+  <Pembahasan>
+    Output C++ adalah `100 50`, sedangkan output Python adalah `0 60`.
+
+    | Baris | C++ | Python |
+    | --- | --- | --- |
+    | `for` menambah 10 | `a` adalah salinan, isi `daftar` tetap 100 dan 50 | `a` adalah objek aslinya, isi menjadi 110 dan 60 |
+    | `salinan = daftar[0]` | salinan terpisah | nama kedua untuk objek Ani |
+    | `salinan.saldo = 0` | hanya salinan yang berubah | saldo Ani ikut menjadi 0 |
+    | Output | `100 50` | `0 60` |
+
+    Di C++, `=` dan `for (Akun a : daftar)` selalu menyalin struct. Untuk mengubah elemen aslinya, tulis `for (Akun& a : daftar)`. Di Python, untuk salinan terpisah buat objek baru: `salinan = Akun(daftar[0].nama, daftar[0].saldo)`.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Nilai inventaris toko">
+  Sebuah toko mencatat `n` barang. Setiap barang punya nama (satu kata), harga satuan, dan stok. Simpan setiap barang dalam struct `Barang` di dalam vector, lalu tampilkan:
+
+  1. `Total: X`, dengan X adalah jumlah harga × stok seluruh barang.
+  2. `Habis:` diikuti nama-nama barang yang stoknya 0 sesuai urutan input (dipisah spasi), atau `Habis: tidak ada` jika semua barang masih tersedia.
+
+  Harga paling besar 1.000.000 dan stok paling banyak 10.000, jadi total bisa melewati batas `int`.
+
+  ```txt title="Contoh input 1"
+  4
+  Pulpen 3500 120
+  Buku 8000 0
+  Penghapus 2000 45
+  Map 5000 0
+  ```
+
+  ```txt title="Contoh output 1"
+  Total: 510000
+  Habis: Buku Map
+  ```
+
+  ```txt title="Contoh input 2"
+  2
+  Kapur 1500 10
+  Spidol 9000 3
+  ```
+
+  ```txt title="Contoh output 2"
+  Total: 42000
+  Habis: tidak ada
+  ```
+
+  <Petunjuk>
+    Simpan total sebagai `long long` dan hitung `(long long)harga * stok` agar perkaliannya tidak _overflow_. Untuk baris kedua, hitung dulu berapa barang yang habis.
+  </Petunjuk>
+
+  <Pembahasan>
+    Baca semua barang ke `vector<Barang>`, lalu telusuri dua kali: sekali untuk total, sekali untuk daftar barang habis. Kesalahan umum: menghitung `harga * stok` sebagai `int`. Satu barang saja bisa bernilai 10<sup>10</sup>, jauh di atas batas `int` (sekitar 2,1 × 10<sup>9</sup>).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Barang {
+        string nama;
+        int harga = 0;
+        int stok = 0;
+    };
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Barang> toko(n);
+        for (int i = 0; i < n; i++) {
+            cin >> toko[i].nama >> toko[i].harga >> toko[i].stok;
+        }
+
+        long long total = 0;
+        int jumlahHabis = 0;
+        for (const Barang& b : toko) {
+            total += (long long)b.harga * b.stok;
+            if (b.stok == 0) {
+                jumlahHabis++;
+            }
+        }
+        cout << "Total: " << total << endl;
+
+        cout << "Habis:";
+        if (jumlahHabis == 0) {
+            cout << " tidak ada";
+        }
+        for (const Barang& b : toko) {
+            if (b.stok == 0) {
+                cout << " " << b.nama;
+            }
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Barang:
+        def __init__(self, nama, harga, stok):
+            self.nama = nama
+            self.harga = harga
+            self.stok = stok
+
+
+    n = int(input())
+    toko = []
+    for i in range(n):
+        data = input().split()
+        toko.append(Barang(data[0], int(data[1]), int(data[2])))
+
+    total = 0
+    jumlah_habis = 0
+    for b in toko:
+        total += b.harga * b.stok
+        if b.stok == 0:
+            jumlah_habis += 1
+    print("Total:", total)
+
+    print("Habis:", end="")
+    if jumlah_habis == 0:
+        print(" tidak ada", end="")
+    for b in toko:
+        if b.stok == 0:
+            print(" " + b.nama, end="")
+    print()
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Menambah waktu">
+  Buat struct `Waktu` berisi `jam`, `menit`, dan `detik`, serta fungsi `tambahDetik(w, d)` yang **mengembalikan** `Waktu` baru setelah `w` ditambah `d` detik. Jam memakai format 24 jam, dan setelah `23:59:59` kembali ke `00:00:00`.
+
+  Baris pertama input berisi `jam menit detik` (waktu yang valid), baris kedua berisi `d` (0 ≤ d ≤ 1.000.000). Tampilkan hasilnya dalam format `HH:MM:SS`, dengan angka di bawah 10 diberi nol di depan.
+
+  ```txt title="Contoh input 1"
+  23 59 30
+  45
+  ```
+
+  ```txt title="Contoh output 1"
+  00:00:15
+  ```
+
+  ```txt title="Contoh input 2"
+  8 15 0
+  3725
+  ```
+
+  ```txt title="Contoh output 2"
+  09:17:05
+  ```
+
+  <Petunjuk>
+    Ubah waktu menjadi total detik sejak tengah malam, tambahkan `d`, ambil sisa bagi dengan 86400 (jumlah detik dalam sehari), lalu pecah kembali dengan `/` dan `%` seperti di [Operator Aritmatika](/docs/cpp/operator-aritmatika). Buat fungsi kecil `duaDigit(x)` yang mengembalikan teks dua digit.
+  </Petunjuk>
+
+  <Pembahasan>
+    Menambah per anggota (`detik += d`, lalu membawa kelebihan ke menit dan jam) juga bisa, tetapi mudah salah. Mengubah ke total detik membuat semua kasus, termasuk lewat tengah malam, tertangani oleh satu `% 86400`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    struct Waktu {
+        int jam = 0;
+        int menit = 0;
+        int detik = 0;
+    };
+
+    Waktu tambahDetik(Waktu w, int d) {
+        int total = w.jam * 3600 + w.menit * 60 + w.detik + d;
+        total = total % 86400;
+
+        Waktu hasil;
+        hasil.jam = total / 3600;
+        hasil.menit = total % 3600 / 60;
+        hasil.detik = total % 60;
+        return hasil;
+    }
+
+    string duaDigit(int x) {
+        if (x < 10) {
+            return "0" + to_string(x);
+        }
+        return to_string(x);
+    }
+
+    int main() {
+        Waktu w;
+        int d;
+        cin >> w.jam >> w.menit >> w.detik >> d;
+
+        Waktu baru = tambahDetik(w, d);
+        cout << duaDigit(baru.jam) << ":" << duaDigit(baru.menit) << ":" << duaDigit(baru.detik) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Waktu:
+        def __init__(self, jam, menit, detik):
+            self.jam = jam
+            self.menit = menit
+            self.detik = detik
+
+
+    def tambah_detik(w, d):
+        total = w.jam * 3600 + w.menit * 60 + w.detik + d
+        total = total % 86400
+        return Waktu(total // 3600, total % 3600 // 60, total % 60)
+
+
+    def dua_digit(x):
+        if x < 10:
+            return "0" + str(x)
+        return str(x)
+
+
+    jam, menit, detik = map(int, input().split())
+    d = int(input())
+
+    baru = tambah_detik(Waktu(jam, menit, detik), d)
+    print(dua_digit(baru.jam) + ":" + dua_digit(baru.menit) + ":" + dua_digit(baru.detik))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Menjumlahkan pecahan">
+  Buat struct `Pecahan` berisi `pembilang` dan `penyebut`. Baca satu baris `a b c d` yang mewakili a/b + c/d (semua bilangan bulat, a dan c ≥ 0, b dan d > 0, semuanya paling besar 1000). Tampilkan hasil penjumlahannya dalam bentuk paling sederhana `p/q`. Jika penyebutnya 1, tampilkan pembilangnya saja.
+
+  | Input | Output |
+  | --- | --- |
+  | `1 2 1 3` | `5/6` |
+  | `1 4 1 4` | `1/2` |
+  | `2 3 4 3` | `2` |
+
+  <Petunjuk>
+    a/b + c/d = (a·d + c·b) / (b·d). Untuk menyederhanakan, bagi pembilang dan penyebut dengan FPB keduanya. FPB bisa dihitung dengan perulangan: selama `b` tidak 0, ganti `(a, b)` menjadi `(b, a % b)`. Saat `b` menjadi 0, FPB-nya adalah `a`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pecah menjadi tiga fungsi kecil: `fpb`, `sederhanakan`, dan `jumlah`. Dua fungsi terakhir menerima dan mengembalikan `Pecahan`. Perhatikan kasus `0 5 0 7`: hasilnya 0/35, dan karena FPB(0, 35) = 35, hasilnya menjadi 0/1 dan tercetak `0`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Pecahan {
+        int pembilang = 0;
+        int penyebut = 1;
+    };
+
+    int fpb(int a, int b) {
+        while (b != 0) {
+            int sisa = a % b;
+            a = b;
+            b = sisa;
+        }
+        return a;
+    }
+
+    Pecahan sederhanakan(Pecahan p) {
+        int f = fpb(p.pembilang, p.penyebut);
+        p.pembilang /= f;
+        p.penyebut /= f;
+        return p;
+    }
+
+    Pecahan jumlah(Pecahan x, Pecahan y) {
+        Pecahan hasil;
+        hasil.pembilang = x.pembilang * y.penyebut + y.pembilang * x.penyebut;
+        hasil.penyebut = x.penyebut * y.penyebut;
+        return sederhanakan(hasil);
+    }
+
+    int main() {
+        Pecahan x, y;
+        cin >> x.pembilang >> x.penyebut >> y.pembilang >> y.penyebut;
+
+        Pecahan z = jumlah(x, y);
+        if (z.penyebut == 1) {
+            cout << z.pembilang << endl;
+        } else {
+            cout << z.pembilang << "/" << z.penyebut << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Pecahan:
+        def __init__(self, pembilang, penyebut):
+            self.pembilang = pembilang
+            self.penyebut = penyebut
+
+
+    def fpb(a, b):
+        while b != 0:
+            sisa = a % b
+            a = b
+            b = sisa
+        return a
+
+
+    def sederhanakan(p):
+        f = fpb(p.pembilang, p.penyebut)
+        return Pecahan(p.pembilang // f, p.penyebut // f)
+
+
+    def jumlah(x, y):
+        pembilang = x.pembilang * y.penyebut + y.pembilang * x.penyebut
+        penyebut = x.penyebut * y.penyebut
+        return sederhanakan(Pecahan(pembilang, penyebut))
+
+
+    a, b, c, d = map(int, input().split())
+    z = jumlah(Pecahan(a, b), Pecahan(c, d))
+    if z.penyebut == 1:
+        print(z.pembilang)
+    else:
+        print(f"{z.pembilang}/{z.penyebut}")
+    ```
+
+    Di C++, `sederhanakan` menerima `p` _by value_, jadi aman mengubah `p` di dalamnya lalu mengembalikannya. Yang berubah hanya salinannya.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Mencari berdasarkan NIM">
+  Baca `n` data mahasiswa dengan format `nim nama nilai` (nama satu kata). Setelah itu baca `q`, lalu `q` baris berisi NIM yang dicari. Untuk setiap pencarian, tampilkan `nama nilai` jika ditemukan, atau `NIM tidak ditemukan` (dengan NIM yang dicari) jika tidak.
+
+  Tulis fungsi `cariIndeks(kelas, nim)` yang mengembalikan indeks mahasiswa dengan NIM tersebut, atau -1 jika tidak ada.
+
+  ```txt title="Contoh input"
+  3
+  2301 Budi 78
+  2302 Ani 92
+  2303 Citra 85
+  3
+  2302
+  2399
+  2301
+  ```
+
+  ```txt title="Contoh output"
+  Ani 92
+  2399 tidak ditemukan
+  Budi 78
+  ```
+
+  <Petunjuk>
+    Ini [pencarian linear](/docs/cpp/array-dan-vector) yang membandingkan anggota `nim` setiap elemen. Kirim vector ke fungsi sebagai `const vector<Mahasiswa>&` agar tidak disalin setiap kali dipanggil.
+  </Petunjuk>
+
+  <Pembahasan>
+    Fungsi `cariIndeks` memakai `return` di dalam perulangan, sehingga langsung berhenti begitu ditemukan. Jika perulangan selesai tanpa menemukan apa pun, barulah `-1` dikembalikan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Mahasiswa {
+        int nim = 0;
+        string nama;
+        int nilai = 0;
+    };
+
+    int cariIndeks(const vector<Mahasiswa>& kelas, int nim) {
+        for (int i = 0; i < (int)kelas.size(); i++) {
+            if (kelas[i].nim == nim) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Mahasiswa> kelas(n);
+        for (int i = 0; i < n; i++) {
+            cin >> kelas[i].nim >> kelas[i].nama >> kelas[i].nilai;
+        }
+
+        int q;
+        cin >> q;
+        for (int j = 0; j < q; j++) {
+            int dicari;
+            cin >> dicari;
+            int idx = cariIndeks(kelas, dicari);
+            if (idx == -1) {
+                cout << dicari << " tidak ditemukan" << endl;
+            } else {
+                cout << kelas[idx].nama << " " << kelas[idx].nilai << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Mahasiswa:
+        def __init__(self, nim, nama, nilai):
+            self.nim = nim
+            self.nama = nama
+            self.nilai = nilai
+
+
+    def cari_indeks(kelas, nim):
+        for i in range(len(kelas)):
+            if kelas[i].nim == nim:
+                return i
+        return -1
+
+
+    n = int(input())
+    kelas = []
+    for i in range(n):
+        data = input().split()
+        kelas.append(Mahasiswa(int(data[0]), data[1], int(data[2])))
+
+    q = int(input())
+    for j in range(q):
+        dicari = int(input())
+        idx = cari_indeks(kelas, dicari)
+        if idx == -1:
+            print(dicari, "tidak ditemukan")
+        else:
+            print(kelas[idx].nama, kelas[idx].nilai)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Irisan dua persegi panjang">
+  Dua persegi panjang di bidang koordinat memiliki sisi yang sejajar sumbu. Setiap persegi panjang diberikan dalam satu baris `x1 y1 x2 y2`: titik kiri bawah `(x1, y1)` dan titik kanan atas `(x2, y2)`, dengan `x1 < x2` dan `y1 < y2`.
+
+  Tampilkan luas daerah yang tertutup **kedua** persegi panjang. Jika keduanya tidak beririsan, atau hanya bersentuhan di sisi atau sudut, tampilkan `0`. Gunakan struct `Titik` dan struct `PersegiPanjang` yang berisi dua `Titik`.
+
+  ```txt title="Contoh input 1"
+  0 0 4 3
+  2 1 6 5
+  ```
+
+  ```txt title="Contoh output 1"
+  4
+  ```
+
+  ```txt title="Contoh input 2"
+  0 0 2 2
+  2 0 4 2
+  ```
+
+  ```txt title="Contoh output 2"
+  0
+  ```
+
+  ```txt title="Contoh input 3"
+  -5 -5 5 5
+  -1 -2 1 2
+  ```
+
+  ```txt title="Contoh output 3"
+  8
+  ```
+
+  <Petunjuk>
+    Lihat sumbu x saja dulu. Irisan dua rentang `[a1, a2]` dan `[b1, b2]` dimulai dari yang **lebih besar** di antara `a1` dan `b1`, dan berakhir di yang **lebih kecil** di antara `a2` dan `b2`. Lakukan hal yang sama untuk sumbu y. Jika lebar atau tingginya tidak positif, tidak ada irisan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Lebar irisan = min(kanan) − max(kiri), tinggi irisan = min(atas) − max(bawah). Rumus ini menangani semua posisi sekaligus: bertumpuk sebagian (contoh 1), bersentuhan (lebar 0, contoh 2), satu di dalam yang lain (contoh 3), maupun berjauhan (lebar negatif). Kesalahan umum adalah mencoba menulis `if` untuk setiap kemungkinan posisi, yang hampir pasti ada kasus terlewat.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    struct Titik {
+        int x = 0;
+        int y = 0;
+    };
+
+    struct PersegiPanjang {
+        Titik kiriBawah;
+        Titik kananAtas;
+    };
+
+    int maks(int a, int b) {
+        if (a > b) return a;
+        return b;
+    }
+
+    int minim(int a, int b) {
+        if (a < b) return a;
+        return b;
+    }
+
+    PersegiPanjang bacaPersegi() {
+        PersegiPanjang p;
+        cin >> p.kiriBawah.x >> p.kiriBawah.y >> p.kananAtas.x >> p.kananAtas.y;
+        return p;
+    }
+
+    int luasIrisan(const PersegiPanjang& a, const PersegiPanjang& b) {
+        int lebar = minim(a.kananAtas.x, b.kananAtas.x) - maks(a.kiriBawah.x, b.kiriBawah.x);
+        int tinggi = minim(a.kananAtas.y, b.kananAtas.y) - maks(a.kiriBawah.y, b.kiriBawah.y);
+        if (lebar <= 0 || tinggi <= 0) {
+            return 0;
+        }
+        return lebar * tinggi;
+    }
+
+    int main() {
+        PersegiPanjang a = bacaPersegi();
+        PersegiPanjang b = bacaPersegi();
+        cout << luasIrisan(a, b) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Titik:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+
+    class PersegiPanjang:
+        def __init__(self, kiri_bawah, kanan_atas):
+            self.kiri_bawah = kiri_bawah
+            self.kanan_atas = kanan_atas
+
+
+    def baca_persegi():
+        x1, y1, x2, y2 = map(int, input().split())
+        return PersegiPanjang(Titik(x1, y1), Titik(x2, y2))
+
+
+    def luas_irisan(a, b):
+        lebar = min(a.kanan_atas.x, b.kanan_atas.x) - max(a.kiri_bawah.x, b.kiri_bawah.x)
+        tinggi = min(a.kanan_atas.y, b.kanan_atas.y) - max(a.kiri_bawah.y, b.kiri_bawah.y)
+        if lebar <= 0 or tinggi <= 0:
+            return 0
+        return lebar * tinggi
+
+
+    a = baca_persegi()
+    b = baca_persegi()
+    print(luas_irisan(a, b))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Klasemen mini">
+  Sebuah turnamen diikuti `n` tim. Baris-baris berikutnya berisi nama setiap tim (satu kata, satu per baris). Lalu ada `m` hasil pertandingan dengan format `TimA TimB golA golB`. Menang mendapat 3 poin, seri 1 poin, kalah 0 poin.
+
+  Tampilkan setiap tim **sesuai urutan input** dengan format `nama poin selisihGol` (selisih gol = gol memasukkan − gol kemasukan). Baris terakhir berisi `Juara: nama`. Juara adalah tim dengan poin terbanyak. Jika poinnya sama, yang selisih golnya lebih besar menang. Jika masih sama, tim yang lebih dulu muncul di input menang.
+
+  ```txt title="Contoh input"
+  4
+  Garuda
+  Rajawali
+  Elang
+  Merpati
+  5
+  Garuda Rajawali 2 1
+  Elang Merpati 0 0
+  Garuda Elang 1 3
+  Rajawali Merpati 4 0
+  Merpati Garuda 1 1
+  ```
+
+  ```txt title="Contoh output"
+  Garuda 4 -1
+  Rajawali 3 3
+  Elang 4 2
+  Merpati 2 -4
+  Juara: Elang
+  ```
+
+  <Petunjuk>
+    Buat struct `Tim` berisi nama, poin, gol memasukkan, dan gol kemasukan (semuanya mulai dari 0). Untuk setiap pertandingan, cari indeks kedua tim berdasarkan nama, lalu perbarui keduanya. Untuk juara, telusuri tim dan ganti kandidat hanya jika tim baru **benar-benar lebih baik**.
+  </Petunjuk>
+
+  <Pembahasan>
+    Bagian tersulit adalah aturan juara. Tulis fungsi `lebihBaik(a, b)` yang bernilai benar jika `a` mengalahkan `b`: poin lebih banyak, atau poin sama tetapi selisih gol lebih besar. Karena kandidat hanya diganti jika tim baru **lebih baik**, tim yang sama kuat dengan kandidat tidak menggantikannya, sehingga tim yang muncul lebih dulu menang dengan sendirinya. Garuda dan Elang sama-sama 4 poin, tetapi selisih gol Elang (+2) lebih besar dari Garuda (−1).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Tim {
+        string nama;
+        int poin = 0;
+        int golMasuk = 0;
+        int golKemasukan = 0;
+    };
+
+    int cariTim(const vector<Tim>& tim, const string& nama) {
+        for (int i = 0; i < (int)tim.size(); i++) {
+            if (tim[i].nama == nama) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void catatHasil(Tim& t, int golSendiri, int golLawan) {
+        t.golMasuk += golSendiri;
+        t.golKemasukan += golLawan;
+        if (golSendiri > golLawan) {
+            t.poin += 3;
+        } else if (golSendiri == golLawan) {
+            t.poin += 1;
+        }
+    }
+
+    int selisih(const Tim& t) {
+        return t.golMasuk - t.golKemasukan;
+    }
+
+    bool lebihBaik(const Tim& a, const Tim& b) {
+        if (a.poin != b.poin) {
+            return a.poin > b.poin;
+        }
+        return selisih(a) > selisih(b);
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Tim> tim(n);
+        for (int i = 0; i < n; i++) {
+            cin >> tim[i].nama;
+        }
+
+        int m;
+        cin >> m;
+        for (int j = 0; j < m; j++) {
+            string namaA, namaB;
+            int golA, golB;
+            cin >> namaA >> namaB >> golA >> golB;
+            catatHasil(tim[cariTim(tim, namaA)], golA, golB);
+            catatHasil(tim[cariTim(tim, namaB)], golB, golA);
+        }
+
+        int juara = 0;
+        for (int i = 0; i < n; i++) {
+            cout << tim[i].nama << " " << tim[i].poin << " " << selisih(tim[i]) << endl;
+            if (lebihBaik(tim[i], tim[juara])) {
+                juara = i;
+            }
+        }
+        cout << "Juara: " << tim[juara].nama << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Tim:
+        def __init__(self, nama):
+            self.nama = nama
+            self.poin = 0
+            self.gol_masuk = 0
+            self.gol_kemasukan = 0
+
+
+    def cari_tim(tim, nama):
+        for i in range(len(tim)):
+            if tim[i].nama == nama:
+                return i
+        return -1
+
+
+    def catat_hasil(t, gol_sendiri, gol_lawan):
+        t.gol_masuk += gol_sendiri
+        t.gol_kemasukan += gol_lawan
+        if gol_sendiri > gol_lawan:
+            t.poin += 3
+        elif gol_sendiri == gol_lawan:
+            t.poin += 1
+
+
+    def selisih(t):
+        return t.gol_masuk - t.gol_kemasukan
+
+
+    def lebih_baik(a, b):
+        if a.poin != b.poin:
+            return a.poin > b.poin
+        return selisih(a) > selisih(b)
+
+
+    n = int(input())
+    tim = []
+    for i in range(n):
+        tim.append(Tim(input()))
+
+    m = int(input())
+    for j in range(m):
+        data = input().split()
+        gol_a = int(data[2])
+        gol_b = int(data[3])
+        catat_hasil(tim[cari_tim(tim, data[0])], gol_a, gol_b)
+        catat_hasil(tim[cari_tim(tim, data[1])], gol_b, gol_a)
+
+    juara = 0
+    for i in range(n):
+        print(tim[i].nama, tim[i].poin, selisih(tim[i]))
+        if lebih_baik(tim[i], tim[juara]):
+            juara = i
+    print("Juara:", tim[juara].nama)
+    ```
+
+    Di C++, `catatHasil` menerima `Tim&` karena tugasnya memang mengubah data tim di dalam vector. Tanpa `&`, yang diubah hanya salinannya dan klasemen tetap nol semua.
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Pasangan titik terdekat">
+  Baca `n` titik (2 ≤ n ≤ 1000) dengan koordinat bulat antara −100.000 dan 100.000, masing-masing satu baris `x y`. Cari dua titik yang jaraknya paling dekat. Tampilkan nomor kedua titik (mulai dari 1, nomor kecil dulu) dan **kuadrat** jaraknya, dipisah spasi. Jika ada beberapa pasangan dengan jarak yang sama, pilih pasangan yang nomor pertamanya paling kecil, lalu nomor keduanya paling kecil.
+
+  ```txt title="Contoh input 1"
+  5
+  0 0
+  5 4
+  3 1
+  6 6
+  2 2
+  ```
+
+  ```txt title="Contoh output 1"
+  3 5 2
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  0 0
+  1 0
+  5 5
+  6 5
+  ```
+
+  ```txt title="Contoh output 2"
+  1 2 1
+  ```
+
+  ```txt title="Contoh input 3"
+  2
+  -100000 -100000
+  100000 100000
+  ```
+
+  ```txt title="Contoh output 3"
+  1 2 80000000000
+  ```
+
+  <Petunjuk>
+    Periksa setiap pasangan `(i, j)` dengan `i < j` memakai [perulangan bersarang](/docs/cpp/perulangan-bersarang). Kuadrat jarak adalah dx² + dy², tidak perlu `sqrt`, karena urutan jarak dan urutan kuadrat jarak selalu sama. Perhatikan contoh 3: berapa besar dx²?
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada tiga jebakan di soal ini. Pertama, membandingkan kuadrat jarak sudah cukup dan menghindari angka pecahan. Kedua, dx bisa mencapai 200.000 sehingga dx² = 4 × 10<sup>10</sup>, jadi perhitungannya harus memakai `long long`. Ketiga, aturan seri otomatis terpenuhi jika perulangan berjalan dari `i` kecil ke besar dan kandidat hanya diganti saat jaraknya **lebih kecil** (`<`, bukan `<=`).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    struct Titik {
+        long long x = 0;
+        long long y = 0;
+    };
+
+    long long jarakKuadrat(const Titik& a, const Titik& b) {
+        long long dx = a.x - b.x;
+        long long dy = a.y - b.y;
+        return dx * dx + dy * dy;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Titik> titik(n);
+        for (int i = 0; i < n; i++) {
+            cin >> titik[i].x >> titik[i].y;
+        }
+
+        int terbaikI = 0, terbaikJ = 1;
+        long long terbaik = jarakKuadrat(titik[0], titik[1]);
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                long long d = jarakKuadrat(titik[i], titik[j]);
+                if (d < terbaik) {
+                    terbaik = d;
+                    terbaikI = i;
+                    terbaikJ = j;
+                }
+            }
+        }
+        cout << terbaikI + 1 << " " << terbaikJ + 1 << " " << terbaik << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Titik:
+        def __init__(self, x, y):
+            self.x = x
+            self.y = y
+
+
+    def jarak_kuadrat(a, b):
+        dx = a.x - b.x
+        dy = a.y - b.y
+        return dx * dx + dy * dy
+
+
+    n = int(input())
+    titik = []
+    for i in range(n):
+        x, y = map(int, input().split())
+        titik.append(Titik(x, y))
+
+    terbaik_i, terbaik_j = 0, 1
+    terbaik = jarak_kuadrat(titik[0], titik[1])
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = jarak_kuadrat(titik[i], titik[j])
+            if d < terbaik:
+                terbaik = d
+                terbaik_i = i
+                terbaik_j = j
+    print(terbaik_i + 1, terbaik_j + 1, terbaik)
+    ```
+
+    `int` Python tidak punya batas, jadi jebakan kedua hanya ada di C++. Dengan `int`, contoh 3 akan menghasilkan angka yang salah tanpa pesan error apa pun.
+  </Pembahasan>
+</Soal>

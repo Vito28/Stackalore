@@ -26,7 +26,7 @@ Mengapa C++ membiarkan hal ini? Demi kecepatan. Memeriksa setiap akses array ata
 
 ## Undefined behavior yang sudah kamu temui
 
-Beberapa materi sebelumnya sudah menyinggung UB. Ini daftar lengkapnya:
+Beberapa materi dan halaman pendalaman sudah menyinggung UB. Ini daftarnya:
 
 | Kesalahan | Contoh C++ | Yang terjadi di Python |
 | --- | --- | --- |
@@ -35,6 +35,8 @@ Beberapa materi sebelumnya sudah menyinggung UB. Ini daftar lengkapnya:
 | Indeks di luar batas | `data[5]` pada array berukuran 5 ([Array](/docs/cpp/array-dan-vector#indeks-di-luar-batas)) | `IndexError` |
 | Pembagian bilangan bulat dengan nol | `int a = 10 / 0;` | `ZeroDivisionError` |
 | Menggabung teks literal dengan angka | `"Umur: " + 19` ([String](/docs/cpp/string#jebakan-menggabung-angka)) | `TypeError` |
+| Dereference pointer kosong | `int* p = nullptr; cout << *p;` ([Pointer](/docs/cpp/pendalaman/pointer)) | Tidak ada pointer. Memakai `None` seperti objek menghasilkan `AttributeError` |
+| Memakai memori yang sudah di-`delete` (_use after free_) | `delete p; cout << *p;` ([Memori Dinamis](/docs/cpp/pendalaman/memori-dinamis)) | Tidak mungkin: objek baru dihapus setelah tidak ada yang menunjuknya |
 
 ## Contoh: pemeriksaan yang "dihapus" compiler
 
@@ -77,7 +79,7 @@ Sanitizer menambahkan pemeriksaan ke dalam program sehingga UB dilaporkan saat t
 g++ -g -fsanitize=address,undefined program.cpp -o program
 ```
 
-- `address` menangkap akses memori yang tidak sah, seperti indeks di luar batas.
+- `address` menangkap akses memori yang tidak sah, seperti indeks di luar batas, dereference `nullptr`, dan memakai memori yang sudah di-`delete`.
 - `undefined` menangkap UB lain, seperti overflow `int` dan pembagian dengan nol.
 
 ### 3. Akses yang diperiksa: `.at()`
@@ -99,7 +101,7 @@ Pemeriksaan ini membuat program sedikit lebih lambat, tetapi saat belajar, pesan
 ## Rangkuman
 
 - **Undefined behavior** adalah kesalahan yang hasilnya tidak ditetapkan standar C++: bisa acak, crash, atau tampak benar.
-- Contoh utamanya: variabel belum diisi, overflow `int`, indeks di luar batas, pembagian bilangan bulat dengan nol, dan `"teks" + angka`.
+- Contoh utamanya: variabel belum diisi, overflow `int`, indeks di luar batas, pembagian bilangan bulat dengan nol, `"teks" + angka`, dereference `nullptr`, dan memakai memori yang sudah di-`delete`.
 - Compiler boleh berasumsi UB tidak pernah terjadi, sehingga kode pemeriksaan pun bisa "hilang".
 - Tangkap dengan `-Wall -Wextra`, sanitizer (`-fsanitize=address,undefined`), dan `.at()`.
 - Python memeriksa semua kesalahan ini dan berhenti dengan exception yang jelas.

@@ -18,7 +18,7 @@ sumber:
 
 Alat AI bisa menulis program dalam hitungan detik. Masalahnya, kode yang **berjalan** belum tentu **benar**. Kode dari AI bisa lolos kompilasi tetapi salah menghitung rata-rata, membaca indeks di luar batas array, atau gagal saat input kosong. Siapa pun yang menulis kodenya, **kamu** yang bertanggung jawab atas hasilnya.
 
-Materi 01 sampai 13 memberimu "kosakata" untuk membaca kode. Materi ini melatih keterampilan yang membedakan programmer dari penyalin kode: **membaca pesan error, menemukan penyebab kesalahan, dan memastikan program benar**.
+Materi-materi sebelumnya memberimu "kosakata" untuk membaca kode. Materi ini melatih keterampilan yang membedakan programmer dari penyalin kode: **membaca pesan error, menemukan penyebab kesalahan, dan memastikan program benar**.
 
 ## Tiga jenis kesalahan
 
@@ -311,19 +311,971 @@ Gunakan daftar periksa berikut setiap kali menerima kode dari AI, forum, atau in
 - Teknik debugging: tabel trace, mencetak isi variabel, kasus batas, menguji fungsi terpisah, dan menjelaskan kode baris demi baris.
 - Kode dari AI tetap tanggung jawabmu: pahami, uji, dan telusuri sebelum dipakai.
 
-## Latihan: temukan bug-nya
+## Latihan
 
-<Accordions>
-  <Accordion title="1. Rata-rata dari total 250 dan n = 3 selalu tampil 83: int total = 250, n = 3; double rata = total / n;">
-    `total / n` adalah [pembagian bilangan bulat](/docs/cpp/operator-aritmatika#pembagian-bilangan-bulat): hasilnya `83` sebelum disimpan ke `double`. Perbaikan: `double rata = static_cast<double>(total) / n;`.
-  </Accordion>
-  <Accordion title="2. Program selalu mencetak “Sempurna” untuk nilai berapa pun: if (nilai = 100) { ... }">
-    `=` mengisi `nilai` dengan 100, lalu 100 dianggap `true`. Seharusnya `if (nilai == 100)`. Peringatan `-Wparentheses` dari `-Wall` menangkap kesalahan ini.
-  </Accordion>
-  <Accordion title="3. Total nilai salah dan kadang berbeda-beda: for (int i = 1; i <= n; i++) total += data[i];">
-    Ada **dua** kesalahan sekaligus: elemen `data[0]` tidak pernah dijumlahkan, dan `data[n]` berada di luar batas array (_undefined behavior_). Perbaikan: `for (int i = 0; i < n; i++)`.
-  </Accordion>
-  <Accordion title="4. Fungsi Python ini seharusnya menjumlahkan 1 sampai n, tetapi hasilnya kurang: for i in range(1, n): total += i">
-    `range(1, n)` berhenti di `n - 1` karena [batas akhirnya tidak ikut](/docs/cpp/perulangan#for-di-python-dan-range). Perbaikan: `range(1, n + 1)`.
-  </Accordion>
-</Accordions>
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Hampir semua soal berisi program yang salah. Sebelum mengetik perbaikan, jelaskan dulu **apa** penyebabnya dan **bagaimana** kamu menemukannya. Soal di sini boleh memakai semua materi sebelumnya, dari percabangan sampai `struct` dan `map`.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Membaca pesan error">
+  Program berikut seharusnya membaca bilangan bulat `n` lalu menampilkan kuadratnya, tetapi gagal dikompilasi.
+
+  ```cpp title="kuadrat.cpp"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin << n;
+      cout << n * n << endl;
+      return 0;
+  }
+  ```
+
+  ```txt title="Output g++ (7 baris pertama dari 128 baris)"
+  kuadrat.cpp: In function ‘int main()’:
+  kuadrat.cpp:6:9: error: no match for ‘operator<<’ (operand types are ‘std::istream’ {aka ‘std::basic_istream<char>’} and ‘int’)
+      6 |     cin << n;
+        |     ~~~ ^~ ~
+        |     |      |
+        |     |      int
+        |     std::istream {aka std::basic_istream<char>}
+  ```
+
+  1. Baris dan kolom berapa yang ditunjuk pesan ini? Karakter apa yang ada di posisi itu?
+  2. Apa arti `std::istream` dan `int` pada pesan itu?
+  3. Perbaiki programnya.
+
+  | Input | Output |
+  | --- | --- |
+  | `7` | `49` |
+  | `-3` | `9` |
+
+  <Pembahasan>
+    Pesan menunjuk baris 6, kolom 9, yaitu operator `<<` setelah `cin`. `std::istream` adalah tipe dari `cin` (aliran input), dan `int` adalah tipe dari `n`. Awalan `std::` biasanya tidak perlu ditulis karena ada `using namespace std;`. Jadi compiler mengeluh: "tidak ada cara memakai `<<` antara aliran input dan sebuah `int`". Arah `<<` dipakai untuk output (`cout`), sedangkan input memakai `>>`.
+
+    Sisa pesan yang lebih dari 100 baris hanyalah daftar `note: candidate`, yaitu kemungkinan lain yang sudah dicoba compiler. Cukup baca error pertamanya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        cout << n * n << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    print(n * n)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Selalu sempurna">
+  Program berikut seharusnya menampilkan `Sempurna` hanya jika nilainya 100, dan `Belum sempurna` untuk nilai lain. Ternyata untuk input `85` pun yang tampil `Sempurna`.
+
+  ```cpp title="sempurna.cpp"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int nilai;
+      cin >> nilai;
+      if (nilai = 100) {
+          cout << "Sempurna" << endl;
+      } else {
+          cout << "Belum sempurna" << endl;
+      }
+      return 0;
+  }
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `100` | `Sempurna` |
+  | `85` | `Belum sempurna` |
+
+  1. Kenapa input `85` menghasilkan `Sempurna`? Berapa isi `nilai` setelah kondisi `if` diperiksa?
+  2. Perbaiki programnya.
+  3. Apa yang terjadi jika kesalahan yang sama ditulis di Python, yaitu `if nilai = 100:`?
+
+  <Pembahasan>
+    `nilai = 100` adalah **penugasan**, bukan perbandingan. Isi `nilai` diganti menjadi 100, lalu hasil penugasan itu (100) dianggap `true` karena bukan 0. Akibatnya cabang `Sempurna` selalu dijalankan, dan nilai asli dari input hilang.
+
+    Tanpa opsi tambahan, `g++` menerima kode ini tanpa keluhan. Dengan `-Wall -Wextra`, muncul peringatan:
+
+    ```txt title="Output g++ -Wall -Wextra"
+    sempurna.cpp:7:15: warning: suggest parentheses around assignment used as truth value [-Wparentheses]
+    ```
+
+    Python lebih ketat. Kode dengan `if nilai = 100:` langsung ditolak sebelum dijalankan:
+
+    ```txt title="Output Python"
+      File "sempurna.py", line 2
+        if nilai = 100:
+           ^^^^^^^^^^^
+    SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?
+    ```
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int nilai;
+        cin >> nilai;
+        if (nilai == 100) {
+            cout << "Sempurna" << endl;
+        } else {
+            cout << "Belum sempurna" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    nilai = int(input())
+    if nilai == 100:
+        print("Sempurna")
+    else:
+        print("Belum sempurna")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Rata-rata yang terpotong">
+  Program berikut membaca tiga nilai ujian (bilangan bulat), lalu menampilkan rata-ratanya dengan dua angka di belakang koma. Untuk input `70 80 85`, program menampilkan `78.00`.
+
+  ```cpp
+  #include <iostream>
+  #include <iomanip>
+  using namespace std;
+
+  int main() {
+      int a, b, c;
+      cin >> a >> b >> c;
+      double rata = (a + b + c) / 3;
+      cout << fixed << setprecision(2) << rata << endl;
+      return 0;
+  }
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `70 80 85` | `78.33` |
+  | `90 90 90` | `90.00` |
+  | `1 1 2` | `1.33` |
+
+  1. Kenapa hasilnya `78.00`, padahal `rata` bertipe `double`?
+  2. Kenapa input `90 90 90` tetap menghasilkan output yang benar?
+  3. Perbaiki programnya. Apakah `-Wall -Wextra` membantu menemukan kesalahan ini?
+
+  <Pembahasan>
+    `(a + b + c) / 3` adalah [pembagian bilangan bulat](/docs/cpp/operator-aritmatika#pembagian-bilangan-bulat): `235 / 3` menghasilkan `78`, dan pecahannya sudah terbuang **sebelum** hasilnya disimpan ke `double`. Untuk `90 90 90`, jumlahnya 270 habis dibagi 3, jadi tidak ada pecahan yang terbuang dan bug-nya tersembunyi. Karena itu, uji juga dengan data yang jumlahnya tidak habis dibagi.
+
+    `-Wall -Wextra` tidak memberi peringatan apa pun, karena kodenya sah. Yang salah adalah maksudnya. Perbaikannya, jadikan salah satu operand pecahan, misalnya `/ 3.0`. Di Python, `/` selalu menghasilkan pecahan, jadi bug ini hanya muncul jika kamu memakai `//`. Format dua angka di belakang koma dibahas di [`<iomanip>`](/docs/cpp/pustaka/iomanip).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <iomanip>
+    using namespace std;
+
+    int main() {
+        int a, b, c;
+        cin >> a >> b >> c;
+        double rata = (a + b + c) / 3.0;
+        cout << fixed << setprecision(2) << rata << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b, c = map(int, input().split())
+    rata = (a + b + c) / 3
+    print(f"{rata:.2f}")
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Total yang meleset">
+  Program berikut membaca `n`, lalu `n` bilangan bulat di baris berikutnya, dan menampilkan totalnya.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      vector<int> data(n);
+      for (int i = 0; i < n; i++) {
+          cin >> data[i];
+      }
+
+      int total = 0;
+      for (int i = 1; i <= n; i++) {
+          total += data[i];
+      }
+      cout << total << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+  data = list(map(int, input().split()))
+
+  total = 0
+  for i in range(1, n + 1):
+      total += data[i]
+  print(total)
+  ```
+
+  ```txt title="Contoh input"
+  4
+  10 20 30 40
+  ```
+
+  ```txt title="Contoh output"
+  100
+  ```
+
+  Saat dicoba dengan contoh di atas, versi C++ menampilkan `90` tanpa pesan apa pun, sedangkan versi Python berhenti dengan error:
+
+  ```txt title="Output Python"
+  Traceback (most recent call last):
+    File "jumlah.py", line 6, in <module>
+      total += data[i]
+               ~~~~^^^
+  IndexError: list index out of range
+  ```
+
+  1. Tulis semua nilai `i` yang dikunjungi perulangan kedua untuk `n = 4`. Ada dua kesalahan sekaligus. Apa saja?
+  2. Jelaskan kenapa versi C++ menampilkan `90` tanpa error, sedangkan versi Python langsung berhenti.
+  3. Perbaiki kedua versi.
+
+  <Petunjuk>
+    Untuk `n` data, indeks yang sah adalah 0 sampai `n - 1`. Bandingkan dengan nilai `i` yang benar-benar dikunjungi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Perulangan mengunjungi `i = 1, 2, 3, 4`. Kesalahan pertama, `data[0]` (yaitu 10) tidak pernah dijumlahkan. Kesalahan kedua, `data[4]` berada **di luar batas**, karena indeks terakhir adalah 3.
+
+    Python memeriksa setiap indeks, jadi begitu `i` mencapai 4, program berhenti dengan `IndexError` dan menunjuk baris 6. C++ tidak memeriksa. `data[4]` membaca memori di sebelah `vector`, yang saat dicoba kebetulan berisi 0, sehingga hasilnya 20 + 30 + 40 + 0 = 90. Ini _undefined behavior_: di komputer lain hasilnya bisa berbeda, atau program bisa crash. Sanitizer menangkapnya:
+
+    ```txt title="Output dengan -fsanitize=address,undefined (dipersingkat)"
+    ==301939==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x502000000020
+    READ of size 4 at 0x502000000020 thread T0
+        #0 0x5e945700d895 in main jumlah.cpp:15
+    ```
+
+    Perbaikannya, mulai dari indeks 0 dan berhenti **sebelum** `n`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        int total = 0;
+        for (int i = 0; i < n; i++) {
+            total += data[i];
+        }
+        cout << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    total = 0
+    for i in range(n):
+        total += data[i]
+    print(total)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Membalik angka">
+  Program berikut seharusnya membalik urutan digit sebuah bilangan bulat positif. Angka 0 di depan hasilnya tidak ditampilkan, jadi `1200` menjadi `21`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      int balik = 0;
+      while (n > 0) {
+          n /= 10;
+          balik = balik * 10 + n % 10;
+      }
+      cout << balik << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+  balik = 0
+  while n > 0:
+      n //= 10
+      balik = balik * 10 + n % 10
+  print(balik)
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `123` | `321` |
+  | `4` | `4` |
+  | `1200` | `21` |
+
+  Ternyata untuk input `123` program menampilkan `210`, dan untuk input `4` menampilkan `0`.
+
+  1. Buat tabel trace untuk input `123`. Catat `n` dan `balik` di akhir setiap putaran.
+  2. Dari tabel itu, jelaskan kesalahannya, lalu perbaiki.
+
+  <Petunjuk>
+    Lihat digit yang diambil `n % 10` di putaran pertama. Apakah itu digit terakhir dari 123?
+  </Petunjuk>
+
+  <Pembahasan>
+    | Putaran | `n` setelah dibagi 10 | `n % 10` | `balik` |
+    | --- | --- | --- | --- |
+    | 1 | 12 | 2 | 2 |
+    | 2 | 1 | 1 | 21 |
+    | 3 | 0 | 0 | 210 |
+
+    Tabel menunjukkan masalahnya: digit `3` tidak pernah diambil, karena `n` sudah dibagi 10 **sebelum** digit terakhirnya diambil. Di putaran terakhir, yang diambil malah `0` dari `n` yang sudah habis. Untuk input `4`, `n` langsung menjadi 0, jadi hasilnya 0. Perbaikannya cukup menukar urutan dua baris: ambil digit terakhir dulu, baru buang.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        int balik = 0;
+        while (n > 0) {
+            balik = balik * 10 + n % 10;
+            n /= 10;
+        }
+        cout << balik << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    balik = 0
+    while n > 0:
+        balik = balik * 10 + n % 10
+        n //= 10
+    print(balik)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Bagi permen">
+  Program berikut membagi `permen` sama rata kepada `anak`, lalu menampilkan bagian setiap anak dan sisa permennya, dipisah spasi. Jika `anak` bernilai 0, program seharusnya menampilkan `Tidak bisa dibagi`, tetapi pemeriksaan itu belum ditulis.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int permen, anak;
+      cin >> permen >> anak;
+      cout << permen / anak << " " << permen % anak << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  permen, anak = map(int, input().split())
+  print(permen // anak, permen % anak)
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `17 5` | `3 2` |
+  | `10 0` | `Tidak bisa dibagi` |
+  | `0 4` | `0 0` |
+
+  1. Apa yang terjadi pada masing-masing versi untuk input `10 0`? Termasuk jenis kesalahan apa?
+  2. Versi C++ tidak menyebut nomor baris penyebabnya. Bagaimana cara mendapatkannya?
+  3. Perbaiki kedua versi.
+
+  <Petunjuk>
+    Baca lagi bagian tentang runtime error di C++ dan tentang sanitizer di materi ini.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ini **runtime error**: programnya lolos kompilasi, tetapi berhenti mendadak saat membagi dengan nol. Versi C++ berhenti dengan pesan singkat dari terminal seperti `Floating point exception (core dumped)`, tanpa nomor baris. Versi Python menunjuk barisnya dengan jelas:
+
+    ```txt title="Output Python"
+    Traceback (most recent call last):
+      File "permen.py", line 2, in <module>
+        print(permen // anak, permen % anak)
+              ~~~~~~~^^~~~~~
+    ZeroDivisionError: integer division or modulo by zero
+    ```
+
+    Untuk mendapatkan nomor baris di C++, kompilasi dengan sanitizer, yaitu `g++ -g -fsanitize=address,undefined permen.cpp -o permen`, lalu jalankan lagi. Baris pertama outputnya sudah cukup:
+
+    ```txt title="Output dengan sanitizer (baris pertama)"
+    permen.cpp:7:20: runtime error: division by zero
+    ```
+
+    Perbaikannya, periksa `anak` **sebelum** membagi. Memeriksanya setelah pembagian sudah terlambat.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int permen, anak;
+        cin >> permen >> anak;
+        if (anak == 0) {
+            cout << "Tidak bisa dibagi" << endl;
+        } else {
+            cout << permen / anak << " " << permen % anak << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    permen, anak = map(int, input().split())
+    if anak == 0:
+        print("Tidak bisa dibagi")
+    else:
+        print(permen // anak, permen % anak)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Penghitung tanpa nilai awal">
+  Program berikut membaca `n`, lalu `n` nilai di baris berikutnya, dan menampilkan banyak nilai yang lulus (minimal 60).
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      int lulus;
+      for (int i = 0; i < n; i++) {
+          int nilai;
+          cin >> nilai;
+          if (nilai >= 60) {
+              lulus++;
+          }
+      }
+      cout << lulus << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+  data = list(map(int, input().split()))
+
+  for nilai in data:
+      if nilai >= 60:
+          lulus += 1
+  print(lulus)
+  ```
+
+  ```txt title="Contoh input"
+  5
+  80 45 60 90 30
+  ```
+
+  ```txt title="Contoh output"
+  3
+  ```
+
+  Dengan contoh di atas, versi C++ di komputer penulis menampilkan angka aneh yang berubah-ubah, misalnya `1472703059` atau `-662197677`. Setelah dikompilasi ulang dengan opsi optimasi `-O2`, hasilnya menjadi `4`. Versi Python berhenti dengan `NameError`.
+
+  1. Kenapa versi C++ menampilkan angka acak, dan kenapa angkanya bisa berubah?
+  2. Kompilasi versi C++ dengan `-Wall -Wextra`, lalu dengan `-Wall -Wextra -O2`. Apa bedanya?
+  3. Di baris berapa versi Python berhenti untuk contoh di atas? Bagaimana jika inputnya `2` lalu `40 50`?
+  4. Perbaiki kedua versi.
+
+  <Petunjuk>
+    Pola akumulator di materi [Perulangan](/docs/cpp/perulangan) selalu butuh nilai awal sebelum perulangan dimulai. Untuk pertanyaan 3, perhatikan bahwa baris `lulus += 1` hanya dijalankan jika ada nilai yang lulus.
+  </Petunjuk>
+
+  <Pembahasan>
+    Di C++, `int lulus;` tanpa nilai awal berisi sisa data apa pun yang kebetulan ada di memori. `lulus++` lalu menambahkan 1 ke angka acak itu. Ini juga _undefined behavior_, jadi hasilnya bisa berubah di setiap percobaan atau setiap kali pengaturan compiler berubah.
+
+    Dengan `-Wall -Wextra` saja, `g++` 13 **tidak** memberi peringatan apa pun untuk program ini. Peringatan tentang variabel tanpa nilai awal bergantung pada optimasi. Tanpa optimasi, `g++` hanya menangkap kasus sederhana seperti `bonus` di contoh `cek.cpp`. Dengan `-O2`, peringatannya muncul:
+
+    ```txt title="Output g++ -Wall -Wextra -O2"
+    lulus.cpp: In function ‘int main()’:
+    lulus.cpp:12:18: warning: ‘lulus’ may be used uninitialized [-Wmaybe-uninitialized]
+       12 |             lulus++;
+          |             ~~~~~^~
+    lulus.cpp:7:9: note: ‘lulus’ was declared here
+        7 |     int lulus;
+          |         ^~~~~
+    ```
+
+    Pelajarannya: tidak adanya peringatan bukan bukti bahwa program benar. Biasakan selalu memberi nilai awal pada variabel.
+
+    Di Python, variabel baru ada setelah diberi nilai. Untuk contoh di atas, nilai pertama (80) lulus, jadi program berhenti di baris 6, `lulus += 1`, dengan `NameError: name 'lulus' is not defined`. Untuk input `2` lalu `40 50`, tidak ada yang lulus, sehingga baris 6 tidak pernah dijalankan. Error yang sama baru muncul di baris 7, `print(lulus)`. Kesalahan yang sama bisa muncul di tempat berbeda, tergantung inputnya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        int lulus = 0;
+        for (int i = 0; i < n; i++) {
+            int nilai;
+            cin >> nilai;
+            if (nilai >= 60) {
+                lulus++;
+            }
+        }
+        cout << lulus << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    lulus = 0
+    for nilai in data:
+        if nilai >= 60:
+            lulus += 1
+    print(lulus)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Tiga bug sekaligus">
+  Program berikut membaca data `n` mahasiswa (nama satu kata dan nilai). Program lalu menampilkan rata-rata nilai dengan dua angka di belakang koma, serta nama mahasiswa yang nilainya tertinggi. Jika ada beberapa yang tertinggi, ambil yang pertama.
+
+  ```cpp title="nilai.cpp"
+  #include <iostream>
+  #include <iomanip>
+  #include <string>
+  #include <vector>
+  using namespace std;
+
+  struct Mahasiswa {
+      string nama;
+      int nilai;
+  }
+
+  int main() {
+      int n;
+      cin >> n;
+      vector<Mahasiswa> data(n);
+      for (int i = 0; i < n; i++) {
+          cin >> data[i].nama >> data[i].nilai;
+      }
+
+      int total = 0;
+      int terbaik = 0;
+      for (int i = 0; i <= n; i++) {
+          total += data[i].nilai;
+          if (data[i].nilai > data[terbaik].nilai) {
+              terbaik = i;
+          }
+      }
+
+      double rata = total / n;
+      cout << fixed << setprecision(2);
+      cout << "Rata-rata: " << rata << endl;
+      cout << "Terbaik: " << data[terbaik].nama << endl;
+      return 0;
+  }
+  ```
+
+  ```txt title="Contoh input"
+  3
+  Ani 80
+  Budi 75
+  Citra 81
+  ```
+
+  ```txt title="Contoh output"
+  Rata-rata: 78.67
+  Terbaik: Citra
+  ```
+
+  Program ini mengandung tiga kesalahan. Satu kesalahan membuat program gagal dikompilasi, satu membuat program membaca di luar batas `vector`, dan satu membuat hasilnya salah. Temukan ketiganya, sebutkan alat atau teknik yang paling cepat menemukan masing-masing, lalu tulis versi yang benar dalam C++ dan Python.
+
+  <Petunjuk>
+    Kerjakan bertahap. Kompilasi dulu dan baca error paling atas. Setelah program bisa berjalan, bandingkan outputnya dengan contoh. Terakhir, kompilasi dengan `-fsanitize=address,undefined` dan jalankan lagi dengan contoh input.
+  </Petunjuk>
+
+  <Pembahasan>
+    | Urutan ditemukan | Kesalahan | Baris | Ditemukan dengan |
+    | --- | --- | --- | --- |
+    | 1 | `}` penutup `struct` tidak diikuti `;` | 10 | Pesan error compiler |
+    | 2 | `total / n` adalah pembagian bilangan bulat | 29 | Membandingkan output dengan contoh |
+    | 3 | `i <= n` membuat perulangan membaca `data[n]` | 22 | Sanitizer |
+
+    **1. Compile error.** Pesannya jelas, dan compiler bahkan menunjukkan tempat `;` yang hilang:
+
+    ```txt title="Output g++"
+    nilai.cpp:10:2: error: expected ‘;’ after struct definition
+       10 | }
+          |  ^
+          |  ;
+    ```
+
+    **2. Logic error.** Setelah `;` ditambahkan, program berjalan dan menampilkan `Rata-rata: 78.00`. Nama terbaiknya benar, tetapi rata-ratanya salah, karena `total / n` membuang pecahan sebelum hasilnya disimpan ke `double`.
+
+    **3. Membaca di luar batas.** Kesalahan ini tidak terlihat dari output, jadi hanya sanitizer yang menangkapnya:
+
+    ```txt title="Output dengan sanitizer (dipersingkat)"
+    ==322217==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50c0000000d8
+    READ of size 4 at 0x50c0000000d8 thread T0
+        #0 0x56d16abbfad8 in main nilai.cpp:23
+    ```
+
+    Sanitizer menunjuk baris 23, tempat `data[i].nilai` dibaca, padahal penyebabnya ada di kondisi perulangan di baris 22. `Terbaik: Citra` hanya kebetulan benar. Jika memori di luar `vector` berisi angka yang lebih besar dari 81, `terbaik` akan menunjuk ke `data[3]` yang tidak ada, dan program bisa menampilkan nama aneh atau crash.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <iomanip>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Mahasiswa {
+        string nama;
+        int nilai;
+    };
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Mahasiswa> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i].nama >> data[i].nilai;
+        }
+
+        int total = 0;
+        int terbaik = 0;
+        for (int i = 0; i < n; i++) {
+            total += data[i].nilai;
+            if (data[i].nilai > data[terbaik].nilai) {
+                terbaik = i;
+            }
+        }
+
+        double rata = static_cast<double>(total) / n;
+        cout << fixed << setprecision(2);
+        cout << "Rata-rata: " << rata << endl;
+        cout << "Terbaik: " << data[terbaik].nama << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Mahasiswa:
+        def __init__(self, nama, nilai):
+            self.nama = nama
+            self.nilai = nilai
+
+
+    n = int(input())
+    data = []
+    for i in range(n):
+        nama, nilai = input().split()
+        data.append(Mahasiswa(nama, int(nilai)))
+
+    total = 0
+    terbaik = 0
+    for i in range(n):
+        total += data[i].nilai
+        if data[i].nilai > data[terbaik].nilai:
+            terbaik = i
+
+    rata = total / n
+    print(f"Rata-rata: {rata:.2f}")
+    print(f"Terbaik: {data[terbaik].nama}")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Bug yang lolos uji">
+  Program berikut mencari bilangan terbesar dari `n` bilangan bulat (`n ≥ 1`). Penulisnya sudah mengujinya dengan dua input di bawah, dan hasilnya benar.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      int terbesar = 0;
+      for (int i = 0; i < n; i++) {
+          int x;
+          cin >> x;
+          if (x > terbesar) {
+              terbesar = x;
+          }
+      }
+      cout << terbesar << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+  data = list(map(int, input().split()))
+
+  terbesar = 0
+  for x in data:
+      if x > terbesar:
+          terbesar = x
+  print(terbesar)
+  ```
+
+  ```txt title="Contoh input 1"
+  5
+  3 9 2 7 4
+  ```
+
+  ```txt title="Contoh output 1"
+  9
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  10 10 1
+  ```
+
+  ```txt title="Contoh output 2"
+  10
+  ```
+
+  1. Rancang satu input (dengan `n ≥ 1`) yang membuat program menampilkan hasil yang salah. Kenapa dua uji di atas tidak menemukan bug ini?
+  2. Temanmu mengusulkan mengganti nilai awal `terbesar` dari `0` menjadi `-1`. Tunjukkan dengan satu input bahwa usulan itu juga salah.
+  3. Perbaiki program agar benar untuk **semua** input dengan `n ≥ 1`.
+
+  <Petunjuk>
+    Kapan kondisi `x > terbesar` tidak pernah bernilai benar? Lihat lagi tabel kasus batas di bagian **Uji dengan kasus batas**. Nilai awal yang aman adalah nilai yang pasti ada di dalam data.
+  </Petunjuk>
+
+  <Pembahasan>
+    Bug-nya ada di nilai awal `terbesar = 0`. Jika **semua** data negatif, misalnya `n = 3` dengan data `-5 -2 -9`, kondisi `x > 0` tidak pernah benar. Program menampilkan `0`, padahal 0 bahkan tidak ada di data. Jawaban yang benar adalah `-2`. Dua uji tadi tidak menemukannya karena datanya positif semua.
+
+    Usulan `-1` hanya menggeser masalahnya. Dengan input yang sama, `-5 -2 -9`, program menampilkan `-1`. Nilai awal tetap apa pun akan menghasilkan jawaban salah jika semua data lebih kecil darinya.
+
+    Perbaikan yang benar adalah memakai **data pertama** sebagai nilai awal, seperti "juara sementara". Dengan begitu, `terbesar` selalu berisi salah satu nilai dari data.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        int terbesar;
+        cin >> terbesar;              // data pertama menjadi juara sementara
+        for (int i = 1; i < n; i++) {
+            int x;
+            cin >> x;
+            if (x > terbesar) {
+                terbesar = x;
+            }
+        }
+        cout << terbesar << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    terbesar = data[0]                # data pertama menjadi juara sementara
+    for x in data:
+        if x > terbesar:
+            terbesar = x
+    print(terbesar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Pemenang pemilihan">
+  Program berikut menghitung suara pemilihan ketua kelas. Inputnya `n`, lalu `n` nama kandidat (satu kata), satu nama per baris. Program menampilkan nama pemenang dan banyak suaranya, dipisah spasi. Jika beberapa kandidat sama-sama mendapat suara terbanyak, pemenangnya adalah yang namanya paling awal menurut abjad.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <map>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      map<string, int> suara;
+      for (int i = 0; i < n; i++) {
+          string nama;
+          cin >> nama;
+          suara[nama]++;
+      }
+
+      string pemenang = "";
+      int terbanyak = 0;
+      for (auto [nama, jumlah] : suara) {
+          if (jumlah >= terbanyak) {
+              pemenang = nama;
+              terbanyak = jumlah;
+          }
+      }
+      cout << pemenang << " " << terbanyak << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+  suara = {}
+  for i in range(n):
+      nama = input()
+      suara[nama] = suara.get(nama, 0) + 1
+
+  pemenang = ""
+  terbanyak = 0
+  for nama in sorted(suara):
+      if suara[nama] >= terbanyak:
+          pemenang = nama
+          terbanyak = suara[nama]
+  print(pemenang, terbanyak)
+  ```
+
+  ```txt title="Contoh input 1"
+  3
+  Budi
+  Ani
+  Budi
+  ```
+
+  ```txt title="Contoh output 1"
+  Budi 2
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  Citra
+  Ani
+  Citra
+  Citra
+  ```
+
+  ```txt title="Contoh output 2"
+  Citra 3
+  ```
+
+  1. Program ini lolos kedua contoh di atas. Rancang input yang membuatnya salah, lalu jelaskan penyebabnya dengan tabel trace dari perulangan kedua.
+  2. Perbaiki program dengan perubahan sekecil mungkin.
+  3. Setelah diperbaiki, apa yang terjadi jika `sorted(suara)` pada versi Python diganti `suara` saja? Rancang input yang menunjukkan bedanya.
+
+  <Petunjuk>
+    Aturan "paling awal menurut abjad" baru berpengaruh jika ada suara yang sama banyak, dan kedua contoh di atas tidak punya suara seri. `map` di C++ dan `sorted()` di Python menelusuri nama dari A ke Z.
+  </Petunjuk>
+
+  <Pembahasan>
+    Bug-nya hanya muncul saat ada suara **seri**. Contoh input yang membuat program salah:
+
+    ```txt title="Input uji"
+    5
+    Budi
+    Ani
+    Budi
+    Citra
+    Ani
+    ```
+
+    Ani dan Budi sama-sama mendapat 2 suara, jadi pemenangnya seharusnya `Ani 2`. Program menampilkan `Budi 2`:
+
+    | `nama` | `jumlah` | `jumlah >= terbanyak` | `pemenang` | `terbanyak` |
+    | --- | --- | --- | --- | --- |
+    | Ani | 2 | `true` (2 >= 0) | Ani | 2 |
+    | Budi | 2 | `true` (2 >= 2) | Budi | 2 |
+    | Citra | 1 | `false` | Budi | 2 |
+
+    Karena `>=`, kandidat berikutnya yang **seri** ikut menggeser pemenang, sehingga yang menang justru nama yang paling akhir menurut abjad. Perbaikannya cukup satu karakter: ganti `>=` menjadi `>`. Dengan `>`, juara hanya berganti jika suaranya **lebih banyak**, jadi nama yang lebih awal bertahan saat seri.
+
+    Untuk pertanyaan 3: tanpa `sorted()`, `dict` di Python ditelusuri sesuai urutan nama **pertama kali dimasukkan**. Pada input uji di atas, Budi masuk lebih dulu daripada Ani, sehingga Budi bertahan sebagai pemenang dan hasilnya kembali salah. Di C++, `map` selalu menyimpan kuncinya terurut, jadi masalah ini tidak muncul.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        map<string, int> suara;
+        for (int i = 0; i < n; i++) {
+            string nama;
+            cin >> nama;
+            suara[nama]++;
+        }
+
+        string pemenang = "";
+        int terbanyak = 0;
+        for (auto [nama, jumlah] : suara) {
+            if (jumlah > terbanyak) {
+                pemenang = nama;
+                terbanyak = jumlah;
+            }
+        }
+        cout << pemenang << " " << terbanyak << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    suara = {}
+    for i in range(n):
+        nama = input()
+        suara[nama] = suara.get(nama, 0) + 1
+
+    pemenang = ""
+    terbanyak = 0
+    for nama in sorted(suara):
+        if suara[nama] > terbanyak:
+            pemenang = nama
+            terbanyak = suara[nama]
+    print(pemenang, terbanyak)
+    ```
+  </Pembahasan>
+</Soal>

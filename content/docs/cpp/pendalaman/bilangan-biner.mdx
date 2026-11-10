@@ -1,0 +1,319 @@
+---
+title: Bilangan Biner & Komplemen Dua
+description: Cara komputer menulis angka dengan 0 dan 1, mengubah desimal ke biner dan sebaliknya, heksadesimal, dan cara bilangan negatif disimpan.
+sumber:
+  - ref: cppreference
+    judul: "Integer literal"
+    url: https://en.cppreference.com/w/cpp/language/integer_literal
+  - ref: cppreference
+    judul: "Fundamental types"
+    url: https://en.cppreference.com/w/cpp/language/types
+  - ref: cppreference
+    judul: "std::bitset"
+    url: https://en.cppreference.com/w/cpp/utility/bitset
+  - ref: python-docs
+    judul: "Integer literals"
+    url: https://docs.python.org/3/reference/lexical_analysis.html#integer-literals
+  - ref: python-docs
+    judul: "Bitwise Operations on Integer Types"
+    url: https://docs.python.org/3/library/stdtypes.html#bitwise-operations-on-integer-types
+  - ref: python-docs
+    judul: "int.bit_length()"
+    url: https://docs.python.org/3/library/stdtypes.html#int.bit_length
+---
+
+<BackToLesson href="/docs/cpp/operator-bitwise" label="Operator Bitwise" />
+
+## Basis bilangan
+
+Sehari-hari kita menulis angka dalam **desimal** (basis 10). Ada sepuluh digit, 0 sampai 9, dan setiap posisi bernilai 10 kali posisi di kanannya:
+
+```txt
+472  =  4 × 100  +  7 × 10  +  2 × 1
+```
+
+Komputer menyimpan angka dalam **biner** (basis 2). Hanya ada dua digit, 0 dan 1, karena rangkaian listrik paling mudah membedakan dua keadaan: ada tegangan atau tidak. Setiap posisi bernilai 2 kali posisi di kanannya:
+
+```txt
+1101  =  1 × 8  +  1 × 4  +  0 × 2  +  1 × 1  =  13
+```
+
+Bilangan biner cepat menjadi panjang. Karena itu programmer sering memakai **heksadesimal** (basis 16) sebagai singkatannya. Digitnya 0 sampai 9, lalu A sampai F (A = 10, B = 11, sampai F = 15), dan setiap posisi bernilai 16 kali posisi di kanannya. Satu digit heksadesimal mewakili tepat **4 bit**:
+
+| Desimal | Biner | Heksa | Desimal | Biner | Heksa |
+| --- | --- | --- | --- | --- | --- |
+| 0 | `0000` | `0` | 8 | `1000` | `8` |
+| 1 | `0001` | `1` | 9 | `1001` | `9` |
+| 2 | `0010` | `2` | 10 | `1010` | `A` |
+| 3 | `0011` | `3` | 11 | `1011` | `B` |
+| 4 | `0100` | `4` | 12 | `1100` | `C` |
+| 5 | `0101` | `5` | 13 | `1101` | `D` |
+| 6 | `0110` | `6` | 14 | `1110` | `E` |
+| 7 | `0111` | `7` | 15 | `1111` | `F` |
+
+Untuk mengubah biner ke heksadesimal, kelompokkan 4 bit mulai dari kanan: `0010 1101` menjadi `2` dan `D`, yaitu `2D`. Untuk mengubahnya ke desimal: 2 × 16 + 13 = 45.
+
+Heksadesimal sering kamu temui pada kode warna web. `#FFA500` (oranye) berarti merah `FF` = 255, hijau `A5` = 165, dan biru `00` = 0. Setiap komponen menempati satu byte.
+
+### Menulis bilangan di kode
+
+C++ dan Python memakai awalan yang sama:
+
+| Basis | Awalan | Contoh | Nilai |
+| --- | --- | --- | --- |
+| Desimal | tanpa awalan | `45` | 45 |
+| Biner | `0b` | `0b101101` | 45 |
+| Heksadesimal | `0x` | `0x2D` | 45 |
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << 0b101101 << endl;      // 45
+    cout << 0x2D << endl;          // 45
+    cout << 0b0010'1101 << endl;   // 45, tanda ' hanya pemisah agar mudah dibaca
+    cout << hex << 45 << endl;     // 2d, tampil dalam heksadesimal
+    cout << dec << 45 << endl;     // 45, kembali ke desimal
+    return 0;
+}
+```
+
+```python tab="Python"
+print(0b101101)           # 45
+print(0x2D)               # 45
+print(0b0010_1101)        # 45, tanda _ hanya pemisah agar mudah dibaca
+print(bin(45))            # 0b101101
+print(hex(45))            # 0x2d
+print(int("101101", 2))   # 45, teks biner diubah menjadi int
+print(int("2D", 16))      # 45
+```
+
+Di C++, `hex` berlaku untuk semua angka berikutnya sampai diganti lagi dengan `dec`.
+
+<Callout type="warning" title="Angka nol di depan">
+  Di C++, angka yang diawali `0` dibaca sebagai **oktal** (basis 8). `cout << 010;` menampilkan `8`, bukan `10`. Python 3 menolak penulisan ini dengan `SyntaxError` dan meminta awalan `0o` untuk oktal. Jadi jangan menambahkan nol di depan angka untuk merapikan kode.
+</Callout>
+
+## Desimal ke biner
+
+Cara yang paling umum adalah **membagi dengan 2 berulang kali** sambil mencatat sisanya, sampai bilangannya menjadi 0. Contoh untuk 45:
+
+| Langkah | Bilangan | Hasil bagi 2 | Sisa |
+| --- | --- | --- | --- |
+| 1 | 45 | 22 | **1** |
+| 2 | 22 | 11 | **0** |
+| 3 | 11 | 5 | **1** |
+| 4 | 5 | 2 | **1** |
+| 5 | 2 | 1 | **0** |
+| 6 | 1 | 0 | **1** |
+
+Baca kolom sisa **dari bawah ke atas**: `101101`. Periksa: 32 + 8 + 4 + 1 = 45.
+
+Mengapa cara ini berhasil? Sisa bagi 2 adalah bit paling kanan, karena hanya bit ke-0 yang bisa membuat sebuah bilangan ganjil. Pembagian bulat dengan 2 sama dengan menggeser ke kanan satu posisi, sehingga bit berikutnya pindah ke paling kanan. Jadi setiap langkah mengambil satu bit, mulai dari kanan. Dalam kode, satu langkah ini adalah `n % 2` (atau `n & 1`), lalu `n / 2` (atau `n >> 1`). Setelah belajar [Perulangan](/docs/cpp/perulangan), kamu bisa membuat program yang mengulang langkah ini secara otomatis.
+
+Untuk bilangan kecil, ada cara lain: **kurangi dengan pangkat dua terbesar yang masih muat**. Untuk 45: kurangi 32 (sisa 13), 16 tidak muat, kurangi 8 (sisa 5), kurangi 4 (sisa 1), 2 tidak muat, kurangi 1 (sisa 0). Pangkat dua yang dipakai mendapat bit 1, dan hasilnya sama: `101101`.
+
+## Biner ke desimal
+
+Jumlahkan nilai posisi yang bit-nya 1. Contoh untuk `10110110`:
+
+| Nilai posisi | 128 | 64 | 32 | 16 | 8 | 4 | 2 | 1 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Bit | 1 | 0 | 1 | 1 | 0 | 1 | 1 | 0 |
+| Diambil | 128 | | 32 | 16 | | 4 | 2 | |
+
+128 + 32 + 16 + 4 + 2 = **182**. Kamu bisa memeriksanya di Python dengan `int("10110110", 2)`, atau cukup `print(0b10110110)`.
+
+## Satu byte: 0 sampai 255
+
+Satu bit punya 2 kemungkinan. Dua bit punya 2 × 2 = 4 kemungkinan (`00`, `01`, `10`, `11`), tiga bit punya 8, dan **n bit punya 2ⁿ kemungkinan**. Satu byte (8 bit) punya 2⁸ = 256 kemungkinan, dari `00000000` (0) sampai `11111111` (255).
+
+Nilai terbesarnya selalu 2ⁿ − 1, yaitu saat semua bit bernilai 1. Ini mirip 999 = 1000 − 1 pada desimal.
+
+| Jumlah bit | Banyak kemungkinan | Rentang tanpa tanda |
+| --- | --- | --- |
+| 1 | 2 | 0 sampai 1 |
+| 4 | 16 | 0 sampai 15 |
+| 8 | 256 | 0 sampai 255 |
+| 16 | 65.536 | 0 sampai 65.535 |
+| 32 | 4.294.967.296 | 0 sampai 4.294.967.295 |
+
+Itulah sebabnya komponen warna, nilai piksel gambar, dan banyak data lain berkisar antara 0 sampai 255: masing-masing disimpan dalam satu byte.
+
+## `int` punya jumlah bit tetap [#jumlah-bit-tetap]
+
+Di C++, setiap tipe bilangan bulat punya ukuran tetap. `int` di g++ berukuran 4 byte, yaitu 32 bit. Angka kecil seperti 13 tetap memakai seluruh 32 bit, dengan nol di depannya:
+
+```cpp
+cout << sizeof(int) * 8 << endl;   // 32
+cout << bitset<32>(13) << endl;    // 00000000000000000000000000001101
+```
+
+Tidak ada bit ke-33. Jika hasil perhitungan membutuhkan lebih banyak bit, bit yang berlebih tidak punya tempat. Inilah akar masalah **overflow** yang dibahas di [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data).
+
+C++ juga punya `unsigned int`, yaitu `int` **tanpa tanda**. Seluruh 32 bit-nya dipakai untuk nilai 0 sampai 4.294.967.295. `int` biasa harus bisa menyimpan bilangan negatif juga, jadi rentangnya dibagi dua. Bagaimana caranya? Itulah isi bagian berikutnya.
+
+## Bilangan negatif: komplemen dua
+
+### Ide pertama: bit tanda
+
+Cara yang paling mudah terpikir adalah memakai bit paling kiri sebagai tanda (0 untuk positif, 1 untuk negatif) dan sisanya sebagai besar angkanya. Dengan 8 bit, 5 menjadi `00000101` dan −5 menjadi `10000101`. Cara ini punya dua masalah:
+
+- Ada dua nol: `00000000` (+0) dan `10000000` (−0).
+- Penjumlahan biasa memberi hasil yang salah. `00000101 + 10000101` = `10001010`, yang dibaca sebagai −10. Padahal 5 + (−5) seharusnya 0.
+
+### Bit paling kiri bernilai negatif
+
+Komputer modern memakai cara lain yang disebut **komplemen dua** (_two's complement_). Aturannya sederhana: **bit paling kiri bernilai negatif**. Pada 8 bit, bit ke-7 bernilai −128, bukan +128. Bit lainnya tetap seperti biasa.
+
+| Biner | Dibaca tanpa tanda | Dibaca dengan komplemen dua |
+| --- | --- | --- |
+| `00000000` | 0 | 0 |
+| `00000001` | 1 | 1 |
+| `01111111` | 127 | 127 |
+| `10000000` | 128 | −128 |
+| `10000001` | 129 | −128 + 1 = −127 |
+| `11111011` | 251 | −128 + 123 = −5 |
+| `11111111` | 255 | −128 + 127 = −1 |
+
+Jadi bilangan 8 bit bertanda mencakup −128 sampai 127. Dengan 32 bit, rentangnya −2.147.483.648 sampai 2.147.483.647, persis rentang `int` di [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data). Bilangan negatif selalu diawali bit 1, dan **−1 adalah semua bit bernilai 1**.
+
+### Balik semua bit, lalu tambah satu
+
+Untuk mendapatkan −x dari x, **balik semua bit, lalu tambah 1**:
+
+```txt
+ 5       =  00000101
+~5       =  11111010   (semua bit dibalik)
+~5 + 1   =  11111011   =  -5
+```
+
+Mengapa `~x` sama dengan `-x - 1`? Jumlahkan `x` dengan `~x`. Di setiap posisi, tepat satu dari keduanya bernilai 1, jadi tidak pernah ada simpanan (_carry_) dan hasilnya `11111111`, yaitu −1:
+
+```txt
+   x   =  00000101
+  ~x   =  11111010
+  ---------------- +
+          11111111   =  -1
+```
+
+Karena `x + ~x` = −1, maka `~x` = `-x - 1`, dan `-x` = `~x + 1`. Inilah alasan `~12` bernilai `-13` di [Operator Bitwise](/docs/cpp/operator-bitwise).
+
+### Mengapa komplemen dua dipakai
+
+- Hanya ada satu nol.
+- Penjumlahan bekerja sama persis untuk bilangan positif dan negatif. Komputer tidak perlu rangkaian khusus untuk pengurangan, karena `a - b` cukup dihitung sebagai `a + (~b + 1)`.
+
+```txt
+    00000101   (5)
+  + 11111011   (-5)
+  ------------
+   100000000   bit ke-9 tidak muat dan dibuang, sisanya 00000000 = 0
+```
+
+Sejak C++20, standar C++ mewajibkan komplemen dua. Sebelum itu pun, hampir semua komputer sudah memakainya.
+
+### Melihatnya di kode
+
+`bitset` menampilkan bit apa adanya. Di Python, `bin()` pada bilangan negatif hanya menempelkan tanda minus di depan, jadi untuk melihat 8 bit komplemen duanya, ambil 8 bit terbawah dengan `& 255`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <bitset>
+using namespace std;
+
+int main() {
+    cout << bitset<8>(5) << endl;    // 00000101
+    cout << bitset<8>(-5) << endl;   // 11111011
+    cout << bitset<8>(-1) << endl;   // 11111111
+    cout << ~5 << endl;              // -6
+    cout << (~5 + 1) << endl;        // -5
+    return 0;
+}
+```
+
+```python tab="Python"
+print(format(5, "08b"))          # 00000101
+print(format(-5 & 255, "08b"))   # 11111011
+print(bin(-5))                   # -0b101, bukan komplemen dua
+print(~5)                        # -6
+print(~5 + 1)                    # -5
+```
+
+### Bonus: trik `n & -n` [#n-and-minus-n]
+
+Perhatikan apa yang terjadi pada `-n` = `~n + 1`. Pada `~n`, nol-nol di ujung kanan `n` menjadi 1, dan bit 1 paling kanan menjadi 0. Saat ditambah 1, simpanan merambat melewati deretan 1 itu sampai berhenti tepat di posisi bit 1 paling kanan milik `n`:
+
+```txt
+ n       =  01100   (12)
+~n       =  10011
+~n + 1   =  10100   (-12)
+ n & -n  =  00100   =  4
+```
+
+Hasilnya, `-n` sama dengan `n` mulai dari bit 1 paling kanan sampai ujung kanan, dan terbalik di semua posisi lainnya. Jadi `n & -n` hanya menyisakan bit 1 paling kanan dari `n`.
+
+## Hubungan dengan overflow
+
+Nilai terbesar `int` adalah `0` yang diikuti 31 bit `1`. Jika ditambah 1, simpanan merambat sampai ke bit paling kiri dan hasilnya `1` yang diikuti 31 bit `0`. Dalam komplemen dua, itulah nilai terkecil:
+
+```cpp tab="C++"
+#include <iostream>
+#include <bitset>
+#include <climits>
+using namespace std;
+
+int main() {
+    cout << bitset<32>(INT_MAX) << endl;   // 01111111111111111111111111111111
+    cout << bitset<32>(INT_MIN) << endl;   // 10000000000000000000000000000000
+    cout << INT_MIN << endl;               // -2147483648
+    return 0;
+}
+```
+
+Itulah sebabnya contoh overflow di [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data) biasanya mencetak `-2147483648`: nilainya "berputar" dari yang terbesar ke yang terkecil. Namun untuk `int`, perputaran ini **tidak dijamin**. Overflow pada bilangan bertanda adalah <Term href="/docs/cpp/pendalaman/undefined-behavior">undefined behavior</Term>, dan compiler boleh menganggapnya tidak pernah terjadi. Untuk `unsigned int`, perputaran dijamin oleh standar:
+
+```cpp
+unsigned int u = 0;
+u = u - 1;
+cout << u << endl;   // 4294967295, semua 32 bit bernilai 1
+```
+
+## Python: int tanpa batas
+
+`int` Python tidak punya jumlah bit tetap. Python menambah memori sesuai kebutuhan, sehingga angkanya bisa sebesar apa pun dan tidak pernah overflow.
+
+```python
+x = 2 ** 100
+print(x)                  # 1267650600228229401496703205376
+print(x.bit_length())     # 101, banyak bit yang dibutuhkan
+print(2147483647 + 1)     # 2147483648, tidak berputar
+```
+
+Lalu bagaimana operator bitwise bekerja pada bilangan negatif di Python? Python menghitungnya **seolah-olah** bilangan disimpan dalam komplemen dua dengan bit tanda yang tak terhingga banyaknya. −1 dianggap `...11111111` tanpa ujung, dan −5 dianggap `...11111011`. Akibatnya:
+
+- `~x` tetap sama dengan `-x - 1`.
+- `-5 & 255` menghasilkan `251` (`11111011`), yaitu 8 bit terbawah dari −5.
+- `>>` pada bilangan negatif membulatkan ke bawah, sehingga `-1 >> 10` tetap `-1`.
+
+Jika kamu memindahkan kode C++ yang memakai perputaran `unsigned int` ke Python, tambahkan `& 0xFFFFFFFF` (32 bit bernilai 1) untuk meniru batas 32 bit-nya:
+
+```python
+print((0 - 1) & 0xFFFFFFFF)            # 4294967295, sama dengan u = u - 1 di atas
+print((4294967295 + 1) & 0xFFFFFFFF)   # 0, berputar seperti unsigned int
+```
+
+Pilihan ini ada harganya. `int` Python lebih aman karena tidak bisa overflow, tetapi setiap operasinya lebih lambat dan memakan lebih banyak memori daripada `int` C++ yang ukurannya tetap.
+
+## Rangkuman
+
+- Desimal memakai basis 10, biner basis 2, dan heksadesimal basis 16. Satu digit heksadesimal mewakili 4 bit.
+- Literal biner ditulis dengan awalan `0b`, heksadesimal dengan `0x`, di kedua bahasa. Di C++, angka berawalan `0` dibaca sebagai oktal.
+- Desimal ke biner: bagi 2 berulang kali, lalu baca sisanya dari bawah ke atas. Biner ke desimal: jumlahkan nilai posisi yang bit-nya 1.
+- n bit menampung 2ⁿ nilai, jadi satu byte menampung 0 sampai 255.
+- `int` C++ berukuran tetap 32 bit. Bilangan negatif disimpan dengan komplemen dua: bit paling kiri bernilai negatif, dan −1 adalah semua bit 1.
+- `-x` sama dengan `~x + 1`, sehingga `~x` sama dengan `-x - 1`.
+- Overflow terjadi karena jumlah bit terbatas. `int` Python tidak punya batas, tetapi operator bitwise-nya bekerja seolah-olah memakai komplemen dua.
+
+<BackToLesson href="/docs/cpp/operator-bitwise" label="Operator Bitwise" />

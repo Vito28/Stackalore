@@ -1,0 +1,1237 @@
+---
+title: Stack
+description: Struktur data "terakhir masuk, pertama keluar" (LIFO), cara membuatnya dengan vector dan std::stack, serta penerapannya untuk undo dan pemeriksaan tanda kurung.
+sumber:
+  - ref: cppreference
+    judul: std::stack
+    url: https://en.cppreference.com/w/cpp/container/stack
+  - ref: python-docs
+    judul: Tutorial, Using Lists as Stacks
+    url: https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks
+---
+
+## Tumpukan piring
+
+Bayangkan tumpukan piring bersih di dapur. Piring yang baru dicuci diletakkan di **atas** tumpukan, dan saat butuh piring, kamu juga mengambil dari **atas**. Piring paling bawah adalah yang pertama diletakkan, tetapi justru yang terakhir terpakai.
+
+**Stack** (tumpukan) adalah struktur data yang bekerja dengan aturan yang sama: elemen hanya bisa ditambah, dilihat, dan diambil dari **satu ujung**, yaitu bagian **atas** (_top_). Aturan ini disebut **LIFO** (_Last In, First Out_): yang terakhir masuk, yang pertama keluar.
+
+Sekilas aturan ini terdengar seperti pembatasan. Kenapa tidak memakai vector saja yang bisa diakses di posisi mana pun? Karena banyak masalah memang hanya membutuhkan elemen **terbaru**: tombol undo membatalkan aksi terakhir, tombol back di browser kembali ke halaman sebelumnya, dan kurung tutup harus cocok dengan kurung buka yang paling akhir. Dengan stack, kode untuk masalah seperti ini menjadi pendek dan sulit salah.
+
+## Operasi stack
+
+| Operasi | Arti |
+| --- | --- |
+| **push**(x) | Letakkan `x` di atas tumpukan |
+| **pop** | Buang elemen paling atas |
+| **top** | Lihat elemen paling atas tanpa membuangnya |
+| **empty** | Periksa apakah stack kosong |
+| **size** | Hitung banyak elemen di dalam stack |
+
+Tabel berikut menunjukkan isi sebuah stack yang awalnya kosong setelah setiap operasi. Isinya ditulis dari bawah ke atas, jadi elemen paling kanan adalah yang paling atas.
+
+| Langkah | Operasi | Isi stack (bawah → atas) | Hasil |
+| --- | --- | --- | --- |
+| 1 | push(3) | `3` | |
+| 2 | push(7) | `3 7` | |
+| 3 | push(5) | `3 7 5` | |
+| 4 | top | `3 7 5` | `5` |
+| 5 | pop | `3 7` | `5` dibuang |
+| 6 | push(9) | `3 7 9` | |
+| 7 | pop | `3 7` | `9` dibuang |
+| 8 | size | `3 7` | `2` |
+
+Perhatikan angka `3`. Ia masuk paling awal dan masih tertimbun di dasar. Ia baru bisa keluar setelah semua elemen di atasnya keluar.
+
+## Stack dengan vector
+
+Kamu sudah punya semua yang dibutuhkan untuk membuat stack, yaitu [vector](/docs/cpp/array-dan-vector). Anggap **ujung belakang** vector sebagai bagian atas stack. Di Python, list dipakai dengan cara yang sama.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> s;               // stack kosong
+
+    s.push_back(3);              // push(3)
+    s.push_back(7);              // push(7)
+    s.push_back(5);              // push(5)
+    cout << s.back() << endl;    // top: 5
+
+    s.pop_back();                // pop: 5 dibuang
+    s.push_back(9);              // push(9)
+    s.pop_back();                // pop: 9 dibuang
+
+    cout << s.size() << endl;    // 2
+    cout << s.back() << endl;    // 7
+    return 0;
+}
+```
+
+```python tab="Python"
+s = []                  # stack kosong
+
+s.append(3)             # push(3)
+s.append(7)             # push(7)
+s.append(5)             # push(5)
+print(s[-1])            # top: 5
+
+s.pop()                 # pop: 5 dibuang
+s.append(9)             # push(9)
+s.pop()                 # pop: 9 dibuang
+
+print(len(s))           # 2
+print(s[-1])            # 7
+```
+
+Kenapa ujung belakang, bukan depan? Menambah atau membuang elemen di **belakang** vector tidak menggeser elemen lain. Sebaliknya, menyisipkan atau menghapus di **depan** memaksa semua elemen lain bergeser satu posisi. Karena itu push dan pop di ujung belakang tetap cepat berapa pun banyaknya elemen: stack berisi sejuta elemen sama cepatnya dengan stack berisi sepuluh elemen. Cara mengukur "cepat" seperti ini dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+<Callout type="warning" title="pop di C++ tidak mengembalikan nilai">
+  `pop_back()` di C++ hanya membuang elemen. Untuk memakai nilainya, ambil dulu dengan `back()`, baru buang. Di Python, `s.pop()` membuang **sekaligus** mengembalikan elemen tersebut.
+</Callout>
+
+```cpp tab="C++"
+int atas = s.back();    // 1. ambil nilainya
+s.pop_back();           // 2. baru buang
+```
+
+```python tab="Python"
+atas = s.pop()          # ambil dan buang sekaligus
+```
+
+## `std::stack` di C++
+
+C++ juga menyediakan tipe khusus `stack` dari pustaka `<stack>`. Nama operasinya sama persis dengan nama konsepnya. Contoh berikut membaca `n` bilangan, lalu mengeluarkannya dari stack. Karena yang terakhir masuk keluar pertama, urutannya **terbalik**. Membalik urutan adalah penerapan stack yang paling sederhana.
+
+```cpp tab="C++"
+#include <iostream>
+#include <stack>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    stack<int> s;
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        s.push(x);
+    }
+
+    while (!s.empty()) {          // keluarkan sampai habis
+        cout << s.top() << " ";
+        s.pop();
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+data = input().split()
+
+s = []
+for i in range(n):
+    s.append(int(data[i]))
+
+while len(s) > 0:                 # keluarkan sampai habis
+    print(s.pop(), end=" ")
+print()
+```
+
+```txt title="Contoh jalannya program"
+5
+10 20 30 40 50
+50 40 30 20 10
+```
+
+| Operasi | C++ `stack` | C++ `vector` | Python `list` |
+| --- | --- | --- | --- |
+| push | `s.push(x)` | `s.push_back(x)` | `s.append(x)` |
+| pop | `s.pop()` | `s.pop_back()` | `s.pop()` |
+| top | `s.top()` | `s.back()` | `s[-1]` |
+| empty | `s.empty()` | `s.empty()` | `len(s) == 0` |
+| size | `s.size()` | `s.size()` | `len(s)` |
+
+`stack` sengaja **tidak** menyediakan indeks (`s[i]`) maupun perulangan for-each. Satu-satunya elemen yang bisa dilihat adalah yang paling atas. Pembatasan ini justru menguntungkan: pembaca kodemu langsung tahu datanya dipakai sebagai stack, dan tidak ada bagian program yang bisa diam-diam mengubah isi di tengah tumpukan.
+
+Python tidak punya tipe stack khusus. Dokumentasi resminya sendiri menyarankan list dengan `append` dan `pop`.
+
+Jadi kapan memakai yang mana? Pakai `stack` jika kamu hanya butuh operasi stack. Pakai `vector` jika suatu saat kamu juga perlu membaca seluruh isinya, misalnya mencetak isi stack dari bawah ke atas.
+
+## Jebakan: stack kosong
+
+Kesalahan paling umum saat memakai stack adalah memanggil top atau pop ketika stack sudah kosong.
+
+```cpp tab="C++"
+stack<int> s;
+cout << s.top() << endl;   // ✗ undefined behavior
+s.pop();                   // ✗ undefined behavior
+```
+
+```python tab="Python"
+s = []
+print(s[-1])               # ✗ IndexError: list index out of range
+s.pop()                    # ✗ IndexError: pop from empty list
+```
+
+Python langsung berhenti dengan pesan yang jelas. C++ tidak memeriksa apa pun, sehingga yang terjadi adalah [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior). Saat dicoba dengan `g++`, `s.top()` membuat program crash (_segmentation fault_), sedangkan `s.pop()` tidak crash tetapi merusak stack: setelahnya `s.size()` melaporkan 18446744073709551615 elemen. Di komputer atau compiler lain, hasilnya bisa berbeda lagi.
+
+Aturannya sederhana: **periksa `empty()` sebelum `top()` atau `pop()`**.
+
+```cpp tab="C++"
+if (!s.empty()) {
+    cout << s.top() << endl;
+    s.pop();
+} else {
+    cout << "Stack kosong" << endl;
+}
+```
+
+```python tab="Python"
+if len(s) > 0:
+    print(s.pop())
+else:
+    print("Stack kosong")
+```
+
+## Penerapan: tombol undo
+
+Text editor menyimpan setiap aksimu di sebuah stack riwayat. Setiap aksi baru di-push. Saat kamu menekan Ctrl+Z, aksi teratas di-pop lalu dibatalkan. Karena puncak stack selalu aksi terbaru, undo selalu membatalkan aksi yang **terakhir** kamu lakukan.
+
+| Aksi | Stack riwayat (bawah → atas) | Teks di layar |
+| --- | --- | --- |
+| ketik "Halo" | ketik "Halo" | Halo |
+| ketik " dunia" | ketik "Halo", ketik " dunia" | Halo dunia |
+| tebalkan | ketik "Halo", ketik " dunia", tebalkan | **Halo dunia** |
+| undo | ketik "Halo", ketik " dunia" | Halo dunia |
+| undo | ketik "Halo" | Halo |
+
+Pola yang sama muncul di banyak tempat lain:
+
+- **Tombol back di browser.** Setiap halaman yang kamu buka di-push. Tombol back mem-pop halaman sekarang dan menampilkan halaman di bawahnya.
+- **Pemanggilan fungsi.** Saat `main` memanggil `hitung`, lalu `hitung` memanggil `kuadrat`, komputer mencatat urutannya di sebuah stack yang disebut _call stack_. Begitu `kuadrat` selesai, catatannya di-pop dan eksekusi kembali ke `hitung`. Itulah sebabnya pesan error Python diawali `Traceback (most recent call last)`: isinya adalah call stack saat error terjadi. Cara membacanya dibahas di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging).
+
+## Penerapan: memeriksa tanda kurung
+
+Ekspresi seperti `{[(a + b) * c] - d}` harus memiliki kurung yang **seimbang**: setiap kurung buka punya kurung tutup dengan jenis yang sama, dan pasangan-pasangannya tidak saling bersilangan. Compiler C++ dan interpreter Python melakukan pemeriksaan seperti ini setiap kali membaca kodemu.
+
+Menghitung jumlah kurung buka dan tutup saja tidak cukup. `([)]` punya dua kurung buka dan dua kurung tutup, tetapi jelas salah, karena `)` datang saat kurung yang terakhir dibuka adalah `[`.
+
+Kuncinya: **kurung tutup harus cocok dengan kurung buka terakhir yang belum ditutup.** "Terakhir" berarti puncak stack. Langkahnya:
+
+1. Baca karakter satu per satu dari kiri ke kanan.
+2. Kurung buka `(`, `[`, atau `{` di-push.
+3. Untuk kurung tutup, stack tidak boleh kosong dan puncaknya harus pasangan yang cocok. Jika cocok, pop. Jika tidak, ekspresi tidak seimbang.
+4. Karakter lain diabaikan.
+5. Setelah semua karakter dibaca, stack harus kosong. Sisa kurung buka berarti ada yang belum ditutup.
+
+Jejak pemeriksaan untuk `{[()]}`:
+
+| Karakter | Tindakan | Stack (bawah → atas) |
+| --- | --- | --- |
+| `{` | push | `{` |
+| `[` | push | `{ [` |
+| `(` | push | `{ [ (` |
+| `)` | puncak `(` cocok, pop | `{ [` |
+| `]` | puncak `[` cocok, pop | `{` |
+| `}` | puncak `{` cocok, pop | kosong |
+
+Semua karakter habis dan stack kosong, jadi ekspresi ini seimbang. Untuk `([)]`, saat `)` datang, puncak stack adalah `[`. Tidak cocok, sehingga pemeriksaan langsung berhenti dengan hasil tidak seimbang.
+
+```cpp tab="C++"
+#include <iostream>
+#include <stack>
+#include <string>
+using namespace std;
+
+bool pasangan(char buka, char tutup) {
+    return (buka == '(' && tutup == ')') ||
+           (buka == '[' && tutup == ']') ||
+           (buka == '{' && tutup == '}');
+}
+
+bool seimbang(const string& teks) {
+    stack<char> s;
+    for (char c : teks) {
+        if (c == '(' || c == '[' || c == '{') {
+            s.push(c);
+        } else if (c == ')' || c == ']' || c == '}') {
+            if (s.empty() || !pasangan(s.top(), c)) {
+                return false;          // tidak ada pasangan, atau jenisnya beda
+            }
+            s.pop();
+        }
+    }
+    return s.empty();                  // sisa kurung buka berarti belum ditutup
+}
+
+int main() {
+    string teks;
+    getline(cin, teks);
+
+    if (seimbang(teks)) {
+        cout << "Seimbang" << endl;
+    } else {
+        cout << "Tidak seimbang" << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+def pasangan(buka, tutup):
+    return ((buka == "(" and tutup == ")") or
+            (buka == "[" and tutup == "]") or
+            (buka == "{" and tutup == "}"))
+
+
+def seimbang(teks):
+    s = []
+    for c in teks:
+        if c in "([{":
+            s.append(c)
+        elif c in ")]}":
+            if len(s) == 0 or not pasangan(s[-1], c):
+                return False           # tidak ada pasangan, atau jenisnya beda
+            s.pop()
+    return len(s) == 0                 # sisa kurung buka berarti belum ditutup
+
+
+teks = input()
+if seimbang(teks):
+    print("Seimbang")
+else:
+    print("Tidak seimbang")
+```
+
+```txt title="Contoh jalannya program (dua kali)"
+{[(a + b) * c] - d}
+Seimbang
+
+([)]
+Tidak seimbang
+```
+
+Perhatikan urutan pada `s.empty() || !pasangan(s.top(), c)`. Berkat [_short-circuit_](/docs/cpp/operator-perbandingan-dan-logika), `s.top()` hanya dipanggil jika stack tidak kosong. Jika urutannya dibalik, program akan memanggil `top()` pada stack kosong.
+
+Ada tiga cara sebuah ekspresi gagal, dan kode di atas menangani ketiganya:
+
+| Contoh | Penyebab |
+| --- | --- |
+| `())` | `)` kedua datang saat stack sudah kosong |
+| `(]` | puncak stack `(` bukan pasangan `]` |
+| `((` | stack masih berisi kurung buka saat teks habis |
+
+## Rangkuman
+
+- Stack bekerja dengan aturan **LIFO**: elemen yang terakhir masuk adalah yang pertama keluar. Semua operasi terjadi di bagian atas.
+- Operasinya: push, pop, top, empty, dan size.
+- Stack bisa dibuat dari `vector` (`push_back`, `pop_back`, `back`) atau memakai `stack` dari `<stack>` (`push`, `pop`, `top`). Python memakai list (`append`, `pop`, `[-1]`).
+- `pop` di C++ tidak mengembalikan nilai. Ambil dengan `top()`/`back()` dulu, baru pop. `pop()` di Python mengembalikan elemen yang dibuang.
+- Push dan pop tetap cepat berapa pun ukuran stack, karena hanya menyentuh elemen paling atas.
+- Selalu periksa `empty()` sebelum `top()` atau `pop()`. Di C++ kesalahan ini adalah _undefined behavior_, di Python menjadi `IndexError`.
+- Stack cocok untuk masalah "yang terbaru lebih dulu": membalik urutan, undo, tombol back, call stack, dan memeriksa tanda kurung.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Membalik kata">
+  Baca satu kata, lalu tampilkan kata itu dalam urutan terbalik. Kerjakan **dengan stack**: push setiap huruf, lalu pop sampai habis.
+
+  | Input | Output |
+  | --- | --- |
+  | `stack` | `kcats` |
+  | `Medan` | `nadeM` |
+  | `a` | `a` |
+
+  <Pembahasan>
+    Huruf pertama masuk paling awal sehingga keluar paling akhir. Hasilnya otomatis terbalik. Python sebenarnya punya cara singkat `kata[::-1]`, tetapi tujuan soal ini adalah merasakan sifat LIFO.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string kata;
+        cin >> kata;
+
+        stack<char> s;
+        for (char c : kata) {
+            s.push(c);
+        }
+
+        string hasil = "";
+        while (!s.empty()) {
+            hasil += s.top();
+            s.pop();
+        }
+        cout << hasil << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    kata = input()
+
+    s = []
+    for c in kata:
+        s.append(c)
+
+    hasil = ""
+    while len(s) > 0:
+        hasil += s.pop()
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output stack">
+  Tanpa menjalankannya, tebak output program berikut. Kedua versi menghasilkan output yang sama.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <stack>
+  using namespace std;
+
+  int main() {
+      stack<int> s;
+      for (int i = 1; i <= 4; i++) {
+          s.push(i * i);
+      }
+      s.pop();
+      s.push(s.top() + 1);
+      cout << s.top() << " ";
+      s.pop();
+      s.pop();
+      cout << s.top() << " " << s.size() << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  s = []
+  for i in range(1, 5):
+      s.append(i * i)
+  s.pop()
+  s.append(s[-1] + 1)
+  print(s[-1], end=" ")
+  s.pop()
+  s.pop()
+  print(s[-1], len(s))
+  ```
+
+  <Pembahasan>
+    Output-nya `10 4 2`. Telusuri isi stack setelah setiap baris:
+
+    | Baris | Isi stack (bawah → atas) | Tercetak |
+    | --- | --- | --- |
+    | perulangan push `i * i` | `1 4 9 16` | |
+    | pop | `1 4 9` | |
+    | push top + 1 | `1 4 9 10` | |
+    | cetak top | `1 4 9 10` | `10` |
+    | pop, pop | `1 4` | |
+    | cetak top dan size | `1 4` | `4 2` |
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Perbaiki program pembalik">
+  Program berikut membaca bilangan bulat satu per baris sampai bertemu `0` (angka 0 tidak ikut disimpan), lalu menampilkannya dalam urutan terbalik, satu per baris. Versi C++ gagal dikompilasi. Versi Python menampilkan angka yang benar, tetapi kemudian berhenti dengan error. Temukan kesalahannya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <stack>
+  using namespace std;
+
+  int main() {
+      stack<int> s;
+      int x;
+      cin >> x;
+      while (x != 0) {
+          s.push(x);
+          cin >> x;
+      }
+
+      while (s.size() >= 0) {
+          int atas = s.pop();
+          cout << atas << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  s = []
+  x = int(input())
+  while x != 0:
+      s.append(x)
+      x = int(input())
+
+  while len(s) >= 0:
+      atas = s.pop()
+      print(atas)
+  ```
+
+  ```txt title="Contoh input"
+  4
+  8
+  15
+  0
+  ```
+
+  ```txt title="Contoh output"
+  15
+  8
+  4
+  ```
+
+  <Pembahasan>
+    **C++:** `s.pop()` tidak mengembalikan apa pun (`void`), sehingga `int atas = s.pop();` ditolak dengan `error: void value not ignored as it ought to be`. Ambil dulu dengan `s.top()`, baru `s.pop()`.
+
+    **Kedua bahasa:** syarat `>= 0` selalu benar, karena ukuran tidak pernah negatif. Setelah stack kosong, perulangan tetap berjalan dan memanggil pop pada stack kosong. Python berhenti dengan `IndexError: pop from empty list`, sedangkan C++ masuk ke _undefined behavior_. Compiler sebenarnya sudah memperingatkan lewat `-Wextra`: `comparison of unsigned expression in '>= 0' is always true`. Syarat yang benar adalah "selama stack tidak kosong".
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    using namespace std;
+
+    int main() {
+        stack<int> s;
+        int x;
+        cin >> x;
+        while (x != 0) {
+            s.push(x);
+            cin >> x;
+        }
+
+        while (!s.empty()) {
+            int atas = s.top();
+            s.pop();
+            cout << atas << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    s = []
+    x = int(input())
+    while x != 0:
+        s.append(x)
+        x = int(input())
+
+    while len(s) > 0:
+        atas = s.pop()
+        print(atas)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Menjalankan perintah stack">
+  Baris pertama berisi `q`, banyak perintah. Setiap baris berikutnya berisi satu perintah untuk sebuah stack bilangan bulat yang awalnya kosong:
+
+  - `PUSH x`: masukkan `x`.
+  - `POP`: tampilkan elemen paling atas lalu buang.
+  - `TOP`: tampilkan elemen paling atas tanpa membuangnya.
+  - `SIZE`: tampilkan banyak elemen.
+
+  Jika `POP` atau `TOP` diberikan saat stack kosong, tampilkan `KOSONG` dan jangan lakukan apa-apa.
+
+  ```txt title="Contoh input"
+  8
+  PUSH 5
+  PUSH 12
+  TOP
+  POP
+  POP
+  POP
+  PUSH 7
+  SIZE
+  ```
+
+  ```txt title="Contoh output"
+  12
+  12
+  5
+  KOSONG
+  1
+  ```
+
+  <Petunjuk>
+    Di C++, baca perintahnya dulu sebagai `string`. Hanya jika perintahnya `PUSH`, baca satu bilangan lagi. Di Python, pecah satu baris dengan `split()`. `POP` dan `TOP` sama-sama menampilkan puncak, bedanya hanya `POP` membuang setelahnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pemeriksaan stack kosong ditaruh di satu tempat untuk `POP` dan `TOP` sekaligus, sehingga tidak ada jalur yang lupa memeriksa.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int q;
+        cin >> q;
+        stack<int> s;
+
+        for (int i = 0; i < q; i++) {
+            string perintah;
+            cin >> perintah;
+            if (perintah == "PUSH") {
+                int x;
+                cin >> x;
+                s.push(x);
+            } else if (perintah == "POP" || perintah == "TOP") {
+                if (s.empty()) {
+                    cout << "KOSONG" << endl;
+                } else {
+                    cout << s.top() << endl;
+                    if (perintah == "POP") {
+                        s.pop();
+                    }
+                }
+            } else if (perintah == "SIZE") {
+                cout << s.size() << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    q = int(input())
+    s = []
+
+    for i in range(q):
+        bagian = input().split()
+        perintah = bagian[0]
+        if perintah == "PUSH":
+            s.append(int(bagian[1]))
+        elif perintah == "POP" or perintah == "TOP":
+            if len(s) == 0:
+                print("KOSONG")
+            else:
+                print(s[-1])
+                if perintah == "POP":
+                    s.pop()
+        elif perintah == "SIZE":
+            print(len(s))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Desimal ke biner">
+  Baca sebuah bilangan bulat `n` (0 ≤ n ≤ 1.000.000.000), lalu tampilkan bentuk binernya. Gunakan stack.
+
+  | Input | Output |
+  | --- | --- |
+  | `13` | `1101` |
+  | `0` | `0` |
+  | `64` | `1000000` |
+
+  <Petunjuk>
+    Bagi `n` dengan 2 berulang kali dan catat sisanya: 13 → sisa 1, 6 → sisa 0, 3 → sisa 1, 1 → sisa 1. Sisa-sisa itu adalah digit biner **dari kanan ke kiri**, padahal kita harus mencetaknya dari kiri. Urutan yang perlu dibalik adalah tanda untuk memakai stack.
+  </Petunjuk>
+
+  <Pembahasan>
+    Push setiap sisa bagi, lalu pop semuanya. Jangan lupa kasus `n = 0`: perulangan `while (n > 0)` tidak berjalan sama sekali, sehingga tanpa penanganan khusus tidak ada yang tercetak. Digit-digit ini adalah bit yang sama dengan yang kamu olah di [Operator Bitwise](/docs/cpp/operator-bitwise).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        if (n == 0) {
+            cout << 0 << endl;
+            return 0;
+        }
+
+        stack<int> s;
+        while (n > 0) {
+            s.push(n % 2);
+            n /= 2;
+        }
+
+        while (!s.empty()) {
+            cout << s.top();
+            s.pop();
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    if n == 0:
+        print(0)
+    else:
+        s = []
+        while n > 0:
+            s.append(n % 2)
+            n //= 2
+
+        hasil = ""
+        while len(s) > 0:
+            hasil += str(s.pop())
+        print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Menghapus huruf kembar">
+  Baca satu kata yang terdiri dari huruf kecil. Selama ada dua huruf **bersebelahan** yang sama, hapus keduanya. Penghapusan bisa membuat dua huruf lain menjadi bersebelahan, dan pasangan baru itu juga harus dihapus. Tampilkan hasil akhirnya, atau `(kosong)` jika semua huruf habis.
+
+  Contoh: `xyyxz` → hapus `yy` menjadi `xxz` → hapus `xx` menjadi `z`.
+
+  | Input | Output |
+  | --- | --- |
+  | `xyyxz` | `z` |
+  | `mississippi` | `m` |
+  | `aabbcc` | `(kosong)` |
+
+  <Petunjuk>
+    Telusuri huruf dari kiri ke kanan. Simpan huruf yang "selamat sejauh ini" di stack. Jika huruf baru sama dengan puncak stack, keduanya saling menghapus (pop, dan huruf baru tidak di-push). Jika tidak, push.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah sepasang huruf terhapus, puncak stack kembali ke huruf **sebelum** pasangan itu, sehingga huruf berikutnya otomatis dibandingkan dengannya. Inilah yang menangani penghapusan berantai dalam satu kali penelusuran. Hasil akhirnya harus dibaca dari bawah ke atas, jadi C++ memakai `vector` sebagai stack, bukan `std::stack`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        string kata;
+        cin >> kata;
+
+        vector<char> s;                  // dipakai sebagai stack
+        for (char c : kata) {
+            if (!s.empty() && s.back() == c) {
+                s.pop_back();            // pasangan kembar, hapus keduanya
+            } else {
+                s.push_back(c);
+            }
+        }
+
+        if (s.empty()) {
+            cout << "(kosong)" << endl;
+        } else {
+            for (char c : s) {           // dari bawah ke atas
+                cout << c;
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    kata = input()
+
+    s = []
+    for c in kata:
+        if len(s) > 0 and s[-1] == c:
+            s.pop()                      # pasangan kembar, hapus keduanya
+        else:
+            s.append(c)
+
+    if len(s) == 0:
+        print("(kosong)")
+    else:
+        hasil = ""
+        for c in s:                      # dari bawah ke atas
+            hasil += c
+        print(hasil)
+    ```
+
+    Urutan `!s.empty() && s.back() == c` penting: berkat _short-circuit_, `back()` tidak pernah dipanggil pada stack kosong.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Menghitung ekspresi postfix">
+  Dalam notasi **postfix**, operator ditulis **setelah** kedua operandnya. `3 4 +` berarti 3 + 4, dan `3 4 + 2 *` berarti (3 + 4) × 2. Notasi ini tidak membutuhkan kurung dan mudah dihitung dengan stack.
+
+  Baris pertama input berisi `n`, banyak token. Baris kedua berisi `n` token yang dipisah spasi. Setiap token adalah bilangan bulat tak negatif atau salah satu operator `+`, `-`, `*`. Ekspresinya selalu valid, dan semua hasil antara muat di `int`. Tampilkan hasilnya.
+
+  ```txt title="Contoh input 1"
+  7
+  10 2 8 * + 3 -
+  ```
+
+  ```txt title="Contoh output 1"
+  23
+  ```
+
+  ```txt title="Contoh input 2"
+  3
+  4 7 -
+  ```
+
+  ```txt title="Contoh output 2"
+  -3
+  ```
+
+  <Petunjuk>
+    Bilangan di-push. Operator mengambil (pop) dua bilangan teratas, menghitung, lalu mem-push hasilnya. Hati-hati: bilangan yang keluar **pertama** adalah operand **kanan**. Di C++, ubah token angka dengan `stoi`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jejak untuk contoh 1:
+
+    | Token | Stack sesudahnya (bawah → atas) |
+    | --- | --- |
+    | `10`, `2`, `8` | `10 2 8` |
+    | `*` | `10 16` |
+    | `+` | `26` |
+    | `3` | `26 3` |
+    | `-` | `23` |
+
+    Kesalahan yang paling sering adalah tertukar operand: `4 7 -` menjadi 7 − 4 = 3, padahal seharusnya 4 − 7 = −3. Untuk `+` dan `*` urutannya tidak berpengaruh, jadi kesalahan ini hanya terlihat pada `-`. Kalkulator dan compiler pun sering mengubah ekspresi biasa ke bentuk postfix dulu sebelum menghitungnya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    int hitung(int kiri, int kanan, const string& op) {
+        if (op == "+") return kiri + kanan;
+        if (op == "-") return kiri - kanan;
+        return kiri * kanan;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        stack<int> s;
+
+        for (int i = 0; i < n; i++) {
+            string token;
+            cin >> token;
+            if (token == "+" || token == "-" || token == "*") {
+                int kanan = s.top();     // keluar pertama = operand kanan
+                s.pop();
+                int kiri = s.top();
+                s.pop();
+                s.push(hitung(kiri, kanan, token));
+            } else {
+                s.push(stoi(token));
+            }
+        }
+        cout << s.top() << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def hitung(kiri, kanan, op):
+        if op == "+":
+            return kiri + kanan
+        if op == "-":
+            return kiri - kanan
+        return kiri * kanan
+
+
+    n = int(input())
+    token = input().split()
+    s = []
+
+    for i in range(n):
+        t = token[i]
+        if t == "+" or t == "-" or t == "*":
+            kanan = s.pop()              # keluar pertama = operand kanan
+            kiri = s.pop()
+            s.append(hitung(kiri, kanan, t))
+        else:
+            s.append(int(t))
+    print(s[-1])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Undo dan redo">
+  Sebuah editor sederhana menyimpan dokumen berupa deretan kata, awalnya kosong. Ada empat perintah:
+
+  - `TULIS kata`: tambahkan kata di akhir dokumen.
+  - `HAPUS`: hapus kata terakhir. Jika dokumen kosong, perintah ini diabaikan dan **tidak** dicatat.
+  - `UNDO`: batalkan aksi `TULIS`/`HAPUS` terakhir yang belum dibatalkan. Jika tidak ada, abaikan.
+  - `REDO`: jalankan ulang aksi yang terakhir di-undo. Jika tidak ada, abaikan. Aksi yang di-redo bisa di-undo lagi.
+
+  Setiap `TULIS` atau `HAPUS` baru yang tercatat **menghapus** semua riwayat redo, seperti di editor sungguhan. Baris pertama input berisi `q`, banyak perintah. Tampilkan isi dokumen akhir (kata dipisah satu spasi), atau `(kosong)`.
+
+  ```txt title="Contoh input 1"
+  9
+  TULIS saya
+  TULIS suka
+  TULIS kopi
+  HAPUS
+  UNDO
+  UNDO
+  TULIS teh
+  REDO
+  TULIS manis
+  ```
+
+  ```txt title="Contoh output 1"
+  saya suka teh manis
+  ```
+
+  ```txt title="Contoh input 2"
+  6
+  TULIS halo
+  HAPUS
+  HAPUS
+  UNDO
+  REDO
+  UNDO
+  ```
+
+  ```txt title="Contoh output 2"
+  halo
+  ```
+
+  <Petunjuk>
+    Pakai dua stack berisi struct `Aksi` (jenis dan kata): satu untuk riwayat undo, satu untuk riwayat redo. UNDO memindahkan aksi dari stack undo ke stack redo sambil membatalkannya. REDO memindahkan sebaliknya sambil menjalankannya. Untuk `HAPUS`, simpan kata yang dihapus agar bisa dikembalikan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Membatalkan `TULIS` berarti membuang kata terakhir, dan membatalkan `HAPUS` berarti mengembalikan kata yang dihapus. Karena itu aksi `HAPUS` harus mencatat katanya. Pada contoh 1, setelah dua kali UNDO dokumen menjadi `saya suka` dan stack redo berisi dua aksi. `TULIS teh` mengosongkan stack redo, jadi `REDO` berikutnya tidak melakukan apa pun. Dokumen sendiri disimpan di `vector` karena perlu dicetak dari awal sampai akhir.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Aksi {
+        string jenis;   // "TULIS" atau "HAPUS"
+        string kata;    // kata yang ditulis atau dihapus
+    };
+
+    void jalankan(vector<string>& dokumen, const Aksi& a) {
+        if (a.jenis == "TULIS") {
+            dokumen.push_back(a.kata);
+        } else {
+            dokumen.pop_back();
+        }
+    }
+
+    void batalkan(vector<string>& dokumen, const Aksi& a) {
+        if (a.jenis == "TULIS") {
+            dokumen.pop_back();
+        } else {
+            dokumen.push_back(a.kata);
+        }
+    }
+
+    void kosongkan(stack<Aksi>& s) {
+        while (!s.empty()) {
+            s.pop();
+        }
+    }
+
+    int main() {
+        int q;
+        cin >> q;
+        vector<string> dokumen;
+        stack<Aksi> riwayatUndo, riwayatRedo;
+
+        for (int i = 0; i < q; i++) {
+            string perintah;
+            cin >> perintah;
+            if (perintah == "TULIS" || perintah == "HAPUS") {
+                Aksi a;
+                a.jenis = perintah;
+                if (perintah == "TULIS") {
+                    cin >> a.kata;
+                } else if (dokumen.empty()) {
+                    continue;                // HAPUS pada dokumen kosong diabaikan
+                } else {
+                    a.kata = dokumen.back();
+                }
+                jalankan(dokumen, a);
+                riwayatUndo.push(a);
+                kosongkan(riwayatRedo);      // aksi baru menghapus riwayat redo
+            } else if (perintah == "UNDO" && !riwayatUndo.empty()) {
+                Aksi a = riwayatUndo.top();
+                riwayatUndo.pop();
+                batalkan(dokumen, a);
+                riwayatRedo.push(a);
+            } else if (perintah == "REDO" && !riwayatRedo.empty()) {
+                Aksi a = riwayatRedo.top();
+                riwayatRedo.pop();
+                jalankan(dokumen, a);
+                riwayatUndo.push(a);
+            }
+        }
+
+        if (dokumen.empty()) {
+            cout << "(kosong)" << endl;
+        } else {
+            for (int i = 0; i < (int)dokumen.size(); i++) {
+                if (i > 0) {
+                    cout << " ";
+                }
+                cout << dokumen[i];
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Aksi:
+        def __init__(self, jenis, kata):
+            self.jenis = jenis       # "TULIS" atau "HAPUS"
+            self.kata = kata         # kata yang ditulis atau dihapus
+
+
+    def jalankan(dokumen, a):
+        if a.jenis == "TULIS":
+            dokumen.append(a.kata)
+        else:
+            dokumen.pop()
+
+
+    def batalkan(dokumen, a):
+        if a.jenis == "TULIS":
+            dokumen.pop()
+        else:
+            dokumen.append(a.kata)
+
+
+    q = int(input())
+    dokumen = []
+    riwayat_undo = []
+    riwayat_redo = []
+
+    for i in range(q):
+        bagian = input().split()
+        perintah = bagian[0]
+        if perintah == "TULIS" or perintah == "HAPUS":
+            if perintah == "TULIS":
+                a = Aksi("TULIS", bagian[1])
+            elif len(dokumen) == 0:
+                continue                 # HAPUS pada dokumen kosong diabaikan
+            else:
+                a = Aksi("HAPUS", dokumen[-1])
+            jalankan(dokumen, a)
+            riwayat_undo.append(a)
+            riwayat_redo.clear()         # aksi baru menghapus riwayat redo
+        elif perintah == "UNDO" and len(riwayat_undo) > 0:
+            a = riwayat_undo.pop()
+            batalkan(dokumen, a)
+            riwayat_redo.append(a)
+        elif perintah == "REDO" and len(riwayat_redo) > 0:
+            a = riwayat_redo.pop()
+            jalankan(dokumen, a)
+            riwayat_undo.append(a)
+
+    if len(dokumen) == 0:
+        print("(kosong)")
+    else:
+        hasil = dokumen[0]
+        for i in range(1, len(dokumen)):
+            hasil += " " + dokumen[i]
+        print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Bilangan lebih besar berikutnya">
+  Baca `n` bilangan bulat. Untuk setiap bilangan, cari bilangan pertama **di sebelah kanannya** yang **lebih besar**. Jika tidak ada, jawabannya `-1`. Tampilkan semua jawaban dalam satu baris, dipisah spasi.
+
+  Nilai `n` bisa mencapai 100.000, jadi usahakan tidak membandingkan setiap pasangan bilangan.
+
+  ```txt title="Contoh input 1"
+  6
+  4 7 3 5 9 2
+  ```
+
+  ```txt title="Contoh output 1"
+  7 9 5 9 -1 -1
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  3 3 3 4 1
+  ```
+
+  ```txt title="Contoh output 2"
+  4 4 4 -1 -1
+  ```
+
+  <Petunjuk>
+    Proses dari **kanan ke kiri** dan simpan "kandidat jawaban" di stack. Saat memproses `a[i]`, buang dari stack semua kandidat yang **tidak lebih besar** dari `a[i]`. Setelah itu, puncak stack (jika ada) adalah jawabannya. Terakhir, push `a[i]` sebagai kandidat untuk bilangan di sebelah kirinya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Cara langsungnya adalah perulangan bersarang: untuk setiap `i`, cari ke kanan sampai ketemu yang lebih besar. Hasilnya benar, tetapi untuk 100.000 bilangan yang menurun bisa butuh sekitar 5 miliar perbandingan.
+
+    Dengan stack, kandidat yang lebih kecil atau sama dengan `a[i]` boleh dibuang **selamanya**. Alasannya, bilangan mana pun di sebelah kiri `a[i]` akan bertemu `a[i]` lebih dulu, dan `a[i]` setidaknya sama besar dengan kandidat-kandidat itu. Setiap bilangan di-push sekali dan di-pop paling banyak sekali, jadi total kerjanya sebanding dengan `n`. Perhatikan syarat `<=`: pada contoh 2, angka 3 yang sama tidak dianggap lebih besar.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+
+        vector<int> jawaban(n);
+        stack<int> s;                        // kandidat dari sebelah kanan
+        for (int i = n - 1; i >= 0; i--) {
+            while (!s.empty() && s.top() <= a[i]) {
+                s.pop();                     // tertutup oleh a[i], tidak berguna lagi
+            }
+            if (s.empty()) {
+                jawaban[i] = -1;
+            } else {
+                jawaban[i] = s.top();
+            }
+            s.push(a[i]);
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << jawaban[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    a = list(map(int, input().split()))
+
+    jawaban = [0] * n
+    s = []                                   # kandidat dari sebelah kanan
+    for i in range(n - 1, -1, -1):
+        while len(s) > 0 and s[-1] <= a[i]:
+            s.pop()                          # tertutup oleh a[i], tidak berguna lagi
+        if len(s) == 0:
+            jawaban[i] = -1
+        else:
+            jawaban[i] = s[-1]
+        s.append(a[i])
+
+    hasil = str(jawaban[0])
+    for i in range(1, n):
+        hasil += " " + str(jawaban[i])
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Kurung valid terpanjang">
+  Baca satu string yang hanya berisi `(` dan `)`. Tampilkan panjang **potongan berurutan** terpanjang yang kurungnya seimbang. Jika tidak ada, tampilkan `0`.
+
+  Contoh: pada `())(())`, potongan seimbang terpanjang adalah `(())` di bagian akhir, panjangnya 4.
+
+  | Input | Output |
+  | --- | --- |
+  | `())(())` | `4` |
+  | `()(())` | `6` |
+  | `)(` | `0` |
+
+  <Petunjuk>
+    Simpan **indeks**, bukan karakternya. Isi stack di awal dengan `-1` sebagai "batas" sebelum string dimulai. Kurung buka mem-push indeksnya. Kurung tutup mem-pop. Jika setelah pop stack kosong, kurung tutup ini tidak punya pasangan dan indeksnya menjadi batas baru. Jika tidak kosong, panjang potongan yang berakhir di sini adalah `i` dikurangi puncak stack.
+  </Petunjuk>
+
+  <Pembahasan>
+    Dasar stack selalu berisi indeks "penghalang" terakhir: `-1` di awal, atau `)` terakhir yang tidak berpasangan. Di atasnya ada indeks kurung buka yang belum tertutup. Setelah sebuah `)` menemukan pasangannya dan di-pop, puncak stack adalah posisi tepat sebelum potongan seimbang yang sedang berjalan, sehingga panjangnya `i − puncak`.
+
+    | `i` | Karakter | Stack sesudahnya | Panjang |
+    | --- | --- | --- | --- |
+    | | | `-1` | |
+    | 0 | `(` | `-1 0` | |
+    | 1 | `)` | `-1` | 1 − (−1) = 2 |
+    | 2 | `)` | `2` (batas baru) | |
+    | 3 | `(` | `2 3` | |
+    | 4 | `(` | `2 3 4` | |
+    | 5 | `)` | `2 3` | 5 − 3 = 2 |
+    | 6 | `)` | `2` | 6 − 2 = **4** |
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string teks;
+        cin >> teks;
+
+        stack<int> s;
+        s.push(-1);                          // batas sebelum string dimulai
+        int terpanjang = 0;
+
+        for (int i = 0; i < (int)teks.length(); i++) {
+            if (teks[i] == '(') {
+                s.push(i);
+            } else {
+                s.pop();
+                if (s.empty()) {
+                    s.push(i);               // ')' tanpa pasangan menjadi batas baru
+                } else if (i - s.top() > terpanjang) {
+                    terpanjang = i - s.top();
+                }
+            }
+        }
+        cout << terpanjang << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    teks = input()
+
+    s = [-1]                                 # batas sebelum string dimulai
+    terpanjang = 0
+
+    for i in range(len(teks)):
+        if teks[i] == "(":
+            s.append(i)
+        else:
+            s.pop()
+            if len(s) == 0:
+                s.append(i)                  # ')' tanpa pasangan menjadi batas baru
+            elif i - s[-1] > terpanjang:
+                terpanjang = i - s[-1]
+    print(terpanjang)
+    ```
+  </Pembahasan>
+</Soal>

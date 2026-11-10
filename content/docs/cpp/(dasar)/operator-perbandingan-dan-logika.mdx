@@ -78,6 +78,8 @@ Operator logika **menggabungkan** beberapa kondisi menjadi satu.
 | ATAU | `\|\|` | `or` | **minimal satu** kondisi benar |
 | BUKAN | `!` | `not` | kondisinya **salah** (membalik nilai) |
 
+Perhatikan bahwa `&&` dan `||` ditulis dengan **dua** karakter. Versi satu karakter, `&` dan `|`, adalah operator lain yang bekerja pada bit-bit sebuah bilangan dan dibahas di [Operator Bitwise](/docs/cpp/operator-bitwise).
+
 ### Tabel kebenaran
 
 Tabel berikut berlaku untuk semua bahasa pemrograman. Anggap `A` dan `B` sebagai dua kondisi.
@@ -217,7 +219,7 @@ print(kabisat)
 | `2000` | `true` | Habis dibagi 400 |
 | `2023` | `false` | Tidak habis dibagi 4 |
 
-Nilai `kabisat` ini nantinya dipakai untuk **memilih** apa yang dilakukan program, misalnya menampilkan "29 hari" atau "28 hari" untuk bulan Februari. Itulah yang dipelajari di materi berikutnya, [Percabangan](/docs/cpp/percabangan).
+Nilai `kabisat` ini nantinya dipakai untuk **memilih** apa yang dilakukan program, misalnya menampilkan "29 hari" atau "28 hari" untuk bulan Februari. Itulah yang dipelajari di materi [Percabangan](/docs/cpp/percabangan), setelah materi Operator Bitwise.
 
 ## Rangkuman
 
@@ -230,16 +232,485 @@ Nilai `kabisat` ini nantinya dipakai untuk **memilih** apa yang dilakukan progra
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Jika a = 5, b = 10, c = 5, tentukan hasil dari: a == c && b > a, a > b || c != a, dan !(a < b).">
-    - `a == c && b > a` → `true && true` → **true**
-    - `a > b || c != a` → `false || false` → **false**
-    - `!(a < b)` → `!true` → **false**
-  </Accordion>
-  <Accordion title="2. Tulis kondisi C++ untuk: “nilai bukan antara 40 sampai 60 (inklusif)”.">
-    `nilai < 40 || nilai > 60`, atau dengan NOT: `!(nilai >= 40 && nilai <= 60)`. Di Python: `not (40 <= nilai <= 60)`.
-  </Accordion>
-  <Accordion title="3. Kenapa if (x = 0) di C++ tidak pernah menjalankan bloknya?">
-    `x = 0` **mengisi** `x` dengan 0, lalu nilai ekspresi itu (`0`) dianggap `false`. Akibatnya blok tidak pernah dijalankan, dan nilai `x` ikut berubah menjadi 0. Maksud sebenarnya adalah `if (x == 0)`.
-  </Accordion>
-</Accordions>
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Program cukup menampilkan nilai `bool`-nya, tanpa percabangan. Solusi C++ memakai `boolalpha` sehingga menampilkan `true`/`false`, sedangkan Python menampilkan `True`/`False`.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Tebak nilai kebenaran">
+  Tanpa menjalankan program, tentukan output program berikut untuk C++ dan untuk Python.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int a = 5, b = 10, c = 5;
+
+      cout << boolalpha;   // berlaku untuk semua cout setelahnya
+      cout << (a == c && b > a) << endl;
+      cout << (a > b || c != a) << endl;
+      cout << !(a < b) << endl;
+      cout << (a + c >= b && !(c > a)) << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  a, b, c = 5, 10, 5
+
+  print(a == c and b > a)
+  print(a > b or c != a)
+  print(not (a < b))
+  print(a + c >= b and not (c > a))
+  ```
+
+  <Pembahasan>
+    Hitung dulu setiap perbandingan, baru gabungkan dengan operator logika.
+
+    | Ekspresi | Langkah | C++ | Python |
+    | --- | --- | --- | --- |
+    | `a == c && b > a` | `true && true` | `true` | `True` |
+    | `a > b \|\| c != a` | `false \|\| false` | `false` | `False` |
+    | `!(a < b)` | `!true` | `false` | `False` |
+    | `a + c >= b && !(c > a)` | `10 >= 10` bernilai `true`, `!(false)` bernilai `true` | `true` | `True` |
+
+    Pada baris terakhir, aritmatika `a + c` dikerjakan lebih dulu, lalu perbandingan, baru `&&`. Tanpa `boolalpha`, versi C++ akan menampilkan `1`, `0`, `0`, `1`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Di luar 40 sampai 60">
+  Baca sebuah nilai bulat, lalu tampilkan apakah nilai itu **di luar** rentang 40 sampai 60. Angka 40 dan 60 sendiri termasuk di dalam rentang.
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `35` | `true` | `True` |
+  | `40` | `false` | `False` |
+  | `61` | `true` | `True` |
+
+  <Pembahasan>
+    Nilai berada di luar rentang jika lebih kecil dari 40 **atau** lebih besar dari 60. Kesalahan umum adalah memakai `&&`: `nilai < 40 && nilai > 60` selalu `false`, karena tidak ada bilangan yang sekaligus lebih kecil dari 40 dan lebih besar dari 60. Cara lain yang juga benar adalah membalik kondisi "di dalam rentang": `!(nilai >= 40 && nilai <= 60)`, atau di Python `not (40 <= nilai <= 60)`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int nilai;
+        cin >> nilai;
+
+        bool diLuar = nilai < 40 || nilai > 60;
+
+        cout << boolalpha << diLuar << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    nilai = int(input())
+
+    di_luar = nilai < 40 or nilai > 60
+
+    print(di_luar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Selalu bernilai true">
+  Program C++ berikut seharusnya menampilkan `true` jika input bernilai 10 dan `false` jika tidak. Anehnya, program ini **selalu** menampilkan `true`, berapa pun inputnya. Temukan kesalahannya, lalu perbaiki.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int x;
+      cin >> x;
+
+      bool sepuluh = (x = 10);
+
+      cout << boolalpha << sepuluh << endl;
+      return 0;
+  }
+  ```
+
+  Setelah diperbaiki, programnya harus berperilaku seperti ini:
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `10` | `true` | `True` |
+  | `7` | `false` | `False` |
+
+  <Pembahasan>
+    `x = 10` adalah **penugasan**: `x` diisi 10 sehingga input tadi hilang, lalu nilai 10 itu diubah menjadi `bool`. Semua angka selain 0 dianggap `true`, jadi hasilnya selalu `true`. Seandainya tertulis `(x = 0)`, hasilnya justru selalu `false`. Python menolak kesalahan ini sejak awal: `sepuluh = (x = 10)` langsung menghasilkan `SyntaxError`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int x;
+        cin >> x;
+
+        bool sepuluh = (x == 10);
+
+        cout << boolalpha << sepuluh << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    x = int(input())
+
+    sepuluh = x == 10
+
+    print(sepuluh)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Kelipatan 3 atau 5 saja">
+  Baca bilangan bulat positif `n`. Tampilkan apakah `n` habis dibagi 3 atau habis dibagi 5, **tetapi tidak habis dibagi keduanya**.
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `9` | `true` | `True` |
+  | `10` | `true` | `True` |
+  | `15` | `false` | `False` |
+  | `7` | `false` | `False` |
+
+  <Petunjuk>
+    Simpan dulu dua kondisi ke variabel `bool`: `tiga` (habis dibagi 3) dan `lima` (habis dibagi 5). Setelah itu, terjemahkan kalimat "salah satu, tetapi tidak keduanya" kata demi kata.
+  </Petunjuk>
+
+  <Pembahasan>
+    "Salah satu" adalah `tiga || lima`, "tidak keduanya" adalah `!(tiga && lima)`, dan "tetapi" berarti keduanya harus benar, jadi digabung dengan `&&`. Ada cara yang lebih singkat: `tiga != lima`, karena dua nilai `bool` berbeda tepat ketika salah satunya `true` dan yang lain `false`. Pola "salah satu, tetapi tidak keduanya" ini disebut **XOR** (_exclusive or_).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        bool tiga = n % 3 == 0;
+        bool lima = n % 5 == 0;
+        bool salahSatu = (tiga || lima) && !(tiga && lima);
+
+        cout << boolalpha << salahSatu << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    tiga = n % 3 == 0
+    lima = n % 5 == 0
+    salah_satu = (tiga or lima) and not (tiga and lima)
+
+    print(salah_satu)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Syarat beasiswa">
+  Sebuah beasiswa punya aturan berikut. Mahasiswa boleh mendaftar jika **IPK-nya minimal 3.25 dan penghasilan orang tuanya paling banyak 5 juta rupiah per bulan**, atau jika ia **punya prestasi tingkat nasional**.
+
+  Baca IPK (desimal), penghasilan orang tua dalam juta rupiah (bulat), dan status prestasi (`1` berarti punya, `0` berarti tidak) dalam satu baris. Tampilkan apakah mahasiswa itu boleh mendaftar.
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `3.50 4 0` | `true` | `True` |
+  | `3.10 4 0` | `false` | `False` |
+  | `2.80 12 1` | `true` | `True` |
+  | `3.25 6 0` | `false` | `False` |
+
+  <Petunjuk>
+    Tentukan dulu syarat mana yang dikelompokkan dengan "dan", dan mana yang dengan "atau". Tanda kurung membantu menegaskan kelompoknya. "Minimal" dan "paling banyak" sama-sama termasuk batasnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Aturannya berbentuk `(A && B) || C`. Karena `&&` dikerjakan lebih dulu daripada `||`, kurungnya sebenarnya tidak wajib, tetapi membuat maksudnya jelas. Kurung di tempat yang salah, misalnya `ipk >= 3.25 && (penghasilan <= 5 || prestasi == 1)`, membuat mahasiswa berprestasi dengan IPK 2.80 ditolak. Di Python, ketiga nilai dibaca sebagai `float` agar IPK bisa berupa pecahan, dan perbandingan seperti `prestasi == 1` tetap bekerja.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        double ipk;
+        int penghasilan, prestasi;
+        cin >> ipk >> penghasilan >> prestasi;
+
+        bool boleh = (ipk >= 3.25 && penghasilan <= 5) || prestasi == 1;
+
+        cout << boolalpha << boleh << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    ipk, penghasilan, prestasi = map(float, input().split())
+
+    boleh = (ipk >= 3.25 and penghasilan <= 5) or prestasi == 1
+
+    print(boleh)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Jebakan prioritas NOT">
+  Program C++ berikut seharusnya menampilkan `true` jika input **bukan** 5. Ternyata hasilnya selalu `false`. Anehnya, versi Python di bawahnya benar. Jelaskan perbedaannya, lalu perbaiki versi C++.
+
+  ```cpp title="C++ (salah)"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int x;
+      cin >> x;
+
+      bool bukanLima = !x == 5;
+
+      cout << boolalpha << bukanLima << endl;
+      return 0;
+  }
+  ```
+
+  ```python title="Python (benar)"
+  x = int(input())
+
+  bukan_lima = not x == 5
+
+  print(bukan_lima)
+  ```
+
+  Setelah diperbaiki, kedua versi harus berperilaku seperti ini:
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `5` | `false` | `False` |
+  | `3` | `true` | `True` |
+  | `0` | `true` | `True` |
+
+  <Petunjuk>
+    Lihat lagi tabel [urutan operasi lengkap](#urutan-operasi-lengkap). Di mana posisi `!` di C++, dan di mana posisi `not` di Python, dibandingkan dengan `==`?
+  </Petunjuk>
+
+  <Pembahasan>
+    Di C++, `!` dikerjakan **sebelum** `==`, sehingga `!x == 5` dibaca `(!x) == 5`. Nilai `!x` hanya bisa `false` (0) atau `true` (1), dan keduanya tidak pernah sama dengan 5, jadi hasilnya selalu `false`. Di Python, `not` dikerjakan **setelah** perbandingan, sehingga `not x == 5` dibaca `not (x == 5)`. Perbaiki versi C++ dengan `x != 5` atau `!(x == 5)`, dan biasakan membaca peringatan compiler, karena `g++` sebenarnya memberi peringatan (_warning_) untuk baris yang salah tadi.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int x;
+        cin >> x;
+
+        bool bukanLima = x != 5;   // atau !(x == 5)
+
+        cout << boolalpha << bukanLima << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    x = int(input())
+
+    bukan_lima = not x == 5   # benar di Python: dibaca not (x == 5)
+
+    print(bukan_lima)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Tanggal Februari yang sah">
+  Baca `tahun` dan `tanggal` dalam satu baris. Tampilkan apakah tanggal tersebut ada di bulan Februari pada tahun itu. Februari punya 29 hari pada tahun kabisat dan 28 hari pada tahun lainnya. Pakai aturan dari [contoh tahun kabisat](#contoh-tahun-kabisat).
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `2024 29` | `true` | `True` |
+  | `1900 29` | `false` | `False` |
+  | `2000 29` | `true` | `True` |
+  | `2023 0` | `false` | `False` |
+
+  <Petunjuk>
+    Pisahkan menjadi dua kasus yang digabung dengan "atau": tanggal 1 sampai 28 selalu ada, sedangkan tanggal 29 hanya ada di tahun kabisat.
+  </Petunjuk>
+
+  <Pembahasan>
+    Hitung dulu `kabisat` dengan rumus yang sudah kamu kenal. Tanggal sah jika berada di rentang 1 sampai 28, **atau** tanggalnya 29 **dan** tahunnya kabisat. Jangan lupa batas bawah: tanpa `tanggal >= 1`, tanggal `0` atau negatif ikut dianggap sah. Di Python, rentangnya bisa ditulis berantai sebagai `1 <= tanggal <= 28`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int tahun, tanggal;
+        cin >> tahun >> tanggal;
+
+        bool kabisat = (tahun % 4 == 0 && tahun % 100 != 0) || (tahun % 400 == 0);
+        bool valid = (tanggal >= 1 && tanggal <= 28) || (tanggal == 29 && kabisat);
+
+        cout << boolalpha << valid << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    tahun, tanggal = map(int, input().split())
+
+    kabisat = (tahun % 4 == 0 and tahun % 100 != 0) or (tahun % 400 == 0)
+    valid = (1 <= tanggal <= 28) or (tanggal == 29 and kabisat)
+
+    print(valid)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Jadwal rapat bentrok">
+  Dua rapat dijadwalkan di ruangan yang sama. Rapat pertama berlangsung dari jam `mulai1` sampai `selesai1`, dan rapat kedua dari jam `mulai2` sampai `selesai2`. Semua jam berupa bilangan bulat dalam format 24 jam, dan jam mulai selalu lebih kecil dari jam selesai. Rapat yang selesai tepat ketika rapat lain mulai **tidak** dianggap bentrok.
+
+  Baca keempat angka dalam satu baris dengan urutan `mulai1 selesai1 mulai2 selesai2`, lalu tampilkan apakah kedua rapat bentrok.
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `9 11 10 12` | `true` | `True` |
+  | `9 11 11 13` | `false` | `False` |
+  | `13 15 8 10` | `false` | `False` |
+  | `12 13 8 17` | `true` | `True` |
+
+  <Petunjuk>
+    Lebih mudah memikirkan kapan rapat **tidak** bentrok: rapat 1 sudah selesai saat (atau sebelum) rapat 2 mulai, atau rapat 2 sudah selesai saat (atau sebelum) rapat 1 mulai. Setelah itu, balik kondisinya. Kebalikan dari `A || B` adalah `!A && !B`, dan kebalikan dari `A && B` adalah `!A || !B`. Aturan ini disebut **hukum De Morgan**.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kondisi tidak bentrok adalah `selesai1 <= mulai2 || selesai2 <= mulai1`. Dengan hukum De Morgan, kebalikannya menjadi `selesai1 > mulai2 && selesai2 > mulai1`, yang bisa ditulis rapi sebagai `mulai2 < selesai1 && mulai1 < selesai2`. Menulis `!(selesai1 <= mulai2 || selesai2 <= mulai1)` apa adanya juga benar. Kesalahan umum adalah hanya mengecek apakah `mulai2` berada di dalam rapat 1, yang gagal untuk input `12 13 8 17`, yaitu ketika rapat 2 justru menutupi seluruh rapat 1.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int mulai1, selesai1, mulai2, selesai2;
+        cin >> mulai1 >> selesai1 >> mulai2 >> selesai2;
+
+        // Tidak bentrok: rapat 1 selesai sebelum rapat 2 mulai, atau sebaliknya.
+        // Dibalik dengan hukum De Morgan:
+        bool bentrok = mulai2 < selesai1 && mulai1 < selesai2;
+
+        cout << boolalpha << bentrok << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    mulai1, selesai1, mulai2, selesai2 = map(int, input().split())
+
+    # Tidak bentrok: rapat 1 selesai sebelum rapat 2 mulai, atau sebaliknya.
+    # Dibalik dengan hukum De Morgan:
+    bentrok = mulai2 < selesai1 and mulai1 < selesai2
+
+    print(bentrok)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Segitiga siku-siku">
+  Baca tiga bilangan bulat `a`, `b`, `c` (masing-masing antara -10.000 dan 10.000) dalam satu baris. Tampilkan apakah ketiganya bisa menjadi panjang sisi sebuah segitiga siku-siku. Ingat teorema Pythagoras: pada segitiga siku-siku, kuadrat sisi terpanjang sama dengan jumlah kuadrat dua sisi lainnya. Sisi terpanjang bisa berada di urutan mana saja.
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `3 4 5` | `true` | `True` |
+  | `13 5 12` | `true` | `True` |
+  | `2 3 4` | `false` | `False` |
+  | `0 0 0` | `false` | `False` |
+
+  <Petunjuk>
+    Kamu tidak perlu mencari sisi terpanjang. Cukup cek ketiga kemungkinan posisi sisi miring dan gabungkan dengan `||`. Lalu pikirkan: apakah `0 0 0` lolos rumus Pythagoras? Apakah itu sebuah segitiga?
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada tiga kemungkinan sisi miring, jadi ada tiga persamaan yang digabung dengan `||`. Jebakannya ada di kasus tepi: `0 0 0` memenuhi `0 + 0 == 0` dan `0 5 5` memenuhi `0 + 25 == 25`, padahal panjang sisi harus positif. Karena itu, tambahkan syarat `a > 0 && b > 0 && c > 0` yang juga menolak sisi negatif seperti `-3 4 5`. Batas 10.000 menjamin `a * a + b * b` paling besar 200 juta, sehingga masih muat di `int` tanpa [overflow](/docs/cpp/variabel-dan-tipe-data).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b, c;
+        cin >> a >> b >> c;
+
+        bool positif = a > 0 && b > 0 && c > 0;
+        bool pythagoras = a * a + b * b == c * c
+                       || a * a + c * c == b * b
+                       || b * b + c * c == a * a;
+
+        cout << boolalpha << (positif && pythagoras) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b, c = map(int, input().split())
+
+    positif = a > 0 and b > 0 and c > 0
+    pythagoras = (a * a + b * b == c * c
+                  or a * a + c * c == b * b
+                  or b * b + c * c == a * a)
+
+    print(positif and pythagoras)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Lacak short-circuit">
+  Soal ini khusus C++ karena memakai `++`, yang tidak ada di Python. Tanpa menjalankan program, tentukan outputnya.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int a = 3, b = 0, c = 0;
+
+      bool p = a > 5 && ++b > 0;
+      bool q = a < 5 || ++c > 0;
+      bool r = a < 5 && ++b > 0;
+      bool s = c != 0 && a / c > 1;
+      bool t = b == 0 || a / b > 2;
+
+      cout << boolalpha << p << " " << q << " " << r << " " << s << " " << t << endl;
+      cout << a << " " << b << " " << c << endl;
+      return 0;
+  }
+  ```
+
+  <Petunjuk>
+    Untuk setiap baris, cek dulu apakah sisi kiri `&&` atau `||` sudah memastikan hasilnya. Jika sudah, sisi kanan dilewati sama sekali, termasuk `++` dan pembagian di dalamnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Nilai `b` dan `c` hanya berubah jika `++b` atau `++c` benar-benar dikerjakan.
+
+    | Baris | Sisi kiri | Sisi kanan dikerjakan? | Hasil | `b` | `c` |
+    | --- | --- | --- | --- | --- | --- |
+    | `p` | `a > 5` bernilai `false` | Tidak, `&&` sudah pasti `false` | `false` | 0 | 0 |
+    | `q` | `a < 5` bernilai `true` | Tidak, `\|\|` sudah pasti `true` | `true` | 0 | 0 |
+    | `r` | `a < 5` bernilai `true` | Ya, `++b` membuat `b` = 1, dan `1 > 0` | `true` | 1 | 0 |
+    | `s` | `c != 0` bernilai `false` | Tidak, jadi `a / c` (bagi nol) tidak pernah dihitung | `false` | 1 | 0 |
+    | `t` | `b == 0` bernilai `false` | Ya, `a / b` adalah `3 / 1 = 3`, dan `3 > 2` | `true` | 1 | 0 |
+
+    ```txt title="Output"
+    false true true false true
+    3 1 0
+    ```
+
+    Baris `s` adalah contoh short-circuit sebagai pengaman. Jika urutannya dibalik menjadi `a / c > 1 && c != 0`, pembagian dengan nol dikerjakan dan program biasanya langsung crash. Di Python, `and` dan `or` juga short-circuit dengan cara yang sama, jadi `c != 0 and a / c > 1` aman.
+  </Pembahasan>
+</Soal>

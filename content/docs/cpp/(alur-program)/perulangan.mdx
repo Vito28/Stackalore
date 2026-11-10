@@ -1,5 +1,5 @@
 ---
-title: Perulangan
+title: Perulangan while & for
 description: Mengulang langkah dengan while, for, dan do-while, menghentikannya dengan break dan continue, serta pola akumulator untuk mengolah banyak data.
 sumber:
   - ref: cppreference
@@ -33,7 +33,7 @@ Cara ini tidak mungkin dipakai untuk 1 sampai 1.000, apalagi jika batasnya baru 
 
 ## `while`
 
-`while` mengulang bloknya **selama** kondisinya `true`. Kondisi diperiksa **sebelum** setiap putaran.
+`while` adalah bentuk perulangan yang paling dasar. Ia mengulang bloknya **selama** kondisinya `true`. Kondisi diperiksa **sebelum** setiap putaran. Begitu kondisinya bernilai `false`, perulangan berhenti dan program lanjut ke baris setelah blok.
 
 <Flowchart
   caption="while: menampilkan 1 sampai 5"
@@ -91,6 +91,75 @@ Perhatikan bahwa setelah perulangan selesai, `i` bernilai **4**, bukan 3. Kebias
 <Callout type="error" title="Perulangan tanpa akhir">
   Jika `i++` lupa ditulis, `i` selamanya bernilai 1 dan kondisi `i <= 5` selalu benar. Program terus mencetak `1` dan tidak pernah berhenti (_infinite loop_). Hentikan program dengan menekan <kbd>Ctrl</kbd> <kbd>C</kbd> di terminal.
 </Callout>
+
+### Saat jumlah putaran tidak diketahui
+
+Contoh 1 sampai 5 di atas sebenarnya lebih rapi ditulis dengan `for`, yang dibahas sebentar lagi. Kekuatan `while` yang sesungguhnya muncul saat kita **tidak tahu** berapa kali perulangan harus berjalan. Yang kita tahu hanyalah **kapan harus berhenti**.
+
+Contohnya, uang Rp1.000.000 ditabung dengan bunga 10% per tahun. Setelah berapa tahun saldonya mencapai paling sedikit Rp2.000.000?
+
+```cpp tab="C++"
+double saldo = 1000000;
+int tahun = 0;
+
+while (saldo < 2000000) {
+    saldo = saldo + saldo * 0.10;
+    tahun++;
+}
+
+cout << "Butuh " << tahun << " tahun" << endl;   // Butuh 8 tahun
+```
+
+```python tab="Python"
+saldo = 1000000
+tahun = 0
+
+while saldo < 2000000:
+    saldo = saldo + saldo * 0.10
+    tahun += 1
+
+print("Butuh", tahun, "tahun")   # Butuh 8 tahun
+```
+
+Angka 8 tidak ditulis di mana pun. Program terus menambah bunga, dan perulangan berhenti sendiri begitu `saldo < 2000000` bernilai `false`. Variabel `tahun` hanya **mencatat** berapa putaran yang sudah terjadi.
+
+### Membaca input sampai ada tanda berhenti
+
+Pola `while` yang sangat sering dipakai adalah membaca data terus-menerus sampai pengguna memasukkan nilai khusus sebagai **tanda berhenti** (_sentinel_). Contohnya, menjumlahkan bilangan sampai pengguna mengetik 0:
+
+```cpp tab="C++"
+int angka;
+int total = 0;
+
+cin >> angka;              // baca nilai pertama sebelum perulangan
+while (angka != 0) {
+    total += angka;
+    cin >> angka;          // baca nilai berikutnya di akhir putaran
+}
+
+cout << "Total: " << total << endl;
+```
+
+```python tab="Python"
+angka = int(input())       # baca nilai pertama sebelum perulangan
+total = 0
+
+while angka != 0:
+    total += angka
+    angka = int(input())   # baca nilai berikutnya di akhir putaran
+
+print("Total:", total)
+```
+
+```txt title="Contoh jalannya program"
+5
+8
+-2
+0
+Total: 11
+```
+
+Perhatikan bahwa input dibaca di **dua** tempat: sekali sebelum perulangan, lalu di akhir setiap putaran. Dengan begitu, kondisi `angka != 0` selalu memeriksa nilai yang baru saja dibaca, dan angka 0 tidak ikut dijumlahkan. Jika angka pertama sudah 0, badan perulangan tidak dijalankan sama sekali, karena kondisi `while` diperiksa **sebelum** putaran pertama.
 
 ## `for`
 
@@ -319,14 +388,45 @@ Pegangan praktis: **`for (int i = 0; i < n; i++)` berjalan tepat `n` kali**, sam
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Tampilkan tabel perkalian sebuah angka n dari 1 sampai 10.">
-    ```cpp tab="C++"
-    int n;
-    cin >> n;
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Semua soal cukup diselesaikan dengan variabel biasa, percabangan, dan perulangan, tanpa array.
 
-    for (int i = 1; i <= 10; i++) {
-        cout << n << " x " << i << " = " << n * i << endl;
+### Mudah
+
+<Soal no={1} level="mudah" judul="Tabel perkalian">
+  Baca sebuah bilangan bulat `n`, lalu tampilkan tabel perkalian `n` dari 1 sampai 10 dengan format seperti contoh.
+
+  ```txt title="Contoh input"
+  7
+  ```
+
+  ```txt title="Contoh output"
+  7 x 1 = 7
+  7 x 2 = 14
+  7 x 3 = 21
+  7 x 4 = 28
+  7 x 5 = 35
+  7 x 6 = 42
+  7 x 7 = 49
+  7 x 8 = 56
+  7 x 9 = 63
+  7 x 10 = 70
+  ```
+
+  <Pembahasan>
+    Banyak putarannya sudah pasti, yaitu 10, jadi `for` paling cocok. Pencacah `i` sekaligus dipakai sebagai pengali.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        for (int i = 1; i <= 10; i++) {
+            cout << n << " x " << i << " = " << n * i << endl;
+        }
+        return 0;
     }
     ```
 
@@ -336,61 +436,595 @@ Pegangan praktis: **`for (int i = 0; i < n; i++)` berjalan tepat `n` kali**, sam
     for i in range(1, 11):
         print(f"{n} x {i} = {n * i}")
     ```
-  </Accordion>
-  <Accordion title="2. Hitung faktorial n (n! = 1 × 2 × … × n). Tipe data apa yang tepat?">
-    Faktorial tumbuh sangat cepat: `13!` sudah melewati batas `int`. Gunakan `long long`, yang cukup sampai `20!` (2.432.902.008.176.640.000).
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Perbaiki program faktorial">
+  Faktorial `n` ditulis `n!` dan berarti 1 × 2 × … × n, dengan 0! = 1. Program berikut seharusnya menghitung `n!`, tetapi untuk input apa pun output-nya selalu `0`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+
+      int hasil = 0;
+      for (int i = 1; i < n; i++) {
+          hasil *= i;
+      }
+      cout << hasil << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+
+  hasil = 0
+  for i in range(1, n):
+      hasil *= i
+  print(hasil)
+  ```
+
+  Temukan dua kesalahannya dan perbaiki. Di versi C++, pilih juga tipe data yang membuat program tetap benar sampai `n = 20`.
+
+  | Input | Output |
+  | --- | --- |
+  | `5` | `120` |
+  | `0` | `1` |
+  | `20` | `2432902008176640000` |
+
+  <Pembahasan>
+    1. Akumulator perkalian harus dimulai dari **1**. Jika dimulai dari 0, hasilnya selalu 0, karena bilangan apa pun dikali 0 tetap 0.
+    2. `i < n` berhenti di `n - 1`, jadi `n` sendiri tidak ikut dikalikan. Seharusnya `i <= n`, atau `range(1, n + 1)` di Python.
+
+    Soal tipe data: `13!` sudah melewati batas `int`. `long long` cukup sampai `20!`. Python tidak bermasalah karena `int`-nya tidak punya batas. Untuk `n = 0`, perulangan tidak berjalan sama sekali dan hasilnya tetap 1, sesuai definisi.
 
     ```cpp tab="C++"
-    int n;
-    cin >> n;
+    #include <iostream>
+    using namespace std;
 
-    long long hasil = 1;      // akumulator perkalian dimulai dari 1, bukan 0
-    for (int i = 2; i <= n; i++) {
-        hasil *= i;
+    int main() {
+        int n;
+        cin >> n;
+
+        long long hasil = 1;
+        for (int i = 1; i <= n; i++) {
+            hasil *= i;
+        }
+        cout << hasil << endl;
+        return 0;
     }
-    cout << hasil << endl;
     ```
 
     ```python tab="Python"
     n = int(input())
 
     hasil = 1
-    for i in range(2, n + 1):
+    for i in range(1, n + 1):
         hasil *= i
-    print(hasil)              # int Python tidak punya batas
+    print(hasil)
     ```
-  </Accordion>
-  <Accordion title="3. Jumlahkan semua digit sebuah bilangan positif, berapa pun panjangnya (misal 9472 → 22).">
-    Jumlah putarannya tidak pasti, jadi pakai `while`. Ambil digit terakhir dengan `% 10`, lalu buang dengan `/ 10`, sampai bilangannya habis.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tebak output continue dan break">
+  Tanpa menjalankannya, tuliskan output program berikut. Pada nilai `i` berapa perulangannya berhenti?
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      for (int i = 1; i <= 10; i++) {
+          if (i % 3 == 0) {
+              continue;
+          }
+          if (i > 7) {
+              break;
+          }
+          cout << i << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  for i in range(1, 11):
+      if i % 3 == 0:
+          continue
+      if i > 7:
+          break
+      print(i)
+  ```
+
+  <Pembahasan>
+    Output-nya `1`, `2`, `4`, `5`, dan `7`, masing-masing di barisnya sendiri. Kelipatan 3 dilewati oleh `continue`. Perulangan berhenti saat `i` bernilai 8, karena 8 bukan kelipatan 3 sehingga pemeriksaan `i > 7` tercapai dan `break` dijalankan. Nilai 9 dan 10 tidak pernah diperiksa sama sekali.
+
+    | `i` | `i % 3 == 0` | `i > 7` | Yang terjadi |
+    | --- | --- | --- | --- |
+    | 1, 2 | `false` | `false` | dicetak |
+    | 3 | `true` | | `continue` |
+    | 4, 5 | `false` | `false` | dicetak |
+    | 6 | `true` | | `continue` |
+    | 7 | `false` | `false` | dicetak |
+    | 8 | `false` | `true` | `break`, perulangan selesai |
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Banyak dan jumlah digit">
+  Baca sebuah bilangan bulat `n` (`n >= 0`). Tampilkan banyak digitnya dan jumlah digitnya, dipisah spasi.
+
+  | Input | Output |
+  | --- | --- |
+  | `9472` | `4 22` |
+  | `1000` | `4 1` |
+  | `0` | `1 0` |
+
+  <Petunjuk>
+    Ambil digit terakhir dengan `n % 10`, lalu buang dengan `n / 10` (Python: `n // 10`). Ulangi sampai `n` habis. Setelah itu, uji programmu dengan input `0`. Berapa kali perulanganmu berjalan?
+  </Petunjuk>
+
+  <Pembahasan>
+    Banyak putarannya bergantung pada panjang bilangan, jadi pakai perulangan berbasis kondisi. Jika memakai `while (n > 0)`, input 0 tidak pernah masuk ke perulangan sehingga banyak digitnya 0, padahal angka 0 punya satu digit. `do-while` menyelesaikan masalah ini karena badannya pasti dijalankan minimal sekali. Di Python, polanya `while True` dengan `break`.
+
+    | Putaran | `n` di awal putaran | `n % 10` | `jumlah` | `banyak` |
+    | --- | --- | --- | --- | --- |
+    | 1 | 9472 | 2 | 2 | 1 |
+    | 2 | 947 | 7 | 9 | 2 |
+    | 3 | 94 | 4 | 13 | 3 |
+    | 4 | 9 | 9 | 22 | 4 |
+
+    Setelah putaran ke-4, `n` menjadi 0 dan perulangan berhenti.
 
     ```cpp tab="C++"
-    int n;
-    cin >> n;
+    #include <iostream>
+    using namespace std;
 
-    int jumlah = 0;
-    while (n > 0) {
-        jumlah += n % 10;
-        n /= 10;
+    int main() {
+        int n;
+        cin >> n;
+
+        int banyak = 0;
+        int jumlah = 0;
+        do {
+            jumlah += n % 10;
+            n /= 10;
+            banyak++;
+        } while (n > 0);
+
+        cout << banyak << " " << jumlah << endl;
+        return 0;
     }
-    cout << jumlah << endl;
     ```
 
     ```python tab="Python"
     n = int(input())
 
+    banyak = 0
     jumlah = 0
-    while n > 0:
+    while True:
         jumlah += n % 10
         n //= 10
-    print(jumlah)
+        banyak += 1
+        if n == 0:
+            break
+
+    print(banyak, jumlah)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Nilai sampai tanda berhenti">
+  Baca nilai ujian satu per baris, berupa bilangan bulat 0 sampai 100, sampai bertemu `-1`. Angka `-1` hanya tanda berhenti, bukan nilai. Tampilkan banyak nilai, rata-ratanya dengan dua angka di belakang koma, dan nilai tertinggi, dengan format seperti contoh. Jika tidak ada nilai sama sekali, tampilkan `Tidak ada data`.
+
+  ```txt title="Contoh input 1"
+  80
+  55
+  92
+  -1
+  ```
+
+  ```txt title="Contoh output 1"
+  Banyak data: 3
+  Rata-rata: 75.67
+  Tertinggi: 92
+  ```
+
+  ```txt title="Contoh input 2"
+  -1
+  ```
+
+  ```txt title="Contoh output 2"
+  Tidak ada data
+  ```
+
+  <Petunjuk>
+    Pakai pola dari bagian [membaca input sampai ada tanda berhenti](#membaca-input-sampai-ada-tanda-berhenti), lalu tambahkan tiga akumulator: banyak, total, dan tertinggi. Hati-hati dengan pembagian `int / int` saat menghitung rata-rata.
+  </Petunjuk>
+
+  <Pembahasan>
+    Nilai pertama dibaca sebelum perulangan, dan nilai berikutnya dibaca di akhir setiap putaran, sehingga `-1` tidak pernah ikut dihitung. Rata-rata baru dihitung setelah perulangan selesai, dan hanya jika `banyak` lebih dari 0. Tanpa pengecekan ini, input `-1` saja akan menyebabkan pembagian dengan nol. Nilai awal `tertinggi = -1` aman karena semua nilai minimal 0.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <iomanip>
+    using namespace std;
+
+    int main() {
+        int nilai;
+        cin >> nilai;
+
+        int banyak = 0;
+        int total = 0;
+        int tertinggi = -1;
+        while (nilai != -1) {
+            banyak++;
+            total += nilai;
+            if (nilai > tertinggi) {
+                tertinggi = nilai;
+            }
+            cin >> nilai;
+        }
+
+        if (banyak == 0) {
+            cout << "Tidak ada data" << endl;
+        } else {
+            double rata = static_cast<double>(total) / banyak;
+            cout << "Banyak data: " << banyak << endl;
+            cout << fixed << setprecision(2) << "Rata-rata: " << rata << endl;
+            cout << "Tertinggi: " << tertinggi << endl;
+        }
+        return 0;
+    }
     ```
 
-    | Putaran | `n` | `n % 10` | `jumlah` |
+    ```python tab="Python"
+    nilai = int(input())
+
+    banyak = 0
+    total = 0
+    tertinggi = -1
+    while nilai != -1:
+        banyak += 1
+        total += nilai
+        if nilai > tertinggi:
+            tertinggi = nilai
+        nilai = int(input())
+
+    if banyak == 0:
+        print("Tidak ada data")
+    else:
+        rata = total / banyak
+        print("Banyak data:", banyak)
+        print(f"Rata-rata: {rata:.2f}")
+        print("Tertinggi:", tertinggi)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Permainan tebak angka">
+  Baris pertama input berisi angka rahasia. Baris-baris berikutnya berisi tebakan, satu per baris. Untuk setiap tebakan yang salah, tampilkan `Terlalu besar` atau `Terlalu kecil`. Saat tebakannya benar, tampilkan `Benar! Kamu menebak k kali`, dengan `k` banyak tebakan termasuk yang benar, lalu program selesai. Anggap tebakan yang benar pasti ada.
+
+  ```txt title="Contoh input 1"
+  37
+  50
+  25
+  37
+  ```
+
+  ```txt title="Contoh output 1"
+  Terlalu besar
+  Terlalu kecil
+  Benar! Kamu menebak 3 kali
+  ```
+
+  ```txt title="Contoh input 2"
+  8
+  8
+  ```
+
+  ```txt title="Contoh output 2"
+  Benar! Kamu menebak 1 kali
+  ```
+
+  <Petunjuk>
+    Pemain pasti menebak minimal sekali, jadi `do-while` cocok di sini. Perulangan berlanjut selama tebakan belum sama dengan angka rahasia.
+  </Petunjuk>
+
+  <Pembahasan>
+    Badan perulangan membaca satu tebakan, menambah penghitung, lalu memberi petunjuk. Kondisi `tebakan != rahasia` baru diperiksa setelah tebakan pertama dibaca, persis seperti sifat `do-while`. Pesan `Benar!` ditulis setelah perulangan, karena hanya tebakan yang benar yang bisa membuat perulangan berhenti.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int rahasia;
+        cin >> rahasia;
+
+        int tebakan;
+        int banyak = 0;
+        do {
+            cin >> tebakan;
+            banyak++;
+            if (tebakan > rahasia) {
+                cout << "Terlalu besar" << endl;
+            } else if (tebakan < rahasia) {
+                cout << "Terlalu kecil" << endl;
+            }
+        } while (tebakan != rahasia);
+
+        cout << "Benar! Kamu menebak " << banyak << " kali" << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    rahasia = int(input())
+
+    banyak = 0
+    while True:
+        tebakan = int(input())
+        banyak += 1
+        if tebakan > rahasia:
+            print("Terlalu besar")
+        elif tebakan < rahasia:
+            print("Terlalu kecil")
+        else:
+            break
+
+    print("Benar! Kamu menebak", banyak, "kali")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Cek bilangan prima">
+  Bilangan prima adalah bilangan bulat lebih dari 1 yang hanya habis dibagi 1 dan dirinya sendiri. Baca bilangan bulat `n` (1 sampai 1.000.000.000), lalu tampilkan `Prima` atau `Bukan prima`.
+
+  | Input | Output |
+  | --- | --- |
+  | `13` | `Prima` |
+  | `1` | `Bukan prima` |
+  | `91` | `Bukan prima` |
+
+  <Petunjuk>
+    Coba bagi `n` dengan 2, 3, 4, dan seterusnya. Begitu ketemu satu pembagi, jawabannya sudah pasti, jadi hentikan dengan `break`. Kamu tidak perlu mencoba sampai `n - 1`. Cukup selama `i * i <= n`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Simpan jawabannya di variabel `bool prima` yang awalnya `true` untuk `n >= 2`, lalu ubah menjadi `false` begitu ditemukan pembagi. Pemeriksaan cukup sampai `i * i <= n`, karena jika `n = p × q` dengan `p <= q`, maka `p × p <= n`. Jadi pembagi terkecilnya pasti sudah ditemukan sebelum `i * i` melewati `n`. Untuk `n` sekitar satu miliar, putarannya turun dari hampir satu miliar menjadi sekitar 31 ribu.
+
+    Di Python, perulangan dengan kondisi seperti `i * i <= n` lebih mudah ditulis dengan `while`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        bool prima = n >= 2;
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) {
+                prima = false;
+                break;
+            }
+        }
+
+        cout << (prima ? "Prima" : "Bukan prima") << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    prima = n >= 2
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            prima = False
+            break
+        i += 1
+
+    print("Prima" if prima else "Bukan prima")
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Langkah Collatz">
+  Mulai dari sebuah bilangan bulat positif `n`. Jika `n` genap, bagi dua. Jika ganjil, ubah menjadi `3 * n + 1`. Ulangi sampai `n` menjadi 1. Contohnya, 6 → 3 → 10 → 5 → 16 → 8 → 4 → 2 → 1 butuh 8 langkah, dan nilai terbesar yang dilewati adalah 16.
+
+  Baca `n` (1 sampai 1.000.000), lalu tampilkan banyak langkah dan nilai terbesar yang dilewati, termasuk `n` awal, dipisah spasi.
+
+  | Input | Output |
+  | --- | --- |
+  | `6` | `8 16` |
+  | `1` | `0 1` |
+  | `27` | `111 9232` |
+
+  <Petunjuk>
+    Banyak langkahnya tidak bisa ditebak dari awal, jadi gunakan `while (n != 1)`. Nilai di tengah jalan bisa jauh lebih besar dari `n` awal, bahkan melewati batas `int`, jadi gunakan `long long`. Nilai terbesar dimulai dari `n` itu sendiri.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap putaran mengerjakan satu langkah: ubah `n` sesuai aturan, tambah penghitung, lalu perbarui nilai terbesar. Untuk `n = 1`, perulangan tidak berjalan sama sekali sehingga hasilnya `0 1`. Contoh 27 menunjukkan kenapa `while` diperlukan: bilangan sekecil itu butuh 111 langkah dan sempat naik sampai 9232. Untuk beberapa `n` di bawah satu juta, nilainya bahkan melewati 50 miliar.
+
+    Menariknya, belum ada yang bisa membuktikan bahwa proses ini **selalu** berakhir di 1 untuk setiap bilangan positif. Pertanyaan ini dikenal sebagai dugaan Collatz. Untuk semua bilangan di soal ini, prosesnya memang berhenti.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        long long n;
+        cin >> n;
+
+        int langkah = 0;
+        long long terbesar = n;
+        while (n != 1) {
+            if (n % 2 == 0) {
+                n = n / 2;
+            } else {
+                n = 3 * n + 1;
+            }
+            langkah++;
+            if (n > terbesar) {
+                terbesar = n;
+            }
+        }
+
+        cout << langkah << " " << terbesar << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    langkah = 0
+    terbesar = n
+    while n != 1:
+        if n % 2 == 0:
+            n = n // 2
+        else:
+            n = 3 * n + 1
+        langkah += 1
+        if n > terbesar:
+            terbesar = n
+
+    print(langkah, terbesar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="FPB dan KPK">
+  FPB (faktor persekutuan terbesar) dua bilangan adalah bilangan terbesar yang membagi habis keduanya. KPK (kelipatan persekutuan terkecil) adalah bilangan positif terkecil yang habis dibagi keduanya. Baca dua bilangan bulat positif `a` dan `b` (masing-masing sampai 1.000.000.000), lalu tampilkan FPB dan KPK-nya, dipisah spasi.
+
+  Hitung FPB dengan **algoritma Euclid**: selama `b` tidak nol, ganti pasangan `(a, b)` menjadi `(b, a % b)`. Saat `b` menjadi nol, `a` adalah FPB-nya. Setelah itu, KPK = a × b ÷ FPB.
+
+  | Input | Output |
+  | --- | --- |
+  | `12 18` | `6 36` |
+  | `7 5` | `1 35` |
+  | `100000 99999` | `1 9999900000` |
+
+  <Petunjuk>
+    Saat memperbarui pasangan, nilai lama `b` masih dibutuhkan untuk menghitung `a % b`. Simpan dulu sisa baginya di variabel bantu. Jangan langsung mengubah `a` dan `b` hasil input, karena keduanya masih dibutuhkan untuk menghitung KPK. Salin dulu ke variabel lain. Contoh ketiga juga menunjukkan bahwa KPK bisa melewati batas `int`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Algoritma Euclid mengecilkan pasangan bilangan dengan cepat, jadi jumlah putarannya tidak bisa ditentukan dari awal. Itulah tugas `while`. Untuk input `12 18`:
+
+    | Putaran | `x` | `y` | `x % y` |
     | --- | --- | --- | --- |
-    | 1 | 9472 | 2 | 2 |
-    | 2 | 947 | 7 | 9 |
-    | 3 | 94 | 4 | 13 |
-    | 4 | 9 | 9 | 22 |
-    | — | 0 | | berhenti |
-  </Accordion>
-</Accordions>
+    | 1 | 12 | 18 | 12 |
+    | 2 | 18 | 12 | 6 |
+    | 3 | 12 | 6 | 0 |
+    | — | 6 | 0 | berhenti, FPB = 6 |
+
+    Jika `a < b`, putaran pertama hanya menukar keduanya, jadi urutan input tidak masalah. KPK dihitung sebagai `a / fpb * b`, yaitu dibagi dulu baru dikali, agar hasil sementaranya tidak terlalu besar. Hasil akhirnya tetap bisa melewati batas `int`, jadi C++ memakai `long long`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        long long a, b;
+        cin >> a >> b;
+
+        long long x = a;
+        long long y = b;
+        while (y != 0) {
+            long long sisa = x % y;
+            x = y;
+            y = sisa;
+        }
+
+        long long fpb = x;
+        long long kpk = a / fpb * b;
+        cout << fpb << " " << kpk << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b = map(int, input().split())
+
+    x = a
+    y = b
+    while y != 0:
+        x, y = y, x % y
+
+    fpb = x
+    kpk = a // fpb * b
+    print(fpb, kpk)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Deret Fibonacci">
+  Deret Fibonacci dimulai dengan 0 dan 1. Setiap suku berikutnya adalah jumlah dua suku sebelumnya: 0, 1, 1, 2, 3, 5, 8, 13, dan seterusnya. Baca `n` (1 sampai 90), lalu tampilkan `n` suku pertama, dipisah koma dan spasi. Tidak boleh ada koma di akhir.
+
+  | Input | Output |
+  | --- | --- |
+  | `7` | `0, 1, 1, 2, 3, 5, 8` |
+  | `1` | `0` |
+  | `2` | `0, 1` |
+
+  <Petunjuk>
+    Tanpa array, kamu cukup menyimpan dua suku terakhir di dua variabel, misalnya `a` dan `b`. Di setiap putaran, tampilkan `a`, lalu geser: `a` mendapat nilai `b`, dan `b` mendapat jumlah `a` dan `b` yang lama. Untuk pemisah, tulis `", "` **sebelum** setiap suku, kecuali suku pertama.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada dua bagian yang perlu dipikirkan. Pertama, pergeseran harus memakai nilai lama. Jika kamu menulis `a = b;` lalu `b = a + b;`, nilai `a` yang lama sudah hilang. C++ menyimpan jumlahnya dulu di variabel `berikut`, sedangkan Python bisa menulis `a, b = b, a + b`. Kedua, kesalahan yang sering terjadi adalah menulis `", "` **setelah** setiap suku, sehingga ada koma berlebih di akhir. Menulis pemisah sebelum suku, kecuali pada putaran pertama, menghindari masalah itu.
+
+    Suku ke-90 sekitar 1,8 × 10¹⁸, jadi C++ membutuhkan `long long`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        long long a = 0;
+        long long b = 1;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                cout << ", ";
+            }
+            cout << a;
+
+            long long berikut = a + b;
+            a = b;
+            b = berikut;
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    a = 0
+    b = 1
+    for i in range(1, n + 1):
+        if i > 1:
+            print(", ", end="")
+        print(a, end="")
+        a, b = b, a + b
+    print()
+    ```
+  </Pembahasan>
+</Soal>

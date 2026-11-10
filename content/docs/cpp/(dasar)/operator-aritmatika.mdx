@@ -178,7 +178,7 @@ print(math.sqrt(81))    # 9.0
 ```
 
 <Callout type="error" title="Jebakan: ^ bukan pangkat">
-  Banyak pemula menulis `2 ^ 3` dan berharap hasilnya `8`. Di C++ (dan Python), `^` adalah operator **XOR** (operasi bit), sehingga `2 ^ 3` menghasilkan **`1`**. Compiler tidak menganggapnya error (paling-paling hanya peringatan), jadi kesalahan ini mudah terlewat.
+  Banyak pemula menulis `2 ^ 3` dan berharap hasilnya `8`. Di C++ (dan Python), `^` adalah operator **XOR** (operasi bit), sehingga `2 ^ 3` menghasilkan **`1`**. Compiler tidak menganggapnya error (paling-paling hanya peringatan), jadi kesalahan ini mudah terlewat. Cara kerja XOR dibahas di [Operator Bitwise](/docs/cpp/operator-bitwise).
 </Callout>
 
 <DeepDive href="/docs/cpp/pustaka/cmath" kind="pustaka" title="<cmath>: fungsi matematika">
@@ -261,40 +261,486 @@ Agar tidak bingung, biasakan menulis `x++` di barisnya sendiri. Dengan begitu pr
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Hitung (tanpa komputer) hasil C++ dari: 10 + 6 / 4 * 2 dan 10 % 4 + 3 * 2.">
-    - `10 + 6 / 4 * 2` → `6 / 4 = 1` (pembagian int) → `1 * 2 = 2` → `10 + 2` = **12**.
-    - `10 % 4 + 3 * 2` → `10 % 4 = 2` dan `3 * 2 = 6` → `2 + 6` = **8**.
-  </Accordion>
-  <Accordion title="2. Buat program yang membaca bilangan tiga digit (misal 472) lalu menampilkan jumlah digitnya (4 + 7 + 2 = 13).">
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Semua soal bisa diselesaikan hanya dengan operator aritmatika, tanpa percabangan.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Genap jadi 1, ganjil jadi 0">
+  Baca bilangan bulat `n` (`n ≥ 0`). Tampilkan `1` jika `n` genap dan `0` jika `n` ganjil. Gunakan satu ekspresi aritmatika saja, tanpa percabangan.
+
+  | Input | Output |
+  | --- | --- |
+  | `8` | `1` |
+  | `13` | `0` |
+  | `0` | `1` |
+
+  <Pembahasan>
+    `n % 2` menghasilkan kebalikan dari yang diminta: `0` untuk genap dan `1` untuk ganjil. Membaliknya cukup dengan `1 - n % 2`. Cara lain yang juga benar adalah `(n + 1) % 2`. Syarat `n ≥ 0` penting di C++, karena `-3 % 2` bernilai `-1` sehingga `1 - n % 2` menjadi `2`.
+
     ```cpp tab="C++"
     #include <iostream>
     using namespace std;
 
     int main() {
         int n;
-        cin >> n;                    // 472
-
-        int satuan  = n % 10;        // 2
-        int puluhan = (n / 10) % 10; // 7
-        int ratusan = n / 100;       // 4
-
-        cout << satuan + puluhan + ratusan << endl;   // 13
+        cin >> n;
+        cout << 1 - n % 2 << endl;
         return 0;
     }
     ```
 
     ```python tab="Python"
-    n = int(input())            # 472
-
-    satuan = n % 10             # 2
-    puluhan = (n // 10) % 10    # 7
-    ratusan = n // 100          # 4
-
-    print(satuan + puluhan + ratusan)   # 13
+    n = int(input())
+    print(1 - n % 2)
     ```
-  </Accordion>
-  <Accordion title="3. Kode C++ double c = 5 / 9 * (f - 32); selalu menghasilkan 0. Kenapa, dan bagaimana memperbaikinya?">
-    `5 / 9` adalah pembagian `int / int` yang menghasilkan `0`, sehingga seluruh perkalian menjadi `0`. Perbaiki dengan menjadikan salah satu operand pecahan: `5.0 / 9 * (f - 32)`.
-  </Accordion>
-</Accordions>
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tarik tunai Rp50.000">
+  Sebuah ATM hanya mengeluarkan uang lembaran Rp50.000. Baca jumlah uang (dalam rupiah) yang ingin ditarik, lalu tampilkan banyak lembar yang keluar dan sisa uang yang tidak bisa ditarik, dipisah spasi.
+
+  | Input | Output |
+  | --- | --- |
+  | `175000` | `3 25000` |
+  | `300000` | `6 0` |
+  | `40000` | `0 40000` |
+
+  <Pembahasan>
+    Pembagian bulat dengan 50000 menghitung berapa lembar yang muat, dan `%` dengan pembagi yang sama menghitung sisanya. Pasangan `/` dan `%` seperti ini akan sangat sering kamu pakai.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int jumlah;
+        cin >> jumlah;
+
+        int lembar = jumlah / 50000;
+        int sisa = jumlah % 50000;
+
+        cout << lembar << " " << sisa << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    jumlah = int(input())
+
+    lembar = jumlah // 50000
+    sisa = jumlah % 50000
+
+    print(lembar, sisa)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tebak hasil ekspresi">
+  Tanpa menjalankan program, tentukan output program berikut. Versi C++ dan Python menghasilkan output yang sama.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      cout << 10 + 6 / 4 * 2 << endl;
+      cout << 10 % 4 + 3 * 2 << endl;
+      cout << (10 + 6) / 4 * 2 << endl;
+      cout << 20 / 3 % 4 << endl;
+      cout << 7 / 2 * 2 + 7 % 2 << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  print(10 + 6 // 4 * 2)
+  print(10 % 4 + 3 * 2)
+  print((10 + 6) // 4 * 2)
+  print(20 // 3 % 4)
+  print(7 // 2 * 2 + 7 % 2)
+  ```
+
+  <Pembahasan>
+    Kerjakan `*`, `/`, `%` lebih dulu dari kiri ke kanan, baru `+` dan `-`. Setiap pembagian di sini adalah pembagian bulat (`//` di Python).
+
+    | Ekspresi | Langkah | Hasil |
+    | --- | --- | --- |
+    | `10 + 6 / 4 * 2` | `6 / 4 = 1`, lalu `1 * 2 = 2`, lalu `10 + 2` | `12` |
+    | `10 % 4 + 3 * 2` | `10 % 4 = 2` dan `3 * 2 = 6`, lalu `2 + 6` | `8` |
+    | `(10 + 6) / 4 * 2` | `16 / 4 = 4`, lalu `4 * 2` | `8` |
+    | `20 / 3 % 4` | `20 / 3 = 6` (kiri dulu), lalu `6 % 4` | `2` |
+    | `7 / 2 * 2 + 7 % 2` | `7 / 2 = 3`, `3 * 2 = 6`, `7 % 2 = 1`, lalu `6 + 1` | `7` |
+
+    Baris terakhir menunjukkan sifat yang berguna: untuk `n` dan `k` positif, `n / k * k + n % k` selalu kembali menjadi `n`. Hasil bagi dan sisa bagi bersama-sama menyimpan seluruh informasi tentang `n`.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Membalik tiga digit">
+  Baca bilangan tiga digit `n` (100 sampai 999), lalu tampilkan bilangan yang urutan digitnya dibalik. Hasilnya ditampilkan sebagai bilangan biasa, jadi angka nol di depan hilang.
+
+  | Input | Output |
+  | --- | --- |
+  | `472` | `274` |
+  | `120` | `21` |
+  | `305` | `503` |
+
+  <Petunjuk>
+    Ambil ketiga digitnya dulu. Satuan didapat dengan `% 10`. Puluhan didapat dengan membuang satu digit terakhir, lalu `% 10`. Ratusan didapat dengan membagi 100. Setelah itu, susun ulang dengan perkalian.
+  </Petunjuk>
+
+  <Pembahasan>
+    Bilangan baru disusun dengan `satuan * 100 + puluhan * 10 + ratusan`. Untuk `120`, hasilnya `0 * 100 + 2 * 10 + 1 = 21`, sehingga angka nol di depan hilang dengan sendirinya. Pada `n / 10 % 10`, operator `/` dan `%` punya prioritas sama sehingga dikerjakan dari kiri: `(n / 10) % 10`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        int satuan = n % 10;
+        int puluhan = n / 10 % 10;
+        int ratusan = n / 100;
+
+        cout << satuan * 100 + puluhan * 10 + ratusan << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    satuan = n % 10
+    puluhan = n // 10 % 10
+    ratusan = n // 100
+
+    print(satuan * 100 + puluhan * 10 + ratusan)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Hari setelah n hari">
+  Hari dalam seminggu diberi nomor 1 (Senin) sampai 7 (Minggu). Baca nomor hari ini `h` dan bilangan `n` (`n ≥ 0`) dalam satu baris, lalu tampilkan nomor hari `n` hari kemudian.
+
+  | Input | Output | Keterangan |
+  | --- | --- | --- |
+  | `5 3` | `1` | Jumat + 3 hari = Senin |
+  | `4 3` | `7` | Kamis + 3 hari = Minggu |
+  | `3 100` | `5` | Rabu + 100 hari = Jumat |
+
+  <Petunjuk>
+    `% 7` menghasilkan angka 0 sampai 6, padahal nomor hari 1 sampai 7. Geser dulu nomor hari ke rentang 0 sampai 6 (kurangi 1), hitung, lalu kembalikan (tambah 1).
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah digeser, Senin bernomor 0 dan Minggu bernomor 6, sehingga `(h - 1 + n) % 7` pasti berada di rentang yang benar. Tambah 1 untuk kembali ke penomoran semula. Kesalahan umum adalah menulis `(h + n) % 7`: untuk input `4 3` hasilnya `0`, padahal tidak ada hari bernomor 0. Trik "geser ke 0, hitung, geser balik" ini berlaku untuk apa pun yang berputar, seperti jam dan bulan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int h, n;
+        cin >> h >> n;
+
+        int hasil = (h - 1 + n) % 7 + 1;
+
+        cout << hasil << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    h, n = map(int, input().split())
+
+    hasil = (h - 1 + n) % 7 + 1
+
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Persentase selalu nol">
+  Program berikut seharusnya membaca banyak jawaban benar dan banyak soal, lalu menampilkan persentase jawaban benar (dibulatkan ke bawah). Namun untuk hampir semua input hasilnya `0`. Jelaskan penyebabnya, lalu perbaiki **tanpa** memakai `double` atau `float`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int benar, total;
+      cin >> benar >> total;
+
+      int persen = benar / total * 100;
+
+      cout << persen << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  benar, total = map(int, input().split())
+
+  persen = benar // total * 100
+
+  print(persen)
+  ```
+
+  | Input | Output yang benar | Output program di atas |
+  | --- | --- | --- |
+  | `7 8` | `87` | `0` |
+  | `3 4` | `75` | `0` |
+  | `10 10` | `100` | `100` |
+
+  <Petunjuk>
+    Ikuti urutan pengerjaannya. Operator mana yang dikerjakan lebih dulu, `/` atau `*`? Berapa hasil `7 / 8` di C++?
+  </Petunjuk>
+
+  <Pembahasan>
+    `/` dan `*` punya prioritas sama, jadi `benar / total` dikerjakan lebih dulu. Selama `benar` lebih kecil dari `total`, pembagian bulat itu menghasilkan `0`, dan `0 * 100` tetap `0`. Tukar urutannya: kalikan 100 dulu, baru bagi. Aturan praktisnya, kerjakan pembagian bulat **paling akhir** agar bagian yang dibuang sekecil mungkin.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int benar, total;
+        cin >> benar >> total;
+
+        int persen = benar * 100 / total;
+
+        cout << persen << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    benar, total = map(int, input().split())
+
+    persen = benar * 100 // total
+
+    print(persen)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Berapa bus yang dibutuhkan">
+  Sebanyak `n` peserta _study tour_ akan naik bus yang masing-masing berkapasitas `k` kursi. Baca `n` dan `k` (keduanya minimal 1) dalam satu baris, lalu tampilkan banyak bus yang dibutuhkan dan banyak kursi yang kosong, dipisah spasi. Kerjakan hanya dengan operator aritmatika.
+
+  | Input | Output |
+  | --- | --- |
+  | `40 12` | `4 8` |
+  | `36 12` | `3 0` |
+  | `1 50` | `1 49` |
+
+  <Petunjuk>
+    `n / k` membulatkan ke bawah, padahal di sini kamu butuh pembulatan ke atas. Coba tambahkan sesuatu ke `n` sebelum dibagi. Berapa yang harus ditambahkan agar `36 / 12` tetap 3, tetapi `37 / 12` menjadi 4?
+  </Petunjuk>
+
+  <Pembahasan>
+    Pembulatan ke atas dengan pembagian bulat ditulis `(n + k - 1) / k`. Tambahan `k - 1` mendorong `n` ke kelipatan berikutnya jika ada sisa, tetapi tidak cukup jika `n` sudah kelipatan `k`. Kursi kosong adalah total kursi (`bus * k`, kelipatan `k` terkecil yang tidak kurang dari `n`) dikurangi `n`. Trik serupa untuk pembulatan ke kelipatan **terdekat** adalah `(n + k / 2) / k * k` (di Python `(n + k // 2) // k * k`).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+
+        int bus = (n + k - 1) / k;
+        int kosong = bus * k - n;
+
+        cout << bus << " " << kosong << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, k = map(int, input().split())
+
+    bus = (n + k - 1) // k
+    kosong = bus * k - n
+
+    print(bus, kosong)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Jam selesai acara">
+  Sebuah acara dimulai pukul `jam:menit` (format 24 jam) dan berlangsung selama `durasi` menit. Durasinya bisa lebih dari sehari. Baca `jam`, `menit`, dan `durasi` dalam satu baris, lalu tampilkan:
+
+  1. pukul selesainya dalam format `HH:MM`, selalu dua digit (misalnya `08:05`),
+  2. di baris kedua, berapa kali acara melewati tengah malam.
+
+  Kerjakan tanpa `<iomanip>` dan tanpa format f-string seperti `:02d`.
+
+  ```txt title="Contoh input 1"
+  23 45 135
+  ```
+
+  ```txt title="Contoh output 1"
+  02:00
+  1
+  ```
+
+  ```txt title="Contoh input 2"
+  22 30 3000
+  ```
+
+  ```txt title="Contoh output 2"
+  00:30
+  3
+  ```
+
+  <Petunjuk>
+    Ubah semuanya ke satuan menit sejak pukul 00:00 hari ini. Sehari ada `24 * 60 = 1440` menit. Untuk menampilkan dua digit, ingat bahwa angka puluhan dari `jam` adalah `jam / 10` dan angka satuannya `jam % 10`. Untuk `jam = 8`, keduanya adalah `0` dan `8`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jumlahkan waktu mulai (dalam menit) dengan durasi. Hasil bagi dengan 1440 adalah banyaknya tengah malam yang dilewati, sedangkan sisanya dipecah lagi menjadi jam dan menit dengan `/ 60` dan `% 60`. Agar selalu dua digit, setiap angka dicetak sebagai digit puluhan lalu digit satuan, sehingga `8` tampil sebagai `08`. Cara yang lebih praktis, yaitu `setw` dan `setfill` dari [`<iomanip>`](/docs/cpp/pustaka/iomanip) atau `f"{jam:02d}"` di Python, bisa kamu pelajari nanti.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int jam, menit, durasi;
+        cin >> jam >> menit >> durasi;
+
+        const int MENIT_SEHARI = 24 * 60;
+
+        int total = jam * 60 + menit + durasi;   // menit sejak 00:00 hari ini
+        int hari = total / MENIT_SEHARI;         // berapa kali lewat tengah malam
+        int sisa = total % MENIT_SEHARI;         // menit sejak 00:00 hari terakhir
+
+        int jamAkhir = sisa / 60;
+        int menitAkhir = sisa % 60;
+
+        cout << jamAkhir / 10 << jamAkhir % 10 << ":"
+             << menitAkhir / 10 << menitAkhir % 10 << endl;
+        cout << hari << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    jam, menit, durasi = map(int, input().split())
+
+    MENIT_SEHARI = 24 * 60
+
+    total = jam * 60 + menit + durasi   # menit sejak 00:00 hari ini
+    hari = total // MENIT_SEHARI        # berapa kali lewat tengah malam
+    sisa = total % MENIT_SEHARI         # menit sejak 00:00 hari terakhir
+
+    jam_akhir = sisa // 60
+    menit_akhir = sisa % 60
+
+    print(f"{jam_akhir // 10}{jam_akhir % 10}:{menit_akhir // 10}{menit_akhir % 10}")
+    print(hari)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Mundur n hari">
+  Masih dengan penomoran 1 (Senin) sampai 7 (Minggu), baca nomor hari ini `h` dan bilangan `n` (0 sampai 1.000.000.000) dalam satu baris. Tampilkan nomor hari `n` hari **sebelumnya**. Program C++ dan Python-mu harus sama-sama benar.
+
+  | Input | Output | Keterangan |
+  | --- | --- | --- |
+  | `1 1` | `7` | Senin mundur 1 hari = Minggu |
+  | `3 10` | `7` | Rabu mundur 10 hari = Minggu |
+  | `6 1000000000` | `7` | Sabtu mundur 1 miliar hari = Minggu |
+
+  <Petunjuk>
+    Rumus Soal 5 dengan `+ n` diganti `- n` sudah benar di Python, tetapi tidak di C++. Ingat tabel [pembagian dengan bilangan negatif](#pembagian-dengan-bilangan-negatif): di C++, `-8 % 7` bernilai `-1`, bukan `6`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Di C++, `(h - 1 - n) % 7` bisa negatif (antara -6 dan 6), jadi tambahkan 7 lalu ambil `% 7` sekali lagi. Langkah ini memindahkan nilai negatif ke rentang 0 sampai 6 tanpa merusak nilai yang sudah positif. Python tidak membutuhkannya karena `%` di Python tidak pernah negatif jika pembaginya positif. Hati-hati dengan versi pendek `(h - 1 - n + 7) % 7 + 1`: versi itu hanya aman jika `n` paling besar 7, dan untuk input `3 10` hasilnya `0`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int h, n;
+        cin >> h >> n;
+
+        int geser = (h - 1 - n) % 7;    // bisa negatif di C++, rentang -6 sampai 6
+        int hasil = (geser + 7) % 7 + 1;
+
+        cout << hasil << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    h, n = map(int, input().split())
+
+    hasil = (h - 1 - n) % 7 + 1   # % di Python tidak pernah negatif untuk pembagi positif
+
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Lacak ++ dan --">
+  Soal ini khusus C++ karena Python tidak punya `++` dan `--`. Tanpa menjalankan program, tentukan outputnya.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int a = 5;
+
+      int b = a++ * 2;
+      int c = ++a % 4;
+      a += b / c;
+      b %= a - 3;
+      c = --b + a--;
+
+      cout << a << " " << b << " " << c << endl;
+      return 0;
+  }
+  ```
+
+  <Petunjuk>
+    Catat nilai `a`, `b`, dan `c` setelah setiap baris. Operator penugasan majemuk seperti `%=` dikerjakan paling akhir, jadi `b %= a - 3` berarti `b = b % (a - 3)`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Outputnya `9 2 12`. Postfix (`a++`, `a--`) memakai nilai lama lalu mengubah variabel, sedangkan prefix (`++a`, `--b`) mengubah variabel dulu baru memakainya.
+
+    | Baris | `a` | `b` | `c` | Catatan |
+    | --- | --- | --- | --- | --- |
+    | `int b = a++ * 2;` | 6 | 10 | | yang dikalikan nilai lama `a`, yaitu 5 |
+    | `int c = ++a % 4;` | 7 | 10 | 3 | `a` naik dulu, lalu `7 % 4` |
+    | `a += b / c;` | 10 | 10 | 3 | `10 / 3 = 3` (pembagian bulat) |
+    | `b %= a - 3;` | 10 | 3 | 3 | `b = 10 % 7`, bukan `(10 % 10) - 3` |
+    | `c = --b + a--;` | 9 | 2 | 12 | `b` turun dulu jadi 2, `a--` menyumbang nilai lama 10 |
+
+    Terjemahan ke Python berikut menghasilkan output yang sama. Terlihat jelas kapan nilai dipakai dan kapan diubah:
+
+    ```python
+    a = 5
+
+    b = a * 2       # a++ * 2: pakai nilai lama a (5) ...
+    a += 1          # ... baru a naik menjadi 6
+    a += 1          # ++a: a naik dulu menjadi 7 ...
+    c = a % 4       # ... baru dipakai
+    a += b // c
+    b %= a - 3
+    b -= 1          # --b: b turun dulu ...
+    c = b + a       # ... lalu dipakai, a-- memakai nilai lama a ...
+    a -= 1          # ... baru a turun
+
+    print(a, b, c)
+    ```
+  </Pembahasan>
+</Soal>

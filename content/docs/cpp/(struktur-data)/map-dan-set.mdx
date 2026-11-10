@@ -1,0 +1,1150 @@
+---
+title: Map & Set
+description: Menyimpan pasangan kunci dan nilai agar pencarian cepat, menghitung frekuensi, dan mengelola kumpulan nilai unik dengan map, set, dict, dan set Python.
+sumber:
+  - ref: cppreference
+    judul: std::map
+    url: https://en.cppreference.com/w/cpp/container/map
+  - ref: cppreference
+    judul: std::unordered_map
+    url: https://en.cppreference.com/w/cpp/container/unordered_map
+  - ref: cppreference
+    judul: std::set
+    url: https://en.cppreference.com/w/cpp/container/set
+  - ref: python-docs
+    judul: Tutorial, Dictionaries
+    url: https://docs.python.org/3/tutorial/datastructures.html#dictionaries
+  - ref: python-docs
+    judul: Tutorial, Sets
+    url: https://docs.python.org/3/tutorial/datastructures.html#sets
+---
+
+## Masalah: mencari berdasarkan nama
+
+Misalkan kamu menyimpan buku telepon sebagai `vector` berisi [struct](/docs/cpp/struct) `{nama, nomor}`. Untuk menemukan nomor milik `"citra"`, kamu harus memeriksa kontak satu per satu dengan [pencarian linear](/docs/cpp/array-dan-vector#mencari-elemen). Jika ada sejuta kontak, bisa jadi sejuta pemeriksaan untuk satu pencarian.
+
+Padahal yang kita inginkan sederhana: **berikan nama, dapatkan nomornya**. Struktur data yang dibuat khusus untuk ini disebut **map**. Map menyimpan pasangan **kunci → nilai** (_key → value_):
+
+| Kunci (nama) | Nilai (nomor) |
+| --- | --- |
+| `"andi"` | `"0812-1111"` |
+| `"budi"` | `"0813-2222"` |
+| `"citra"` | `"0857-3333"` |
+
+Kunci adalah yang kita cari, nilai adalah data yang menempel padanya. Setiap kunci hanya boleh muncul **sekali**, sama seperti setiap kata hanya punya satu entri di kamus. Itulah sebabnya Python menamai struktur ini **dictionary** (`dict`).
+
+## Membuat map dan dict
+
+```cpp tab="C++"
+#include <map>
+#include <string>
+
+map<string, string> telepon;          // map<tipe kunci, tipe nilai>
+
+telepon["andi"] = "0812-1111";        // menambah pasangan baru
+telepon["budi"] = "0813-2222";
+telepon["andi"] = "0812-9999";        // kunci sudah ada: nilainya diganti
+
+cout << telepon["budi"] << endl;      // 0813-2222
+cout << telepon.size() << endl;       // 2, karena "andi" tetap satu
+
+// bisa juga langsung diisi:
+map<string, int> umur = {{"andi", 19}, {"budi", 21}};
+```
+
+```python tab="Python"
+telepon = {}                          # dict kosong
+
+telepon["andi"] = "0812-1111"         # menambah pasangan baru
+telepon["budi"] = "0813-2222"
+telepon["andi"] = "0812-9999"         # kunci sudah ada: nilainya diganti
+
+print(telepon["budi"])                # 0813-2222
+print(len(telepon))                   # 2, karena "andi" tetap satu
+
+# bisa juga langsung diisi:
+umur = {"andi": 19, "budi": 21}
+```
+
+Tanda `[]` pada map mirip indeks pada array, tetapi "indeksnya" boleh berupa teks atau tipe lain yang kita pilih. Menulis ke kunci yang belum ada akan **menambah** pasangan baru, sedangkan menulis ke kunci yang sudah ada akan **mengganti** nilainya.
+
+## Mencari dengan aman
+
+### Jebakan: `[]` di C++ ikut menambah kunci
+
+Bagaimana jika kita **membaca** kunci yang tidak ada?
+
+```cpp tab="C++"
+map<string, string> telepon = {{"andi", "0812-1111"}};
+
+cout << telepon["zaki"] << endl;      // mencetak baris kosong, tanpa error
+cout << telepon.size() << endl;       // 2, "zaki" ikut tersimpan!
+```
+
+```python tab="Python"
+telepon = {"andi": "0812-1111"}
+
+print(telepon["zaki"])                # KeyError: 'zaki'
+```
+
+Di C++, `telepon["zaki"]` untuk kunci yang belum ada **menambahkan** kunci itu dengan nilai bawaan (`""` untuk `string`, `0` untuk `int`), lalu mengembalikan nilai bawaan tersebut. Akibatnya map diam-diam membesar, dan kita tidak bisa membedakan "kunci tidak ada" dengan "nilainya memang kosong atau 0". Python memilih berhenti dengan `KeyError`.
+
+<Callout type="warning" title="Membaca dengan [] bisa mengubah map">
+  Di C++, gunakan `[]` hanya untuk **menulis**, atau untuk membaca kunci yang **pasti sudah ada**. Untuk mengecek keberadaan kunci, pakai `count` atau `find`.
+</Callout>
+
+### Cara yang aman
+
+```cpp tab="C++"
+if (telepon.count("zaki") > 0) {        // count: 1 jika ada, 0 jika tidak
+    cout << telepon["zaki"] << endl;    // aman, kunci pasti ada
+} else {
+    cout << "tidak ada" << endl;
+}
+
+auto it = telepon.find("andi");         // cari sekali, simpan posisinya
+if (it != telepon.end()) {              // end() berarti "tidak ditemukan"
+    cout << it->first << ": " << it->second << endl;   // andi: 0812-1111
+}
+```
+
+```python tab="Python"
+if "zaki" in telepon:                   # in: True jika kunci ada
+    print(telepon["zaki"])              # aman, kunci pasti ada
+else:
+    print("tidak ada")
+
+print(telepon.get("andi"))              # 0812-1111
+print(telepon.get("zaki"))              # None, tanpa error
+print(telepon.get("zaki", "-"))         # -, nilai cadangan jika kunci tidak ada
+```
+
+`find` mengembalikan **posisi** pasangan yang ditemukan. Posisi ini bekerja mirip pointer di [Linked List](/docs/cpp/linked-list): isinya dibaca dengan `->`. Setiap isi map adalah pasangan, dengan `first` sebagai kunci dan `second` sebagai nilai. Jika kunci tidak ditemukan, `find` mengembalikan posisi khusus `telepon.end()`, yaitu "sesudah elemen terakhir". Kata `auto` meminta compiler menentukan tipe variabel `it` sendiri, karena nama tipe aslinya panjang sekali.
+
+| Tujuan | C++ | Python |
+| --- | --- | --- |
+| Cek apakah kunci ada | `m.count(k) > 0` | `k in d` |
+| Ambil nilai, kunci pasti ada | `m[k]` | `d[k]` |
+| Ambil nilai jika ada | `m.find(k)` lalu `it->second` | `d.get(k)` atau `d.get(k, cadangan)` |
+| Baca kunci yang tidak ada dengan `[]` | Kunci **ditambahkan** dengan nilai bawaan | `KeyError` |
+
+## Menghapus pasangan
+
+```cpp tab="C++"
+telepon.erase("budi");          // hapus pasangan berkunci "budi"
+telepon.erase("zaki");          // kunci tidak ada: tidak terjadi apa-apa
+```
+
+```python tab="Python"
+del telepon["budi"]             # hapus pasangan berkunci "budi"
+telepon.pop("zaki", None)       # aman: tidak error walau kunci tidak ada
+# del telepon["zaki"] akan menghasilkan KeyError
+```
+
+## Menelusuri isi map
+
+```cpp tab="C++"
+map<string, int> stok = {{"jeruk", 12}, {"apel", 5}, {"mangga", 0}};
+
+for (auto& [buah, jumlah] : stok) {
+    cout << buah << " " << jumlah << endl;
+}
+```
+
+```python tab="Python"
+stok = {"jeruk": 12, "apel": 5, "mangga": 0}
+
+for buah, jumlah in stok.items():       # urutan masuk: jeruk, apel, mangga
+    print(buah, jumlah)
+
+for buah in sorted(stok):               # urut berdasarkan kunci
+    print(buah, stok[buah])
+```
+
+```txt title="Output (C++)"
+apel 5
+jeruk 12
+mangga 0
+```
+
+Bentuk `auto& [buah, jumlah]` (tersedia sejak C++17) membongkar setiap pasangan menjadi dua nama: kunci dan nilai. Tanda `&` membuat perulangan memakai pasangan aslinya tanpa menyalin, seperti [pass by reference](/docs/cpp/pendalaman/pass-by-value-dan-reference). Pada kode lama, kamu akan menemui `for (auto& p : stok)` dengan `p.first` dan `p.second`.
+
+Perhatikan urutannya. `std::map` **selalu terurut berdasarkan kunci**, apa pun urutan pengisiannya. `dict` Python mengingat **urutan masuk**, jadi gunakan `sorted(d)` jika ingin urut kunci. Selain `items()`, dict juga punya `keys()` untuk kuncinya saja dan `values()` untuk nilainya saja.
+
+## Contoh lengkap: menghitung frekuensi
+
+Salah satu kegunaan map yang paling sering: menghitung berapa kali setiap hal muncul. Program berikut membaca `n` kata, lalu menampilkan setiap kata beserta jumlah kemunculannya, urut abjad.
+
+```cpp tab="C++"
+#include <iostream>
+#include <map>
+#include <string>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    map<string, int> frekuensi;
+    for (int i = 0; i < n; i++) {
+        string kata;
+        cin >> kata;
+        frekuensi[kata]++;        // kata baru otomatis mulai dari 0, lalu jadi 1
+    }
+
+    for (auto& [kata, jumlah] : frekuensi) {
+        cout << kata << ": " << jumlah << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+kata_kata = input().split()
+
+frekuensi = {}
+for kata in kata_kata:
+    frekuensi[kata] = frekuensi.get(kata, 0) + 1   # 0 jika kata belum ada
+
+for kata in sorted(frekuensi):
+    print(f"{kata}: {frekuensi[kata]}")
+```
+
+```txt title="Contoh jalannya program"
+7
+kopi teh kopi susu teh kopi air
+air: 1
+kopi: 3
+susu: 1
+teh: 2
+```
+
+Di sini sifat `[]` yang tadi disebut jebakan justru berguna: kata yang belum pernah muncul otomatis bernilai `0`, sehingga `frekuensi[kata]++` langsung benar. Di Python, `frekuensi[kata] += 1` untuk kata baru akan menghasilkan `KeyError`, karena itu kita memakai `get(kata, 0)`. Python juga menyediakan `Counter` dari modul `collections` yang khusus untuk menghitung, tetapi pola di atas perlu kamu kuasai lebih dulu.
+
+## Kenapa pencarian di map cepat?
+
+Mencari di `vector` berarti memeriksa elemen satu per satu. Map memakai cara yang lebih cerdas, dan C++ menyediakan dua jenis.
+
+**`std::map`** menyimpan kunci dalam struktur pohon yang selalu terurut. Mencarinya mirip mencari kata di kamus cetak: buka bagian tengah, lalu putuskan apakah kata yang dicari ada di separuh kiri atau kanan. Setiap langkah membuang separuh kandidat, sehingga sejuta kunci hanya butuh sekitar 20 langkah.
+
+**`std::unordered_map`** dan `dict` Python memakai **hash table**, yang biasanya lebih cepat lagi.
+
+### Hashing: langsung menuju loker yang tepat
+
+Bayangkan deretan loker bernomor 0 sampai 9. Setiap kunci dimasukkan ke loker yang nomornya **dihitung dari kunci itu sendiri** oleh sebuah **fungsi hash**. Contoh fungsi hash sederhana: jumlahkan kode ASCII setiap huruf, lalu ambil sisa baginya dengan 10.
+
+```cpp tab="C++"
+int hashMainan(string kunci) {
+    int total = 0;
+    for (char c : kunci) {
+        total += c;              // kode ASCII setiap huruf
+    }
+    return total % 10;           // nomor loker 0 sampai 9
+}
+```
+
+```python tab="Python"
+def hash_mainan(kunci):
+    total = 0
+    for c in kunci:
+        total += ord(c)          # kode ASCII setiap huruf
+    return total % 10            # nomor loker 0 sampai 9
+```
+
+| Kunci | Jumlah kode ASCII | Nomor loker |
+| --- | --- | --- |
+| `"budi"` | 420 | 0 |
+| `"citra"` | 531 | 1 |
+| `"andi"` | 412 | 2 |
+| `"dina"` | 412 | 2 |
+| `"dodi"` | 416 | 6 |
+
+Untuk mencari `"dodi"`, hitung lagi hash-nya, yaitu 6, lalu buka loker 6. Loker lain tidak perlu disentuh sama sekali. Itulah sebabnya pencarian tidak perlu memeriksa semua data.
+
+Kadang dua kunci jatuh ke loker yang sama, seperti `"andi"` dan `"dina"`. Kejadian ini disebut **tabrakan** (_collision_). Loker itu cukup menyimpan keduanya, dan saat mencari kita hanya membandingkan beberapa kunci di loker tersebut. Fungsi hash sungguhan jauh lebih pandai menyebar kunci daripada contoh mainan ini, dan tabelnya otomatis diperbesar ketika mulai penuh. Hasilnya, setiap loker rata-rata hanya berisi sangat sedikit kunci.
+
+```cpp
+#include <unordered_map>
+
+unordered_map<string, int> umur;      // cara pakainya sama dengan map
+umur["citra"] = 20;
+umur["andi"] = 19;
+umur["budi"] = 21;
+
+for (auto& [nama, u] : umur) {
+    cout << nama << " " << u << endl; // urutannya tidak bisa ditebak
+}
+```
+
+| | `map` | `unordered_map` | `dict` Python |
+| --- | --- | --- | --- |
+| Isi di dalamnya | Pohon terurut | Hash table | Hash table |
+| Urutan saat ditelusuri | Urut kunci | Tidak tentu | Urutan masuk |
+| Cari, tambah, hapus | Sekitar 20 langkah untuk sejuta kunci, O(log n) | Rata-rata O(1) | Rata-rata O(1) |
+
+O(1) berarti banyak langkahnya tidak bertambah walaupun datanya makin banyak. Notasi ini dijelaskan lebih lanjut di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+<Callout type="info" title="Kunci dict harus tetap">
+  Kunci `dict` dan isi `set` di Python harus bernilai tetap (_immutable_), misalnya angka atau string. List tidak bisa menjadi kunci karena isinya bisa berubah, sehingga nomor lokernya pun bisa berubah. Python menolaknya dengan `TypeError: unhashable type: 'list'`.
+</Callout>
+
+## Set: kumpulan nilai unik
+
+Kadang kita tidak butuh nilai, hanya ingin tahu **apakah sesuatu pernah ada**. Untuk itu ada **set**, yaitu kumpulan nilai tanpa duplikat. Set bisa dibayangkan sebagai map yang hanya berisi kunci.
+
+```cpp tab="C++"
+#include <set>
+
+set<int> s;
+s.insert(5);
+s.insert(2);
+s.insert(5);                     // sudah ada, diabaikan
+
+cout << s.size() << endl;        // 2
+cout << s.count(2) << endl;      // 1, artinya 2 ada di dalam set
+s.erase(2);                      // hapus 2
+
+for (int x : s) {                // set selalu terurut naik
+    cout << x << " ";
+}
+```
+
+```python tab="Python"
+s = set()                        # set kosong; {} adalah dict kosong, bukan set
+s.add(5)
+s.add(2)
+s.add(5)                         # sudah ada, diabaikan
+
+print(len(s))                    # 2
+print(2 in s)                    # True
+s.discard(2)                     # hapus 2; remove(2) juga bisa, tetapi KeyError jika tidak ada
+
+for x in sorted(s):              # urutan set Python tidak dijamin, jadi urutkan dulu
+    print(x, end=" ")
+```
+
+Seperti map, `set` di C++ terurut, sedangkan `unordered_set` memakai hash table sehingga lebih cepat tetapi tidak berurutan. `set` Python juga sebuah hash table.
+
+### Contoh: membuang duplikat
+
+Program berikut membaca `n` bilangan, lalu menampilkan banyak nilai yang berbeda beserta daftarnya secara terurut.
+
+```cpp tab="C++"
+#include <iostream>
+#include <set>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+
+    set<int> unik;
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        unik.insert(x);          // duplikat otomatis diabaikan
+    }
+
+    cout << unik.size() << " nilai berbeda:";
+    for (int x : unik) {
+        cout << " " << x;
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input())
+data = list(map(int, input().split()))
+
+unik = sorted(set(data))         # set membuang duplikat, sorted mengurutkan
+print(len(unik), "nilai berbeda:", *unik)
+```
+
+```txt title="Contoh jalannya program"
+8
+5 3 8 3 1 5 5 8
+4 nilai berbeda: 1 3 5 8
+```
+
+Tanda `*` pada `print(*unik)` membongkar isi list menjadi argumen terpisah, jadi `print(*[1, 3, 5])` sama dengan `print(1, 3, 5)` dan mencetak `1 3 5`.
+
+### Operasi himpunan
+
+Set juga mendukung operasi himpunan seperti di pelajaran matematika. Python menyediakan operatornya langsung. Di C++, cara paling mudah adalah perulangan dengan `count`:
+
+```cpp tab="C++"
+set<int> a = {1, 2, 3, 4};
+set<int> b = {3, 4, 5};
+
+set<int> irisan;                  // anggota a yang juga ada di b
+for (int x : a) {
+    if (b.count(x) > 0) {
+        irisan.insert(x);         // {3, 4}
+    }
+}
+
+set<int> gabungan = a;            // salin a, lalu tambahkan isi b
+for (int x : b) {
+    gabungan.insert(x);           // {1, 2, 3, 4, 5}
+}
+```
+
+```python tab="Python"
+a = {1, 2, 3, 4}
+b = {3, 4, 5}
+
+print(a & b)    # irisan:   {3, 4}
+print(a | b)    # gabungan: {1, 2, 3, 4, 5}
+print(a - b)    # selisih:  {1, 2}, anggota a yang tidak ada di b
+```
+
+## Memilih struktur yang tepat
+
+| Kebutuhan | C++ | Python |
+| --- | --- | --- |
+| Data berurutan, diakses lewat posisi | `vector` | `list` |
+| Mencari nilai lewat kunci, perlu urut kunci | `map` | `dict` lalu `sorted()` |
+| Mencari nilai lewat kunci, urutan tidak penting | `unordered_map` | `dict` |
+| Kumpulan nilai unik, perlu terurut | `set` | `set` lalu `sorted()` |
+| Mengecek "sudah pernah ada?" secepat mungkin | `unordered_set` | `set` |
+
+Untuk data berukuran kecil sampai sedang, perbedaan kecepatan `map` dan `unordered_map` jarang terasa. Pilih versi terurut jika kamu butuh urutan, dan versi `unordered` jika tidak.
+
+## Rangkuman
+
+- **Map** menyimpan pasangan **kunci → nilai** dengan kunci yang unik. Padanannya di Python adalah `dict`.
+- Menulis `m[k] = v` menambah atau mengganti nilai. Di C++, **membaca** `m[k]` untuk kunci yang tidak ada akan menambahkannya dengan nilai bawaan. Gunakan `count` atau `find` untuk mengecek. Python memakai `in` dan `get`, sedangkan `d[k]` untuk kunci yang tidak ada menghasilkan `KeyError`.
+- `std::map` dan `std::set` selalu terurut berdasarkan kunci. Versi `unordered_` memakai hash table: biasanya lebih cepat, tetapi urutannya tidak tentu. `dict` Python mengingat urutan masuk.
+- **Hashing** menghitung "nomor loker" dari kunci, sehingga pencarian langsung menuju tempat yang tepat tanpa memeriksa semua data.
+- Pola menghitung frekuensi: `frekuensi[x]++` di C++, `d[x] = d.get(x, 0) + 1` di Python.
+- **Set** menyimpan nilai unik dan cocok untuk membuang duplikat serta mengecek keanggotaan. Python mendukung `&`, `|`, dan `-` untuk irisan, gabungan, dan selisih.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Banyak nilai berbeda">
+  Baca `n`, lalu `n` bilangan bulat dalam satu baris. Tampilkan berapa banyak nilai yang berbeda.
+
+  | Input | Output |
+  | --- | --- |
+  | `6` lalu `3 1 3 2 1 3` | `3` |
+  | `4` lalu `7 7 7 7` | `1` |
+
+  <Pembahasan>
+    Masukkan semua bilangan ke sebuah set. Duplikat otomatis diabaikan, jadi ukuran set adalah jawabannya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <set>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        set<int> unik;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            unik.insert(x);
+        }
+        cout << unik.size() << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+    print(len(set(data)))
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output">
+  Tanpa menjalankannya, tentukan output program C++ berikut.
+
+  ```cpp
+  #include <iostream>
+  #include <map>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      map<string, int> stok;
+      stok["jeruk"] = 0;
+      stok["apel"] = 5;
+
+      if (stok["mangga"] > 0) {
+          cout << "mangga tersedia" << endl;
+      }
+      if (stok.count("pisang") > 0) {
+          cout << "pisang tersedia" << endl;
+      }
+      stok["apel"] += 2;
+
+      cout << stok.size() << endl;
+      for (auto& [buah, jumlah] : stok) {
+          cout << buah << " " << jumlah << endl;
+      }
+      return 0;
+  }
+  ```
+
+  <Pembahasan>
+    ```txt title="Output"
+    3
+    apel 7
+    jeruk 0
+    mangga 0
+    ```
+
+    `stok["mangga"]` hanya dimaksudkan untuk membaca, tetapi karena `"mangga"` belum ada, kunci itu **ditambahkan** dengan nilai 0. Kondisinya `0 > 0` bernilai salah, jadi tidak ada yang dicetak. Sebaliknya, `count("pisang")` hanya memeriksa tanpa menambah. Isi map menjadi tiga pasangan, dan ditampilkan urut abjad, bukan urutan pengisian. Jika ditulis ulang di Python dengan `stok["mangga"]`, program justru berhenti dengan `KeyError`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Buku telepon">
+  Baris pertama berisi `n`. Lalu `n` baris berisi nama dan nomor telepon, dipisah spasi. Berikutnya ada `q`, lalu `q` baris berisi nama yang dicari. Untuk setiap nama yang dicari, tampilkan nomornya, atau `tidak ada` jika nama itu tidak terdaftar.
+
+  ```txt title="Contoh input"
+  3
+  andi 0812111
+  budi 0813222
+  citra 0857333
+  3
+  budi
+  dodi
+  andi
+  ```
+
+  ```txt title="Contoh output"
+  0813222
+  tidak ada
+  0812111
+  ```
+
+  <Pembahasan>
+    Simpan nama sebagai kunci dan nomor sebagai nilai. Nomor disimpan sebagai `string`, bukan `int`, agar angka 0 di depannya tidak hilang. Untuk pencarian, pakai `find` (Python: `get` dengan nilai cadangan) agar nama yang tidak ada tidak ikut ditambahkan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        map<string, string> telepon;
+        for (int i = 0; i < n; i++) {
+            string nama, nomor;
+            cin >> nama >> nomor;
+            telepon[nama] = nomor;
+        }
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            string nama;
+            cin >> nama;
+            auto it = telepon.find(nama);
+            if (it != telepon.end()) {
+                cout << it->second << endl;
+            } else {
+                cout << "tidak ada" << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    telepon = {}
+    for i in range(n):
+        nama, nomor = input().split()
+        telepon[nama] = nomor
+
+    q = int(input())
+    for i in range(q):
+        nama = input()
+        print(telepon.get(nama, "tidak ada"))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Huruf tunggal pertama">
+  Baca sebuah kata (huruf kecil semua, tanpa spasi). Tampilkan huruf **pertama** dalam kata itu yang hanya muncul **satu kali**. Jika tidak ada, tampilkan `-`.
+
+  | Input | Output |
+  | --- | --- |
+  | `kakaktua` | `t` |
+  | `lolos` | `s` |
+  | `aabb` | `-` |
+
+  <Petunjuk>
+    Kerjakan dalam dua putaran. Putaran pertama menghitung frekuensi setiap huruf. Putaran kedua menelusuri **kata aslinya** dari kiri dan berhenti di huruf pertama yang frekuensinya 1.
+  </Petunjuk>
+
+  <Pembahasan>
+    Putaran kedua harus menelusuri kata, bukan map. Map C++ terurut abjad, jadi menelusuri map akan menemukan huruf tunggal yang **terkecil**, bukan yang **pertama muncul**. Pada `kakaktua`, huruf tunggalnya `t` dan `u`, dan yang muncul lebih dulu adalah `t`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string kata;
+        cin >> kata;
+
+        map<char, int> frekuensi;
+        for (char c : kata) {
+            frekuensi[c]++;
+        }
+
+        char jawaban = '-';
+        for (char c : kata) {
+            if (frekuensi[c] == 1) {
+                jawaban = c;
+                break;
+            }
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    kata = input()
+
+    frekuensi = {}
+    for c in kata:
+        frekuensi[c] = frekuensi.get(c, 0) + 1
+
+    jawaban = "-"
+    for c in kata:
+        if frekuensi[c] == 1:
+            jawaban = c
+            break
+    print(jawaban)
+    ```
+
+    Membaca `frekuensi[c]` di putaran kedua aman, karena setiap huruf di kata sudah pasti tercatat di putaran pertama.
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Irisan dua daftar">
+  Baca dua daftar bilangan, masing-masing dengan format `n` lalu `n` bilangan. Tampilkan semua nilai yang muncul di **kedua** daftar, masing-masing sekali, terurut naik dan dipisah spasi. Jika tidak ada, tampilkan `-`.
+
+  ```txt title="Contoh input"
+  5
+  4 1 7 4 9
+  4
+  9 4 4 2
+  ```
+
+  ```txt title="Contoh output"
+  4 9
+  ```
+
+  <Petunjuk>
+    Simpan daftar pertama ke sebuah set. Lalu periksa setiap bilangan di daftar kedua: jika ada di set pertama, masukkan ke set hasil. Set hasil otomatis terurut dan bebas duplikat.
+  </Petunjuk>
+
+  <Pembahasan>
+    Karena `4` muncul dua kali di kedua daftar, menampilkan langsung saat ditemukan akan mencetak `4` dua kali. Menampung hasil di set mencegah hal itu sekaligus mengurutkannya. Di C++, variabel `pertama` dipakai agar spasi hanya dicetak di antara angka.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <set>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        set<int> a;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            a.insert(x);
+        }
+
+        int m;
+        cin >> m;
+        set<int> hasil;
+        for (int i = 0; i < m; i++) {
+            int x;
+            cin >> x;
+            if (a.count(x) > 0) {
+                hasil.insert(x);
+            }
+        }
+
+        if (hasil.empty()) {
+            cout << "-" << endl;
+        } else {
+            bool pertama = true;
+            for (int x : hasil) {
+                if (!pertama) {
+                    cout << " ";
+                }
+                cout << x;
+                pertama = false;
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    a = set(map(int, input().split()))
+    m = int(input())
+    b = set(map(int, input().split()))
+
+    hasil = sorted(a & b)
+    if len(hasil) == 0:
+        print("-")
+    else:
+        print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Nilai paling sering">
+  Baca `n`, lalu `n` bilangan bulat. Tampilkan nilai yang paling sering muncul beserta jumlah kemunculannya, dipisah spasi. Jika ada beberapa nilai dengan jumlah kemunculan terbanyak yang sama, pilih nilai yang **paling kecil**.
+
+  | Input | Output |
+  | --- | --- |
+  | `7` lalu `4 1 4 2 1 3 2` | `1 2` |
+  | `5` lalu `9 9 2 2 9` | `9 3` |
+
+  <Petunjuk>
+    Hitung frekuensi dengan map, lalu telusuri pasangan-pasangannya sambil menyimpan kandidat terbaik. Telusuri kunci dari kecil ke besar, dan ganti kandidat hanya jika frekuensinya **lebih besar**, bukan lebih besar atau sama.
+  </Petunjuk>
+
+  <Pembahasan>
+    Karena kunci ditelusuri dari yang terkecil, kandidat yang pertama kali mencapai frekuensi terbanyak adalah nilai terkecil. Memakai `>=` akan membuat kandidat tergeser ke nilai yang lebih besar. Di Python, dict menyimpan urutan masuk (`4, 1, 2, 3` pada contoh pertama), jadi kuncinya perlu diurutkan dulu dengan `sorted`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <map>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        map<int, int> frekuensi;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            frekuensi[x]++;
+        }
+
+        int terbaik = 0;
+        int jumlahTerbaik = 0;
+        for (auto& [nilai, jumlah] : frekuensi) {   // kunci dari kecil ke besar
+            if (jumlah > jumlahTerbaik) {
+                terbaik = nilai;
+                jumlahTerbaik = jumlah;
+            }
+        }
+        cout << terbaik << " " << jumlahTerbaik << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    frekuensi = {}
+    for x in data:
+        frekuensi[x] = frekuensi.get(x, 0) + 1
+
+    terbaik = 0
+    jumlah_terbaik = 0
+    for nilai in sorted(frekuensi):                # kunci dari kecil ke besar
+        if frekuensi[nilai] > jumlah_terbaik:
+            terbaik = nilai
+            jumlah_terbaik = frekuensi[nilai]
+    print(terbaik, jumlah_terbaik)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Peserta bertambah sendiri">
+  Program C++ berikut menyimpan skor peserta, lalu menjawab beberapa pertanyaan skor. Di akhir, program menampilkan banyak peserta yang terdaftar.
+
+  ```cpp
+  #include <iostream>
+  #include <map>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      map<string, int> skor;
+      int n;
+      cin >> n;
+      for (int i = 0; i < n; i++) {
+          string nama;
+          int nilai;
+          cin >> nama >> nilai;
+          skor[nama] = nilai;
+      }
+
+      int q;
+      cin >> q;
+      for (int i = 0; i < q; i++) {
+          string nama;
+          cin >> nama;
+          if (skor[nama] == 0) {
+              cout << nama << " tidak terdaftar" << endl;
+          } else {
+              cout << nama << " " << skor[nama] << endl;
+          }
+      }
+      cout << "Peserta: " << skor.size() << endl;
+      return 0;
+  }
+  ```
+
+  Dengan input di bawah, output yang diharapkan adalah `beni 0`, `dedi tidak terdaftar`, `cici 95`, dan `Peserta: 3`. Ternyata program menampilkan `beni tidak terdaftar` dan `Peserta: 4`. Temukan **dua** kesalahannya, lalu perbaiki.
+
+  ```txt title="Contoh input"
+  3
+  ani 80
+  beni 0
+  cici 95
+  3
+  beni
+  dedi
+  cici
+  ```
+
+  ```txt title="Output yang diharapkan"
+  beni 0
+  dedi tidak terdaftar
+  cici 95
+  Peserta: 3
+  ```
+
+  <Petunjuk>
+    Apa yang terjadi pada map saat `skor["dedi"]` dibaca? Lalu, apakah skor 0 benar-benar berarti "tidak terdaftar"?
+  </Petunjuk>
+
+  <Pembahasan>
+    Kesalahan pertama: `skor[nama]` untuk `"dedi"` **menambahkan** dedi dengan skor 0, sehingga jumlah peserta menjadi 4. Kesalahan kedua: program memakai skor 0 sebagai tanda "tidak terdaftar", padahal beni memang terdaftar dengan skor 0. Keduanya selesai dengan satu perbaikan: cek keberadaan kunci dengan `count` (Python: `in`), bukan dengan membandingkan nilainya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        map<string, int> skor;
+        int n;
+        cin >> n;
+        for (int i = 0; i < n; i++) {
+            string nama;
+            int nilai;
+            cin >> nama >> nilai;
+            skor[nama] = nilai;
+        }
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            string nama;
+            cin >> nama;
+            if (skor.count(nama) == 0) {          // cek kunci, bukan nilainya
+                cout << nama << " tidak terdaftar" << endl;
+            } else {
+                cout << nama << " " << skor[nama] << endl;
+            }
+        }
+        cout << "Peserta: " << skor.size() << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    skor = {}
+    n = int(input())
+    for i in range(n):
+        nama, nilai = input().split()
+        skor[nama] = int(nilai)
+
+    q = int(input())
+    for i in range(q):
+        nama = input()
+        if nama not in skor:                      # cek kunci, bukan nilainya
+            print(nama, "tidak terdaftar")
+        else:
+            print(nama, skor[nama])
+    print("Peserta:", len(skor))
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Pasangan berjumlah target">
+  Baca `n`, lalu `n` bilangan bulat `a[0]` sampai `a[n-1]`, lalu sebuah bilangan target `t`. Cari dua indeks `i < j` dengan `a[i] + a[j] == t`. Jika ada beberapa pasangan, pilih yang `j`-nya paling kecil, lalu untuk `j` itu pilih `i` paling kecil. Tampilkan `i j`, atau `tidak ada`. Program harus tetap cepat untuk `n = 200000`, jadi mencoba semua pasangan dengan perulangan bersarang tidak cukup.
+
+  ```txt title="Contoh input"
+  6
+  3 8 5 2 8 1
+  10
+  ```
+
+  ```txt title="Contoh output"
+  1 3
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `3` lalu `5 5 5` lalu `10` | `0 1` |
+  | `4` lalu `1 2 3 4` lalu `100` | `tidak ada` |
+
+  <Petunjuk>
+    Telusuri bilangan dari kiri sekali saja. Saat berada di `a[j]`, pasangan yang dibutuhkan adalah `t - a[j]`. Jika nilai itu sudah pernah terlihat sebelumnya, kamu langsung menemukan jawabannya. Simpan nilai yang sudah terlihat dalam map **nilai → indeks pertama kemunculannya**.
+  </Petunjuk>
+
+  <Pembahasan>
+    Perulangan bersarang memeriksa sekitar n²/2 pasangan, yaitu sekitar 20 miliar untuk n = 200.000. Dengan map, setiap bilangan hanya diperiksa sekali. Ada dua hal yang perlu teliti. Pertama, periksa pasangan **sebelum** memasukkan `a[j]` ke map, agar sebuah bilangan tidak dipasangkan dengan dirinya sendiri. Kedua, simpan hanya indeks **pertama** setiap nilai, agar `i` yang terpilih adalah yang terkecil. Pada contoh, saat `j = 3` (nilai 2), pasangan yang dibutuhkan adalah 8, yang sudah terlihat di indeks 1.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <unordered_map>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        int t;
+        cin >> t;
+
+        unordered_map<int, int> indeksPertama;   // nilai -> indeks pertama
+        for (int j = 0; j < n; j++) {
+            int butuh = t - a[j];
+            auto it = indeksPertama.find(butuh);
+            if (it != indeksPertama.end()) {
+                cout << it->second << " " << j << endl;
+                return 0;                        // pasangan dengan j terkecil
+            }
+            if (indeksPertama.count(a[j]) == 0) {
+                indeksPertama[a[j]] = j;         // simpan kemunculan pertama saja
+            }
+        }
+        cout << "tidak ada" << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    a = list(map(int, input().split()))
+    t = int(input())
+
+    indeks_pertama = {}                          # nilai -> indeks pertama
+    jawaban = "tidak ada"
+    for j in range(n):
+        butuh = t - a[j]
+        if butuh in indeks_pertama:
+            jawaban = f"{indeks_pertama[butuh]} {j}"
+            break                                # pasangan dengan j terkecil
+        if a[j] not in indeks_pertama:
+            indeks_pertama[a[j]] = j             # simpan kemunculan pertama saja
+    print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Kelompok anagram">
+  Dua kata disebut **anagram** jika tersusun dari huruf-huruf yang sama dengan jumlah yang sama, hanya urutannya berbeda, misalnya `kasur` dan `rusak`. Baca `n`, lalu `n` kata (huruf kecil, satu kata per baris). Kelompokkan kata-kata yang saling anagram. Tampilkan setiap kelompok dalam satu baris, dengan kata-kata dipisah spasi sesuai urutan input. Urutan kelompok mengikuti kemunculan pertama anggotanya.
+
+  ```txt title="Contoh input"
+  8
+  kasur
+  tapi
+  rusak
+  abu
+  pita
+  bau
+  sukar
+  roti
+  ```
+
+  ```txt title="Contoh output"
+  kasur rusak sukar
+  tapi pita
+  abu bau
+  roti
+  ```
+
+  <Petunjuk>
+    Kata-kata yang saling anagram akan menjadi teks yang sama jika hurufnya diurutkan: `kasur`, `rusak`, dan `sukar` sama-sama menjadi `akrsu`. Jadikan teks terurut itu sebagai kunci map, dan daftar kata sebagai nilainya. Di C++, urutkan huruf dengan `sort(kunci.begin(), kunci.end());` dari `<algorithm>`, cara yang sama dengan mengurutkan vector di [pustaka vector](/docs/cpp/pustaka/vector). Di Python, `sorted(kata)` menghasilkan list huruf terurut, dan `"".join(...)` menyambungnya kembali menjadi string.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kunci yang sama berarti kelompok yang sama, jadi setiap kata cukup ditambahkan ke vector milik kuncinya. Tantangannya ada pada urutan output. `map` C++ akan menelusuri kunci urut abjad (`abu`, `aipt`, `akrsu`, ...), bukan urutan kemunculan. Karena itu solusi C++ menyimpan vector `urutan` yang mencatat kunci baru saat pertama kali muncul. Di Python, dict sudah mengingat urutan masuk, sehingga cukup menelusuri `values()`.
+
+    ```cpp tab="C++"
+    #include <algorithm>
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        map<string, vector<string>> grup;
+        vector<string> urutan;                  // kunci sesuai kemunculan pertama
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            string kunci = kata;
+            sort(kunci.begin(), kunci.end());   // "rusak" -> "akrsu"
+
+            if (grup.count(kunci) == 0) {
+                urutan.push_back(kunci);        // kelompok baru
+            }
+            grup[kunci].push_back(kata);
+        }
+
+        for (string kunci : urutan) {
+            bool pertama = true;
+            for (string kata : grup[kunci]) {
+                if (!pertama) {
+                    cout << " ";
+                }
+                cout << kata;
+                pertama = false;
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    grup = {}
+    for i in range(n):
+        kata = input()
+        kunci = "".join(sorted(kata))           # "rusak" -> "akrsu"
+        if kunci not in grup:
+            grup[kunci] = []                    # kelompok baru
+        grup[kunci].append(kata)
+
+    for anggota in grup.values():               # dict mengingat urutan masuk
+        print(*anggota)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Sandi substitusi">
+  Sebuah sandi substitusi mengganti setiap huruf dengan huruf lain secara konsisten: huruf yang sama selalu diganti dengan huruf yang sama, dan dua huruf berbeda tidak boleh diganti dengan huruf yang sama. Huruf boleh juga diganti dengan dirinya sendiri. Baca dua kata `a` dan `b` dalam satu baris. Tampilkan `YA` jika `b` bisa diperoleh dari `a` dengan sebuah sandi substitusi, atau `TIDAK` jika tidak bisa.
+
+  | Input | Output |
+  | --- | --- |
+  | `kakak tutut` | `YA` |
+  | `kakak tutuk` | `TIDAK` |
+  | `abc xxy` | `TIDAK` |
+  | `aku ibu` | `YA` |
+
+  <Petunjuk>
+    Bandingkan huruf di posisi yang sama satu per satu dan catat pasangan penggantinya. Satu map saja belum cukup. Map `a → b` menangkap huruf yang diganti dengan dua huruf berbeda (`kakak tutuk`), tetapi tidak menangkap dua huruf yang diganti dengan huruf yang sama (`abc xxy`). Untuk itu, perlu map kedua dengan arah `b → a`. Jangan lupa memeriksa panjang kedua kata.
+  </Petunjuk>
+
+  <Pembahasan>
+    Map `maju` mencatat "huruf di `a` diganti menjadi apa", dan map `mundur` mencatat "huruf di `b` berasal dari mana". Setiap pasangan huruf `(x, y)` harus cocok dengan catatan sebelumnya di **kedua** arah. Pada `abc xxy`, pasangan `(a, x)` lalu `(b, x)` lolos dari pengecekan `maju`, tetapi `mundur` sudah mencatat bahwa `x` berasal dari `a`, sehingga jawabannya `TIDAK`. Kesalahan yang sering terjadi adalah hanya memakai satu map.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string a, b;
+        cin >> a >> b;
+
+        bool cocok = (a.length() == b.length());
+        map<char, char> maju;      // huruf a -> huruf b
+        map<char, char> mundur;    // huruf b -> huruf a
+
+        int panjang = a.length();
+        for (int i = 0; i < panjang && cocok; i++) {
+            char x = a[i];
+            char y = b[i];
+            if (maju.count(x) > 0 && maju[x] != y) {
+                cocok = false;     // x pernah diganti dengan huruf lain
+            } else if (mundur.count(y) > 0 && mundur[y] != x) {
+                cocok = false;     // y pernah dipakai untuk huruf lain
+            } else {
+                maju[x] = y;
+                mundur[y] = x;
+            }
+        }
+
+        if (cocok) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b = input().split()
+
+    cocok = len(a) == len(b)
+    maju = {}      # huruf a -> huruf b
+    mundur = {}    # huruf b -> huruf a
+
+    i = 0
+    while i < len(a) and cocok:
+        x = a[i]
+        y = b[i]
+        if x in maju and maju[x] != y:
+            cocok = False          # x pernah diganti dengan huruf lain
+        elif y in mundur and mundur[y] != x:
+            cocok = False          # y pernah dipakai untuk huruf lain
+        else:
+            maju[x] = y
+            mundur[y] = x
+        i += 1
+
+    if cocok:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>

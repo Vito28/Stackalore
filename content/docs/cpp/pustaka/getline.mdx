@@ -13,7 +13,7 @@ sumber:
     url: https://en.cppreference.com/w/cpp/io/basic_istream/ignore
 ---
 
-<BackToLesson href="/docs/cpp/input-dengan-cin" label="Input dengan cin" />
+<BackToLesson href="/docs/cpp/input-dan-output" label="Input & Output" />
 
 <Callout title="Ringkasan">
   `getline(cin, s)` membaca **satu baris penuh** (termasuk spasi) ke variabel `string`. Butuh `#include <string>`.
@@ -21,7 +21,7 @@ sumber:
 
 ## Masalah: `cin >>` hanya membaca satu kata
 
-Seperti dibahas di [Input dengan cin](/docs/cpp/input-dengan-cin#membaca-teks), `cin >>` berhenti di spasi. Jika pengguna mengetik nama lengkap, hanya kata pertama yang terbaca.
+Seperti dibahas di [Input & Output](/docs/cpp/input-dan-output#membaca-teks), `cin >>` berhenti di spasi. Jika pengguna mengetik nama lengkap, hanya kata pertama yang terbaca.
 
 `getline` menyelesaikan masalah ini. Fungsi ini membaca **semua karakter sampai menemukan `\n`** (tombol Enter), termasuk spasi.
 
@@ -218,4 +218,4 @@ print(f"[{nama}] berumur {umur}")
 | Karakter `\n` | **Tertinggal** di buffer | Diambil lalu dibuang |
 | Tipe variabel | Apa saja (`int`, `double`, `string`, …) | Hanya `string` |
 
-<BackToLesson href="/docs/cpp/input-dengan-cin" label="Input dengan cin" />
+<BackToLesson href="/docs/cpp/input-dan-output" label="Input & Output" />

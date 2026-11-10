@@ -1,0 +1,905 @@
+---
+title: Operator Bitwise
+description: Mengolah bilangan bit demi bit dengan AND, OR, XOR, NOT, dan geser, lalu memakainya untuk cek ganjil-genap, pangkat dua, dan bit mask.
+sumber:
+  - ref: cppreference
+    judul: "Arithmetic operators: Bitwise logic operators"
+    url: https://en.cppreference.com/w/cpp/language/operator_arithmetic#Bitwise_logic_operators
+  - ref: cppreference
+    judul: "Arithmetic operators: Bitwise shift operators"
+    url: https://en.cppreference.com/w/cpp/language/operator_arithmetic#Bitwise_shift_operators
+  - ref: cppreference
+    judul: "std::bitset"
+    url: https://en.cppreference.com/w/cpp/utility/bitset
+  - ref: cppreference
+    judul: "Operator precedence"
+    url: https://en.cppreference.com/w/cpp/language/operator_precedence
+  - ref: python-docs
+    judul: "Bitwise Operations on Integer Types"
+    url: https://docs.python.org/3/library/stdtypes.html#bitwise-operations-on-integer-types
+  - ref: python-docs
+    judul: "Binary bitwise operations"
+    url: https://docs.python.org/3/reference/expressions.html#binary-bitwise-operations
+  - ref: python-docs
+    judul: "Operator precedence"
+    url: https://docs.python.org/3/reference/expressions.html#operator-precedence
+---
+
+## Angka disimpan sebagai bit
+
+Di dalam komputer, setiap angka disimpan sebagai deretan **bit**. Satu bit hanya bisa bernilai `0` atau `1`. Angka `13`, misalnya, disimpan sebagai `1101`.
+
+Operator aritmatika memperlakukan angka sebagai satu kesatuan. **Operator bitwise** bekerja langsung pada bit-bitnya, satu per satu. Operator ini dipakai di banyak tempat: menyimpan beberapa pengaturan nyala/mati dalam satu angka, mengolah warna gambar, kompresi data, kriptografi, sampai trik cepat dalam soal pemrograman.
+
+### Membaca bilangan biner
+
+Pada bilangan desimal, setiap posisi bernilai 10 kali posisi di kanannya: satuan, puluhan, ratusan. Pada bilangan **biner**, setiap posisi bernilai **2 kali** posisi di kanannya: 1, 2, 4, 8, 16, dan seterusnya. Untuk membaca bilangan biner, jumlahkan nilai posisi yang bit-nya `1`.
+
+| Nilai posisi | 128 | 64 | 32 | 16 | 8 | 4 | 2 | 1 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Bit dari 13 | 0 | 0 | 0 | 0 | **1** | **1** | 0 | **1** |
+
+Jadi `00001101` = 8 + 4 + 1 = **13**. Delapan bit seperti ini disebut satu **byte**.
+
+Bit paling kanan disebut **bit ke-0**, di kirinya bit ke-1, dan seterusnya. Bit ke-k mewakili nilai 2ᵏ. Contohnya, bit ke-3 bernilai 2³ = 8.
+
+<DeepDive href="/docs/cpp/pendalaman/bilangan-biner" kind="konsep" title="Bilangan Biner & Komplemen Dua">
+  Cara mengubah desimal ke biner dan sebaliknya, heksadesimal, mengapa satu byte berisi 0 sampai 255, dan bagaimana bilangan negatif disimpan sebagai bit.
+</DeepDive>
+
+## Menampilkan bilangan dalam biner
+
+`cout` dan `print` menampilkan angka dalam desimal. Untuk melihat bit-nya:
+
+- **C++**: `bitset<8>(x)` dari pustaka `<bitset>`. Angka `8` adalah jumlah bit yang ditampilkan.
+- **Python**: `bin(x)` menghasilkan teks berawalan `0b`, sedangkan `format(x, "08b")` menghasilkan 8 digit biner yang diisi nol di depan.
+
+Kamu juga bisa **menulis** angka langsung dalam biner dengan awalan `0b`. Cara ini berlaku di kedua bahasa.
+
+```cpp tab="C++"
+#include <iostream>
+#include <bitset>
+using namespace std;
+
+int main() {
+    int x = 13;
+    cout << bitset<8>(x) << endl;    // 00001101
+    cout << 0b1101 << endl;          // 13
+    return 0;
+}
+```
+
+```python tab="Python"
+x = 13
+print(bin(x))             # 0b1101
+print(format(x, "08b"))   # 00001101
+print(0b1101)             # 13
+```
+
+## Operator bitwise
+
+Simbolnya sama di C++ dan Python:
+
+| Operator | Nama | Cara kerja | Contoh | Hasil |
+| --- | --- | --- | --- | --- |
+| `&` | AND | bit hasil 1 jika **kedua** bit 1 | `12 & 10` | `8` |
+| `\|` | OR | bit hasil 1 jika **minimal satu** bit 1 | `12 \| 10` | `14` |
+| `^` | XOR | bit hasil 1 jika kedua bit **berbeda** | `12 ^ 10` | `6` |
+| `~` | NOT | membalik setiap bit | `~12` | `-13` |
+| `<<` | geser kiri | menggeser semua bit ke kiri | `12 << 1` | `24` |
+| `>>` | geser kanan | menggeser semua bit ke kanan | `12 >> 1` | `6` |
+
+### AND, OR, dan XOR
+
+Ketiga operator ini memasangkan bit-bit yang **posisinya sama**, lalu menerapkan aturan berikut pada setiap pasangan. Aturannya mirip tabel kebenaran di [Operator Perbandingan & Logika](/docs/cpp/operator-perbandingan-dan-logika), dengan `1` sebagai benar dan `0` sebagai salah. XOR (_exclusive or_) adalah yang baru: hasilnya 1 hanya jika kedua bit **berbeda**.
+
+| Bit a | Bit b | `a & b` | `a \| b` | `a ^ b` |
+| --- | --- | --- | --- | --- |
+| 0 | 0 | 0 | 0 | 0 |
+| 0 | 1 | 0 | 1 | 1 |
+| 1 | 0 | 0 | 1 | 1 |
+| 1 | 1 | 1 | 1 | 0 |
+
+Contohnya `12` dan `10`, dihitung bit demi bit:
+
+```txt
+  12  =  1 1 0 0
+  10  =  1 0 1 0
+  ---------------------
+   &  =  1 0 0 0  =  8
+   |  =  1 1 1 0  =  14
+   ^  =  0 1 1 0  =  6
+```
+
+```cpp tab="C++"
+int a = 12, b = 10;        // 1100 dan 1010
+
+cout << (a & b) << endl;   // 8
+cout << (a | b) << endl;   // 14
+cout << (a ^ b) << endl;   // 6
+```
+
+```python tab="Python"
+a, b = 12, 10              # 1100 dan 1010
+
+print(a & b)               # 8
+print(a | b)               # 14
+print(a ^ b)               # 6
+```
+
+Sama seperti perbandingan, operasi bitwise di dalam `cout` **wajib diberi kurung**. Alasannya dibahas di bagian [jebakan](#kurung-di-dalam-cout).
+
+### NOT
+
+`~x` membalik **setiap** bit: 0 menjadi 1 dan 1 menjadi 0. Hasilnya sering mengejutkan:
+
+```cpp tab="C++"
+int x = 12;
+cout << ~x << endl;               // -13
+cout << bitset<8>(~x) << endl;    // 11110011
+```
+
+```python tab="Python"
+x = 12
+print(~x)                         # -13
+print(format(~x & 255, "08b"))    # 11110011
+```
+
+Mengapa negatif? `int` di C++ berukuran 32 bit, jadi `~12` juga membalik 28 bit nol di depan `1100` menjadi 1. Bit paling kiri pada `int` menandakan bilangan negatif, sehingga hasilnya `-13`. Aturannya selalu sama: **`~x` sama dengan `-x - 1`**. Python mengikuti aturan yang sama walaupun `int` Python tidak punya ukuran tetap. Cara bilangan negatif disimpan ini disebut <Term href="/docs/cpp/pendalaman/bilangan-biner">komplemen dua</Term>.
+
+Di versi Python, `& 255` (255 = `11111111`) mengambil 8 bit terbawah saja agar tampilannya sama dengan `bitset<8>`. Teknik seperti ini dibahas di bagian [bit mask](#bit-mask).
+
+### Geser kiri dan geser kanan
+
+`x << k` menggeser semua bit `x` sejauh `k` posisi ke kiri dan mengisi sisi kanan dengan 0. `x >> k` menggeser ke kanan, dan bit yang keluar di sisi kanan dibuang.
+
+```txt
+13       =  00001101
+13 << 1  =  00011010  =  26
+13 << 2  =  00110100  =  52
+13 >> 1  =  00000110  =  6    (bit 1 paling kanan dibuang)
+13 >> 2  =  00000011  =  3
+```
+
+Karena setiap posisi bernilai dua kali posisi di kanannya:
+
+- `x << k` sama dengan **x × 2ᵏ**.
+- `x >> k` sama dengan **x ÷ 2ᵏ, dibulatkan ke bawah**.
+- `1 << k` sama dengan **2ᵏ**. Cara ini sering dipakai untuk membuat pangkat dua tanpa `pow()`.
+
+```cpp tab="C++"
+int x = 13;
+
+cout << (x << 1) << endl;    // 26
+cout << (x << 2) << endl;    // 52
+cout << (x >> 1) << endl;    // 6
+cout << (x >> 2) << endl;    // 3
+cout << (1 << 10) << endl;   // 1024
+```
+
+```python tab="Python"
+x = 13
+
+print(x << 1)     # 26
+print(x << 2)     # 52
+print(x >> 1)     # 6
+print(x >> 2)     # 3
+print(1 << 10)    # 1024
+```
+
+<Callout type="warning" title="Batas geser di C++">
+  `int` di C++ hanya punya 32 bit. Menggeser sejauh 32 posisi atau lebih, misalnya `1 << 40`, adalah _undefined behavior_ (hasilnya tidak bisa diandalkan), dan g++ memberi peringatan `left shift count >= width of type`. `1 << 31` pun sudah menyentuh bit tanda sehingga hasilnya negatif. Untuk geseran besar, mulai dari `1LL`, yaitu angka 1 bertipe `long long` (64 bit). Python tidak punya batas ini.
+</Callout>
+
+```cpp tab="C++"
+cout << (1 << 30) << endl;     // 1073741824
+cout << (1LL << 40) << endl;   // 1099511627776
+```
+
+```python tab="Python"
+print(1 << 40)     # 1099511627776
+print(1 << 100)    # 1267650600228229401496703205376
+```
+
+Untuk bilangan negatif, `>>` tetap membulatkan **ke bawah**. Di Python hasilnya sama dengan `//`. Di C++ hasilnya berbeda dengan `/`, karena `/` memotong ke arah nol (lihat [Operator Aritmatika](/docs/cpp/operator-aritmatika)).
+
+```cpp tab="C++"
+cout << (-7 >> 1) << endl;   // -4
+cout << (-7 / 2) << endl;    // -3
+```
+
+```python tab="Python"
+print(-7 >> 1)    # -4
+print(-7 // 2)    # -4
+```
+
+Sebelum C++20, standar C++ menyerahkan hasil `>>` pada bilangan negatif kepada compiler, dan menggeser bilangan negatif ke kiri termasuk _undefined behavior_. g++ dan compiler populer lain membulatkan ke bawah seperti di atas. Agar aman, pakailah geser untuk bilangan yang tidak negatif.
+
+## Penugasan majemuk
+
+Seperti `+=`, setiap operator bitwise yang memakai dua operand punya bentuk singkat:
+
+| Bentuk singkat | Sama dengan |
+| --- | --- |
+| `x &= m` | `x = x & m` |
+| `x \|= m` | `x = x \| m` |
+| `x ^= m` | `x = x ^ m` |
+| `x <<= k` | `x = x << k` |
+| `x >>= k` | `x = x >> k` |
+
+```cpp tab="C++"
+int x = 5;     // 0101
+x |= 2;        // 0111   = 7
+x &= 6;        // 0110   = 6
+x ^= 15;       // 1001   = 9
+x <<= 2;       // 100100 = 36
+x >>= 3;       // 100    = 4
+```
+
+```python tab="Python"
+x = 5          # 0101
+x |= 2         # 0111   = 7
+x &= 6         # 0110   = 6
+x ^= 15        # 1001   = 9
+x <<= 2        # 100100 = 36
+x >>= 3        # 100    = 4
+```
+
+## Bit mask: mengatur bit tertentu [#bit-mask]
+
+Sebuah `int` bisa dipandang sebagai deretan saklar kecil yang masing-masing menyala (1) atau mati (0). Untuk memeriksa atau mengubah satu saklar, kita membuat **mask**: angka yang hanya punya bit 1 di posisi yang ingin diolah. Mask untuk bit ke-k adalah `1 << k`.
+
+| Tujuan | Ekspresi | Contoh dengan `x = 10` (`1010`) | Hasil |
+| --- | --- | --- | --- |
+| Membaca bit ke-k (`0` atau `1`) | `(x >> k) & 1` | `k = 1` | `1` |
+| Menyalakan bit ke-k | `x \| (1 << k)` | `k = 2` | `14` (`1110`) |
+| Mematikan bit ke-k | `x & ~(1 << k)` | `k = 3` | `2` (`0010`) |
+| Membalik bit ke-k | `x ^ (1 << k)` | `k = 0` | `11` (`1011`) |
+
+Cara kerjanya mengikuti tabel per bit di atas:
+
+- **OR dengan 1** selalu menghasilkan 1, sedangkan **OR dengan 0** tidak mengubah apa pun. Jadi `|` menyalakan bit yang ada di mask.
+- **AND dengan 0** selalu menghasilkan 0. `~(1 << k)` berisi 1 di semua posisi kecuali posisi k, jadi `&` hanya mematikan bit ke-k.
+- **XOR dengan 1** membalik bit, sedangkan **XOR dengan 0** tidak mengubahnya.
+- Untuk membaca, `x >> k` memindahkan bit ke-k ke posisi paling kanan, lalu `& 1` membuang semua bit lainnya.
+
+### Contoh: izin akses file
+
+Sistem operasi seperti Linux menyimpan izin sebuah file sebagai bit: baca (`4`, `100`), tulis (`2`, `010`), dan jalankan (`1`, `001`). Satu angka sudah cukup untuk menyimpan ketiganya.
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+int main() {
+    const int BACA = 4;       // 100
+    const int TULIS = 2;      // 010
+    const int JALANKAN = 1;   // 001
+
+    int izin = BACA | TULIS;                    // 110 = 6
+    cout << izin << endl;                       // 6
+    cout << ((izin & TULIS) != 0) << endl;      // 1, boleh menulis
+    cout << ((izin & JALANKAN) != 0) << endl;   // 0, tidak boleh menjalankan
+
+    izin &= ~TULIS;       // cabut izin tulis:    100 = 4
+    izin |= JALANKAN;     // beri izin jalankan:  101 = 5
+    cout << izin << endl; // 5
+    return 0;
+}
+```
+
+```python tab="Python"
+BACA = 4        # 100
+TULIS = 2       # 010
+JALANKAN = 1    # 001
+
+izin = BACA | TULIS                  # 110 = 6
+print(izin)                          # 6
+print((izin & TULIS) != 0)           # True, boleh menulis
+print((izin & JALANKAN) != 0)        # False, tidak boleh menjalankan
+
+izin &= ~TULIS       # cabut izin tulis:    100 = 4
+izin |= JALANKAN     # beri izin jalankan:  101 = 5
+print(izin)          # 5
+```
+
+Dari sinilah asal angka seperti `chmod 755` di Linux. Digit `7` berarti `111` (baca, tulis, dan jalankan), sedangkan `5` berarti `101` (baca dan jalankan).
+
+## Trik yang sering dipakai
+
+### Ganjil atau genap
+
+Bit ke-0 bernilai 1, sedangkan semua bit lain bernilai genap (2, 4, 8, dan seterusnya). Jadi sebuah bilangan ganjil **jika dan hanya jika** bit ke-0-nya 1, dan `n & 1` langsung memberi jawabannya: `1` untuk ganjil, `0` untuk genap.
+
+```cpp tab="C++"
+cout << (7 & 1) << endl;    // 1, ganjil
+cout << (10 & 1) << endl;   // 0, genap
+cout << (-3 & 1) << endl;   // 1, ganjil
+cout << (-3 % 2) << endl;   // -1
+```
+
+```python tab="Python"
+print(7 & 1)     # 1, ganjil
+print(10 & 1)    # 0, genap
+print(-3 & 1)    # 1, ganjil
+print(-3 % 2)    # 1
+```
+
+Perhatikan baris terakhir. Di C++, `n % 2` untuk bilangan ganjil negatif menghasilkan `-1`, bukan `1`. `n & 1` selalu `0` atau `1`, sehingga lebih aman dipakai di kedua bahasa.
+
+### Mengecek pangkat dua
+
+Pangkat dua (1, 2, 4, 8, 16, dan seterusnya) hanya punya **satu** bit 1. Perhatikan apa yang terjadi jika sebuah bilangan dikurangi 1:
+
+```txt
+ 8       =  1000          12       =  1100
+ 8 - 1   =  0111          12 - 1   =  1011
+ 8 & 7   =  0000  = 0     12 & 11  =  1000  = 8
+```
+
+Mengurangi 1 mematikan bit 1 paling kanan dan menyalakan semua bit di kanannya. Akibatnya, `n & (n - 1)` **menghapus bit 1 paling kanan** dari `n`. Jika hasilnya 0, berarti `n` hanya punya satu bit 1, alias pangkat dua. Ada satu kasus yang perlu dijaga. Coba temukan sendiri di [Soal 7](#soal-7).
+
+```cpp tab="C++"
+int n = 8;
+cout << (n & (n - 1)) << endl;   // 0, pangkat dua
+n = 12;
+cout << (n & (n - 1)) << endl;   // 8, bukan pangkat dua
+```
+
+```python tab="Python"
+n = 8
+print(n & (n - 1))   # 0, pangkat dua
+n = 12
+print(n & (n - 1))   # 8, bukan pangkat dua
+```
+
+### Sifat-sifat XOR
+
+- `x ^ x` = `0`, karena dua bit yang sama selalu menghasilkan 0.
+- `x ^ 0` = `x`, karena XOR dengan 0 tidak mengubah apa pun.
+- `(x ^ k) ^ k` = `x`. XOR dua kali dengan angka yang sama mengembalikan nilai asal.
+
+Sifat terakhir adalah dasar sandi XOR yang paling sederhana: data "dikunci" dengan `^ kunci`, lalu dibuka lagi dengan `^ kunci` yang sama.
+
+```cpp tab="C++"
+int x = 9, kunci = 5;
+
+cout << (x ^ x) << endl;          // 0
+cout << (x ^ 0) << endl;          // 9
+
+int sandi = x ^ kunci;            // 1001 ^ 0101 = 1100
+cout << sandi << endl;            // 12
+cout << (sandi ^ kunci) << endl;  // 9, kembali ke nilai asal
+```
+
+```python tab="Python"
+x, kunci = 9, 5
+
+print(x ^ x)            # 0
+print(x ^ 0)            # 9
+
+sandi = x ^ kunci       # 1001 ^ 0101 = 1100
+print(sandi)            # 12
+print(sandi ^ kunci)    # 9, kembali ke nilai asal
+```
+
+Sebagai keingintahuan, XOR bahkan bisa menukar isi dua variabel tanpa variabel sementara:
+
+```cpp tab="C++"
+int a = 3, b = 7;
+a ^= b;   // a = 3 ^ 7
+b ^= a;   // b = 7 ^ (3 ^ 7) = 3
+a ^= b;   // a = (3 ^ 7) ^ 3 = 7
+```
+
+```python tab="Python"
+a, b = 3, 7
+a ^= b    # a = 3 ^ 7
+b ^= a    # b = 7 ^ (3 ^ 7) = 3
+a ^= b    # a = (3 ^ 7) ^ 3 = 7
+```
+
+Trik ini menarik, tetapi sulit dibaca. Dalam kode sungguhan, gunakan variabel sementara, atau `a, b = b, a` di Python.
+
+## Urutan operasi dan jebakan
+
+### Urutan operasi lengkap
+
+Berikut tabel urutan operasi dari [Operator Perbandingan & Logika](/docs/cpp/operator-perbandingan-dan-logika), kini ditambah operator bitwise. Baris paling atas dikerjakan **paling dulu**.
+
+| Prioritas | C++ | Python |
+| --- | --- | --- |
+| 1 | `( )` | `( )` |
+| 2 | `!` `~` `-` (satu operand) | `**` |
+| 3 | `*` `/` `%` | `~` `-` (satu operand) |
+| 4 | `+` `-` | `*` `/` `//` `%` |
+| 5 | `<<` `>>` | `+` `-` |
+| 6 | `<` `<=` `>` `>=` | `<<` `>>` |
+| 7 | `==` `!=` | `&` |
+| 8 | `&` | `^` |
+| 9 | `^` | `\|` |
+| 10 | `\|` | `<` `<=` `>` `>=` `==` `!=` |
+| 11 | `&&` | `not` |
+| 12 | `\|\|` | `and` |
+| 13 | | `or` |
+
+Dua hal yang perlu diingat:
+
+- **Di C++, `&`, `^`, dan `|` dikerjakan setelah `==`.** Di Python sebaliknya, semua operator bitwise dikerjakan sebelum perbandingan.
+- Di kedua bahasa, geser dikerjakan setelah `+` dan `-`. Jadi `1 << k + 1` berarti `1 << (k + 1)`.
+
+### Jebakan `n & 1 == 0` [#jebakan-n-and-1]
+
+Kode berikut dimaksudkan untuk mengecek apakah `n` genap:
+
+```cpp tab="C++"
+int n = 4;
+cout << (n & 1 == 0) << endl;     // 0 ✗ dibaca n & (1 == 0), yaitu n & 0
+cout << ((n & 1) == 0) << endl;   // 1 ✓
+```
+
+```python tab="Python"
+n = 4
+print(n & 1 == 0)      # True, Python membacanya (n & 1) == 0
+print((n & 1) == 0)    # True
+```
+
+Di C++, `1 == 0` dikerjakan lebih dulu dan menghasilkan `false` (`0`), lalu `n & 0` selalu `0`. Kode ini tetap dikompilasi tanpa error. Untungnya, g++ dengan opsi `-Wall` memberi peringatan:
+
+```txt title="Peringatan"
+warning: suggest parentheses around comparison in operand of ‘&’ [-Wparentheses]
+```
+
+Python kebetulan membacanya sesuai maksud, tetapi kebiasaan yang aman di kedua bahasa sama: **selalu beri kurung di sekitar operasi bitwise**. Cara membaca peringatan seperti ini dibahas di [Membaca Error & Debugging](/docs/cpp/membaca-error-dan-debugging).
+
+### Kurung di dalam `cout` [#kurung-di-dalam-cout]
+
+`<<` pada `cout` adalah operator yang sama dengan geser kiri, sehingga ikut aturan urutan operasi:
+
+```cpp
+cout << 1 << 3 << endl;     // 13: mencetak 1, lalu mencetak 3
+cout << (1 << 3) << endl;   // 8
+cout << a & b << endl;      // ✗ error: dibaca (cout << a) & (b << endl)
+```
+
+Karena itu, setiap operasi bitwise di dalam `cout` harus dibungkus kurung: `cout << (a & b)`.
+
+### `&` bukan `&&` [#and-bukan-andand]
+
+`&&` bekerja pada nilai benar/salah dan bersifat _short-circuit_. `&` bekerja pada bit dan selalu menghitung kedua sisinya. Untuk angka selain 0 dan 1, hasilnya bisa sangat berbeda:
+
+```cpp
+int a = 2, b = 1;
+cout << (a && b) << endl;   // 1: keduanya bukan nol, jadi dianggap true
+cout << (a & b) << endl;    // 0: 10 & 01 = 00
+```
+
+Di Python, operator logika ditulis dengan kata (`and`, `or`, `not`), sehingga keduanya lebih sulit tertukar.
+
+### `^` bukan pangkat [#xor-bukan-pangkat]
+
+Seperti sudah disinggung di [Operator Aritmatika](/docs/cpp/operator-aritmatika), `2 ^ 3` adalah XOR: `10 ^ 11` = `01`, hasilnya `1`. g++ versi baru (misalnya g++ 13) memberi peringatan jika kedua angkanya ditulis langsung (`2 ^ 3`), tetapi diam saja jika salah satunya variabel (`2 ^ n`). Untuk pangkat dua, gunakan `1 << k`. Untuk pangkat lainnya, gunakan `pow()` di C++ atau `**` di Python.
+
+## Rangkuman
+
+- Setiap bilangan disimpan sebagai bit. Bit ke-k mewakili nilai 2ᵏ, dihitung dari kanan mulai dari 0.
+- `&` (AND), `|` (OR), dan `^` (XOR) mengolah bit-bit yang posisinya sama. `~` membalik semua bit, dan `~x` sama dengan `-x - 1`.
+- `x << k` sama dengan x × 2ᵏ, `x >> k` sama dengan x ÷ 2ᵏ dibulatkan ke bawah, dan `1 << k` sama dengan 2ᵏ. Di C++, jangan menggeser sejauh 32 posisi atau lebih pada `int`.
+- Tampilkan bit dengan `bitset<8>(x)` di C++, atau `bin(x)` dan `format(x, "08b")` di Python.
+- Bit mask: baca dengan `(x >> k) & 1`, nyalakan dengan `|`, matikan dengan `& ~`, balik dengan `^`.
+- Trik populer: `n & 1` untuk ganjil/genap, `n & (n - 1)` untuk menghapus bit 1 paling kanan, dan `x ^ x` = `0`.
+- Di C++, `&`, `^`, dan `|` dikerjakan **setelah** `==`. Selalu beri kurung, dan kompilasi dengan `-Wall`.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Ganjil atau genap">
+  Baca sebuah bilangan bulat `n` (boleh negatif). Dengan operator bitwise, tampilkan `1` jika `n` ganjil dan `0` jika genap.
+
+  | Input | Output |
+  | --- | --- |
+  | `7` | `1` |
+  | `10` | `0` |
+  | `-3` | `1` |
+
+  <Pembahasan>
+    Bilangan ganjil selalu punya bit ke-0 bernilai 1, jadi jawabannya cukup `n & 1`. Kalau memakai `n % 2` di C++, input `-3` menghasilkan `-1`, bukan `1`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        cout << (n & 1) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    print(n & 1)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak output operasi bit">
+  Tanpa menjalankan program, tentukan lima baris output berikut. Tuliskan dulu `a` dan `b` dalam biner.
+
+  ```cpp tab="C++"
+  int a = 6, b = 11;
+  cout << (a & b) << endl;
+  cout << (a | b) << endl;
+  cout << (a ^ b) << endl;
+  cout << (a << 2) << endl;
+  cout << (b >> 1) << endl;
+  ```
+
+  ```python tab="Python"
+  a, b = 6, 11
+  print(a & b)
+  print(a | b)
+  print(a ^ b)
+  print(a << 2)
+  print(b >> 1)
+  ```
+
+  <Pembahasan>
+    `a` = `0110` dan `b` = `1011`. Hitung setiap posisi bit secara terpisah:
+
+    ```txt
+    a & b   =  0010    =  2
+    a | b   =  1111    =  15
+    a ^ b   =  1101    =  13
+    a << 2  =  011000  =  24
+    b >> 1  =  0101    =  5
+    ```
+
+    Output-nya `2`, `15`, `13`, `24`, dan `5`, masing-masing di baris sendiri. Perhatikan bahwa `a << 2` sama dengan 6 × 4, dan `b >> 1` sama dengan 11 ÷ 2 dibulatkan ke bawah.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Pangkat dua dengan geser">
+  Baca bilangan `k` (0 ≤ k ≤ 30). Tampilkan 2ᵏ tanpa memakai `pow()` atau `**`.
+
+  | Input | Output |
+  | --- | --- |
+  | `0` | `1` |
+  | `10` | `1024` |
+  | `30` | `1073741824` |
+
+  <Pembahasan>
+    Menggeser `1` ke kiri sejauh `k` posisi menghasilkan bilangan yang hanya punya bit ke-k, yaitu 2ᵏ. Batasnya 30 karena `1 << 31` sudah menyentuh bit tanda `int` di C++. Untuk `k` yang lebih besar, gunakan `1LL << k`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int k;
+        cin >> k;
+        cout << (1 << k) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    k = int(input())
+    print(1 << k)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Membaca bit ke-k">
+  Baca dua bilangan `x` (x ≥ 0) dan `k` (0 ≤ k ≤ 30) dalam satu baris. Tampilkan bit ke-k dari `x`, yaitu `0` atau `1`. Ingat, bit ke-0 adalah bit paling kanan.
+
+  | Input | Output |
+  | --- | --- |
+  | `10 1` | `1` |
+  | `10 2` | `0` |
+  | `255 7` | `1` |
+
+  <Petunjuk>
+    Geser dulu agar bit ke-k pindah ke posisi paling kanan, lalu buang semua bit lainnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    `x >> k` memindahkan bit ke-k ke posisi 0, lalu `& 1` menyisakan bit itu saja. Kesalahan yang sering terjadi adalah menulis `x & (1 << k)`. Ekspresi ini memang 0 jika bitnya mati, tetapi jika bitnya menyala hasilnya 2ᵏ, bukan 1. Untuk input `10 1`, hasilnya `2`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int x, k;
+        cin >> x >> k;
+        cout << ((x >> k) & 1) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    x, k = map(int, input().split())
+    print((x >> k) & 1)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Nyalakan, matikan, balik">
+  Baca dua bilangan `x` (x ≥ 0) dan `k` (0 ≤ k ≤ 30) dalam satu baris. Tampilkan tiga bilangan dalam satu baris, dipisah spasi:
+
+  1. `x` setelah bit ke-k dinyalakan,
+  2. `x` setelah bit ke-k dimatikan,
+  3. `x` setelah bit ke-k dibalik.
+
+  Ketiganya dihitung dari `x` yang asli.
+
+  | Input | Output |
+  | --- | --- |
+  | `10 1` | `10 8 8` |
+  | `10 2` | `14 10 14` |
+  | `0 3` | `8 0 8` |
+
+  <Petunjuk>
+    Buat mask `1 << k` sekali dan simpan di variabel. Lalu pakai mask itu tiga kali, masing-masing dengan `|`, `&` bersama `~`, dan `^`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Ini penerapan langsung tabel bit mask. Simpan hasilnya di tiga variabel baru agar `x` asli tidak berubah. Jika kamu memakai `x |= mask` lalu `x &= ~mask`, operasi kedua akan bekerja pada `x` yang sudah diubah.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int x, k;
+        cin >> x >> k;
+
+        int mask = 1 << k;
+        int nyala = x | mask;
+        int mati = x & ~mask;
+        int balik = x ^ mask;
+
+        cout << nyala << " " << mati << " " << balik << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    x, k = map(int, input().split())
+
+    mask = 1 << k
+    nyala = x | mask
+    mati = x & ~mask
+    balik = x ^ mask
+
+    print(nyala, mati, balik)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Perbaiki dua kesalahan">
+  Program C++ berikut seharusnya membaca `n` (0 ≤ n ≤ 30), lalu menampilkan 2ⁿ di baris pertama, dan di baris kedua `1` jika `n` genap atau `0` jika ganjil. Untuk input `4`, yang muncul justru `6` dan `0`. Temukan dua kesalahannya, lalu perbaiki.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      cout << (2 ^ n) << endl;
+      cout << (n & 1 == 0) << endl;
+      return 0;
+  }
+  ```
+
+  ```txt title="Contoh input"
+  4
+  ```
+
+  ```txt title="Contoh output"
+  16
+  1
+  ```
+
+  Versi Python menampilkan `True` atau `False` di baris kedua.
+
+  <Petunjuk>
+    Hitung `2 ^ 4` bit demi bit. Untuk baris kedua, cari posisi `&` dan `==` di tabel urutan operasi C++. Kompilasi dengan `-Wall` juga memberi petunjuk.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kesalahan pertama: `^` adalah XOR, jadi `2 ^ 4` = `010 ^ 100` = `110` = 6. Pangkat dua ditulis `1 << n`. Kesalahan kedua: di C++, `==` dikerjakan sebelum `&`, sehingga `n & 1 == 0` dibaca `n & (1 == 0)` = `n & 0` = `0` untuk semua `n`. Tambahkan kurung: `(n & 1) == 0`. Di Python, `2 ^ n` sama salahnya, tetapi `n & 1 == 0` kebetulan benar karena perbandingan dikerjakan setelah `&`. Tetap biasakan memberi kurung.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        cout << (1 << n) << endl;
+        cout << ((n & 1) == 0) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    print(1 << n)
+    print((n & 1) == 0)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Pangkat dua atau bukan">
+  Baca sebuah bilangan bulat `n` (boleh 0 atau negatif). Tampilkan apakah `n` adalah pangkat dua (1, 2, 4, 8, dan seterusnya). C++ menampilkan `1` atau `0`, sedangkan Python menampilkan `True` atau `False`.
+
+  | Input | Output C++ | Output Python |
+  | --- | --- | --- |
+  | `8` | `1` | `True` |
+  | `12` | `0` | `False` |
+  | `1` | `1` | `True` |
+  | `0` | `0` | `False` |
+
+  <Petunjuk>
+    Pakai `n & (n - 1)` dari bagian [Mengecek pangkat dua](#mengecek-pangkat-dua). Setelah itu, coba rumusmu dengan `n = 0`. Apakah 0 pangkat dua?
+  </Petunjuk>
+
+  <Pembahasan>
+    `n & (n - 1)` bernilai 0 jika `n` hanya punya satu bit 1. Masalahnya, `0 & -1` juga 0, padahal 0 bukan pangkat dua. Bilangan negatif juga bukan pangkat dua. Karena itu, tambahkan syarat `n > 0` di depan. Berkat _short-circuit_, `n - 1` tidak pernah dihitung untuk `n` yang tidak positif.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        bool pangkatDua = n > 0 && (n & (n - 1)) == 0;
+        cout << pangkatDua << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    pangkat_dua = n > 0 and (n & (n - 1)) == 0
+    print(pangkat_dua)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Bit 1 paling kanan">
+  Baca sebuah bilangan bulat positif `n`. Tampilkan nilai dari bit 1 yang paling kanan pada `n`. Nilai ini sama dengan pangkat dua terbesar yang membagi habis `n`. Contohnya `12` = `1100`, bit 1 paling kanannya ada di posisi 2, jadi jawabannya `4`.
+
+  | Input | Output |
+  | --- | --- |
+  | `12` | `4` |
+  | `10` | `2` |
+  | `7` | `1` |
+  | `16` | `16` |
+
+  <Petunjuk>
+    Kamu sudah tahu cara menghapus bit 1 paling kanan, yaitu `n & (n - 1)`. Bandingkan hasilnya dengan `n` yang asli. Bit mana yang berbeda, dan operator apa yang menyisakan bit-bit yang berbeda saja?
+  </Petunjuk>
+
+  <Pembahasan>
+    `n & (n - 1)` sama dengan `n`, kecuali bit 1 paling kanannya sudah dimatikan. XOR menyisakan bit yang berbeda di antara dua bilangan, jadi `n ^ (n & (n - 1))` tinggal berisi bit itu saja. Contohnya `1100 ^ 1000` = `0100` = 4. Programmer berpengalaman sering menulis `n & -n` untuk hal yang sama. Alasannya ada pada cara bilangan negatif disimpan, yang dibahas di [Bilangan Biner & Komplemen Dua](/docs/cpp/pendalaman/bilangan-biner).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        int tanpaTerendah = n & (n - 1);   // bit 1 paling kanan dimatikan
+        cout << (n ^ tanpaTerendah) << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    tanpa_terendah = n & (n - 1)   # bit 1 paling kanan dimatikan
+    print(n ^ tanpa_terendah)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Mengganti warna hijau">
+  Warna di layar sering disimpan sebagai satu bilangan bulat: bit 0 sampai 7 untuk komponen **biru**, bit 8 sampai 15 untuk **hijau**, dan bit 16 sampai 23 untuk **merah**. Setiap komponen bernilai 0 sampai 255. Contohnya, oranye (merah 255, hijau 165, biru 0) disimpan sebagai `16753920`.
+
+  Baca bilangan warna `w` dan nilai hijau baru `h` (0 ≤ h ≤ 255) dalam satu baris. Tampilkan nilai hijau yang lama, lalu warna setelah komponen hijaunya diganti dengan `h`, dipisah spasi. Komponen merah dan biru tidak boleh berubah.
+
+  | Input | Output |
+  | --- | --- |
+  | `16753920 0` | `165 16711680` |
+  | `255 128` | `0 33023` |
+  | `1193046 255` | `52 1245014` |
+
+  <Petunjuk>
+    Untuk membaca hijau, geser ke kanan 8 posisi lalu ambil 8 bit terbawah dengan `& 255`. Untuk mengganti hijau, kerjakan dalam dua langkah: kosongkan dulu bit 8 sampai 15, baru isi dengan `h` yang sudah digeser. Pikirkan mengapa `w | (h << 8)` saja tidak cukup.
+  </Petunjuk>
+
+  <Pembahasan>
+    `255 << 8` adalah mask berisi delapan bit 1 di posisi 8 sampai 15, dan `~(255 << 8)` adalah kebalikannya. AND dengan `~(255 << 8)` mengosongkan komponen hijau tanpa menyentuh merah dan biru, lalu OR memasukkan `h << 8`. Kesalahan yang umum adalah langsung menulis `w | (h << 8)`. Bit 1 milik hijau lama tidak pernah dimatikan, sehingga hasilnya campuran hijau lama dan baru. Pada contoh pertama, hasilnya tetap `16753920`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int warna, hijauBaru;
+        cin >> warna >> hijauBaru;
+
+        int hijauLama = (warna >> 8) & 255;
+
+        warna &= ~(255 << 8);      // kosongkan bit 8 sampai 15
+        warna |= hijauBaru << 8;   // isi dengan hijau yang baru
+
+        cout << hijauLama << " " << warna << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    warna, hijau_baru = map(int, input().split())
+
+    hijau_lama = (warna >> 8) & 255
+
+    warna &= ~(255 << 8)       # kosongkan bit 8 sampai 15
+    warna |= hijau_baru << 8   # isi dengan hijau yang baru
+
+    print(hijau_lama, warna)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Tebak output: urutan operasi">
+  Tentukan output program C++ dan Python berikut tanpa menjalankannya. Hati-hati, ada baris yang hasilnya **berbeda** di kedua bahasa.
+
+  ```cpp tab="C++"
+  int x = 6;
+  cout << (x & 3 == 2) << endl;
+  cout << (1 << x - 4) << endl;
+  cout << (x & 3 | 8) << endl;
+  cout << (~x + 1) << endl;
+  cout << (~x >> 1) << endl;
+  ```
+
+  ```python tab="Python"
+  x = 6
+  print(x & 3 == 2)
+  print(1 << x - 4)
+  print(x & 3 | 8)
+  print(~x + 1)
+  print(~x >> 1)
+  ```
+
+  <Petunjuk>
+    Pakai tabel urutan operasi. `~` dikerjakan sebelum `+`, `-`, geser, dan operator bitwise lainnya. Ingat juga bahwa `~x` sama dengan `-x - 1`.
+  </Petunjuk>
+
+  <Pembahasan>
+    | Ekspresi | C++ | Python | Alasan |
+    | --- | --- | --- | --- |
+    | `x & 3 == 2` | `0` | `True` | C++: `6 & (3 == 2)` = `6 & 0`. Python: `(6 & 3) == 2` = `2 == 2` |
+    | `1 << x - 4` | `4` | `4` | `-` lebih dulu, jadi `1 << 2` |
+    | `x & 3 \| 8` | `10` | `10` | `&` lebih dulu: `2 \| 8` = `0010 \| 1000` = `1010` |
+    | `~x + 1` | `-6` | `-6` | `~6` = `-7`, lalu ditambah 1 |
+    | `~x >> 1` | `-4` | `-4` | `-7 >> 1` = -3,5 dibulatkan ke bawah |
+
+    Baris keempat memperlihatkan bahwa `~x + 1` sama dengan `-x`. Begitulah komputer membuat bilangan negatif, seperti dijelaskan di [Bilangan Biner & Komplemen Dua](/docs/cpp/pendalaman/bilangan-biner). g++ dengan `-Wall` memberi peringatan _suggest parentheses_ untuk tiga baris pertama. Peringatan itu tanda bahwa ekspresinya sebaiknya diberi kurung.
+  </Pembahasan>
+</Soal>

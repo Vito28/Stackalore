@@ -218,34 +218,73 @@ Jika perlu menghentikan **semua** perulangan sekaligus, cara paling rapi adalah 
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Buat segitiga angka untuk n = 4: baris ke-k berisi angka 1 sampai k.">
-    ```txt title="Target"
-    1
-    12
-    123
-    1234
-    ```
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Untuk soal pola, mulailah dengan tabel "nomor baris → apa yang dicetak" seperti di materi. Output pola tidak memiliki spasi di akhir baris.
 
-    Sama seperti segitiga bintang, tetapi yang dicetak adalah `kolom`:
+### Mudah
+
+<Soal no={1} level="mudah" judul="Segitiga angka">
+  Baca `n` (1 sampai 9), lalu cetak segitiga angka: baris ke-`k` berisi angka 1 sampai `k` tanpa spasi.
+
+  ```txt title="Contoh input"
+  4
+  ```
+
+  ```txt title="Contoh output"
+  1
+  12
+  123
+  1234
+  ```
+
+  <Pembahasan>
+    Bentuknya sama dengan segitiga bintang di materi, tetapi yang dicetak adalah nilai `kolom`, bukan `*`.
 
     ```cpp tab="C++"
-    for (int baris = 1; baris <= 4; baris++) {
-        for (int kolom = 1; kolom <= baris; kolom++) {
-            cout << kolom;
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        for (int baris = 1; baris <= n; baris++) {
+            for (int kolom = 1; kolom <= baris; kolom++) {
+                cout << kolom;
+            }
+            cout << endl;
         }
-        cout << endl;
+        return 0;
     }
     ```
 
     ```python tab="Python"
-    for baris in range(1, 5):
+    n = int(input())
+
+    for baris in range(1, n + 1):
         for kolom in range(1, baris + 1):
             print(kolom, end="")
         print()
     ```
-  </Accordion>
-  <Accordion title="2. Buat segitiga terbalik: baris pertama berisi n bintang, baris terakhir 1 bintang.">
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Segitiga terbalik">
+  Baca `n`, lalu cetak segitiga terbalik: baris pertama berisi `n` bintang, dan setiap baris berikutnya berkurang satu sampai tersisa satu bintang.
+
+  ```txt title="Contoh input"
+  4
+  ```
+
+  ```txt title="Contoh output"
+  ****
+  ***
+  **
+  *
+  ```
+
+  <Pembahasan>
+    Buat tabelnya dulu:
+
     | `baris` | Bintang (n = 4) |
     | --- | --- |
     | 1 | 4 |
@@ -253,52 +292,609 @@ Jika perlu menghentikan **semua** perulangan sekaligus, cara paling rapi adalah 
     | 3 | 2 |
     | 4 | 1 |
 
-    Rumusnya `n - baris + 1`:
+    Jumlah bintang di setiap baris adalah `n - baris + 1`, dan itulah batas perulangan dalam.
 
     ```cpp tab="C++"
-    for (int baris = 1; baris <= n; baris++) {
-        for (int kolom = 1; kolom <= n - baris + 1; kolom++) {
-            cout << "*";
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        for (int baris = 1; baris <= n; baris++) {
+            for (int kolom = 1; kolom <= n - baris + 1; kolom++) {
+                cout << "*";
+            }
+            cout << endl;
         }
-        cout << endl;
+        return 0;
     }
     ```
 
     ```python tab="Python"
+    n = int(input())
+
     for baris in range(1, n + 1):
         for kolom in range(n - baris + 1):
             print("*", end="")
         print()
     ```
-  </Accordion>
-  <Accordion title="3. Buat papan catur n × n dengan # dan . bergantian.">
-    ```txt title="Target (n = 4)"
-    #.#.
-    .#.#
-    #.#.
-    .#.#
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tebak output batas dalam">
+  Tanpa menjalankannya, tuliskan output program berikut. Berapa kali baris `cout << j;` (Python: `print(j, end="")`) dijalankan?
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      for (int i = 1; i <= 3; i++) {
+          for (int j = i; j <= 3; j++) {
+              cout << j;
+          }
+          cout << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  for i in range(1, 4):
+      for j in range(i, 4):
+          print(j, end="")
+      print()
+  ```
+
+  <Pembahasan>
+    Perulangan dalam **dimulai dari `i`**, bukan dari 1. Jadi setiap baris dimulai dari angka yang lebih besar.
+
+    ```txt title="Output"
+    123
+    23
+    3
     ```
 
-    Sel berisi `#` jika `baris + kolom` genap:
+    | `i` | Nilai `j` | Banyak `cout << j` |
+    | --- | --- | --- |
+    | 1 | 1, 2, 3 | 3 |
+    | 2 | 2, 3 | 2 |
+    | 3 | 3 | 1 |
+
+    Totalnya 3 + 2 + 1 = **6** kali. Rumus "putaran luar × putaran dalam" tidak berlaku langsung di sini, karena banyak putaran dalamnya berubah di setiap putaran luar.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Persegi berongga">
+  Baca `n` (`n >= 1`), lalu cetak persegi `n × n` yang tepinya `*` dan bagian dalamnya spasi.
+
+  ```txt title="Contoh input"
+  5
+  ```
+
+  ```txt title="Contoh output"
+  *****
+  *   *
+  *   *
+  *   *
+  *****
+  ```
+
+  <Petunjuk>
+    Periksa setiap sel satu per satu. Sebuah sel adalah tepi jika berada di baris pertama, baris terakhir, kolom pertama, atau kolom terakhir.
+  </Petunjuk>
+
+  <Pembahasan>
+    Perulangan bersarang mengunjungi semua sel `(baris, kolom)`, lalu sebuah `if` memilih `*` atau spasi. Kondisi tepinya digabung dengan `||`. Karena kolom terakhir selalu `*`, tidak ada spasi di akhir baris. Uji juga `n = 1` dan `n = 2`: semua selnya tepi, jadi hasilnya persegi penuh.
 
     ```cpp tab="C++"
-    for (int baris = 0; baris < n; baris++) {
-        for (int kolom = 0; kolom < n; kolom++) {
-            if ((baris + kolom) % 2 == 0) {
-                cout << "#";
-            } else {
-                cout << ".";
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        for (int baris = 1; baris <= n; baris++) {
+            for (int kolom = 1; kolom <= n; kolom++) {
+                if (baris == 1 || baris == n || kolom == 1 || kolom == n) {
+                    cout << "*";
+                } else {
+                    cout << " ";
+                }
             }
+            cout << endl;
         }
-        cout << endl;
+        return 0;
     }
     ```
 
     ```python tab="Python"
-    for baris in range(n):
-        for kolom in range(n):
-            print("#" if (baris + kolom) % 2 == 0 else ".", end="")
+    n = int(input())
+
+    for baris in range(1, n + 1):
+        for kolom in range(1, n + 1):
+            if baris == 1 or baris == n or kolom == 1 or kolom == n:
+                print("*", end="")
+            else:
+                print(" ", end="")
         print()
     ```
-  </Accordion>
-</Accordions>
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Tabel perkalian berjudul">
+  Baca `n` (1 sampai 9), lalu cetak tabel perkalian `n × n` lengkap dengan baris judul dan nomor baris. Setiap sel lebarnya 4 karakter dan rata kanan, termasuk sel pojok yang berisi `x`.
+
+  ```txt title="Contoh input"
+  4
+  ```
+
+  ```txt title="Contoh output"
+     x   1   2   3   4
+     1   1   2   3   4
+     2   2   4   6   8
+     3   3   6   9  12
+     4   4   8  12  16
+  ```
+
+  <Petunjuk>
+    Baris judul dicetak dengan perulangan tersendiri **sebelum** perulangan bersarang. Setiap baris tabel diawali nomor barisnya, baru kemudian hasil perkaliannya. Lebar 4 karakter didapat dari [`setw(4)`](/docs/cpp/pustaka/iomanip) di C++ atau `f"{x:4}"` di Python.
+  </Petunjuk>
+
+  <Pembahasan>
+    Program terbagi menjadi dua bagian. Bagian pertama mencetak sel pojok `x` (tiga spasi lalu `x`, jadi lebarnya juga 4) dan angka 1 sampai `n`. Bagian kedua adalah perulangan bersarang seperti di materi, dengan satu tambahan: sebelum perulangan dalam, cetak dulu nomor baris `i`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <iomanip>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        cout << "   x";
+        for (int j = 1; j <= n; j++) {
+            cout << setw(4) << j;
+        }
+        cout << endl;
+
+        for (int i = 1; i <= n; i++) {
+            cout << setw(4) << i;
+            for (int j = 1; j <= n; j++) {
+                cout << setw(4) << i * j;
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    print("   x", end="")
+    for j in range(1, n + 1):
+        print(f"{j:4}", end="")
+    print()
+
+    for i in range(1, n + 1):
+        print(f"{i:4}", end="")
+        for j in range(1, n + 1):
+            print(f"{i * j:4}", end="")
+        print()
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Pasangan dua dadu">
+  Dua dadu bermata 1 sampai 6 dilempar bersamaan. Baca sebuah bilangan bulat `s`, lalu tampilkan semua pasangan mata dadu yang jumlahnya `s`, satu per baris dengan format `d1 + d2`, urut dari `d1` terkecil. Dadu pertama dan kedua dibedakan, jadi `1 + 4` dan `4 + 1` dihitung sebagai dua cara. Di baris terakhir, tampilkan `Banyak cara: k`.
+
+  ```txt title="Contoh input 1"
+  5
+  ```
+
+  ```txt title="Contoh output 1"
+  1 + 4
+  2 + 3
+  3 + 2
+  4 + 1
+  Banyak cara: 4
+  ```
+
+  ```txt title="Contoh input 2"
+  13
+  ```
+
+  ```txt title="Contoh output 2"
+  Banyak cara: 0
+  ```
+
+  <Petunjuk>
+    Coba semua 6 × 6 = 36 kombinasi dengan perulangan bersarang: perulangan luar untuk dadu pertama, perulangan dalam untuk dadu kedua. Pilih yang jumlahnya `s`, dan hitung dengan sebuah counter.
+  </Petunjuk>
+
+  <Pembahasan>
+    Cara "coba semua kemungkinan" ini disebut _brute force_. Untuk 36 kombinasi, cara ini sangat cepat dan paling mudah dipastikan benar. Counter `banyak` disiapkan sebelum kedua perulangan, karena yang dihitung adalah total dari seluruh kombinasi. Jika kamu mencoba semua `s`, jumlah 7 punya cara terbanyak, yaitu 6.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int s;
+        cin >> s;
+
+        int banyak = 0;
+        for (int d1 = 1; d1 <= 6; d1++) {
+            for (int d2 = 1; d2 <= 6; d2++) {
+                if (d1 + d2 == s) {
+                    cout << d1 << " + " << d2 << endl;
+                    banyak++;
+                }
+            }
+        }
+        cout << "Banyak cara: " << banyak << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    s = int(input())
+
+    banyak = 0
+    for d1 in range(1, 7):
+        for d2 in range(1, 7):
+            if d1 + d2 == s:
+                print(f"{d1} + {d2}")
+                banyak += 1
+    print("Banyak cara:", banyak)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Perbaiki break bersarang">
+  Program berikut seharusnya mencari pasangan **pertama** `(a, b)`, dengan `a` dan `b` dari 1 sampai 9, yang memenuhi `a * b == n`. "Pertama" berarti `a` sekecil mungkin. Begitu pasangan pertama ditemukan, program harus berhenti mencari. Jika tidak ada pasangan sama sekali, tampilkan `Tidak ada`.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+
+      bool ketemu = false;
+      for (int a = 1; a <= 9; a++) {
+          for (int b = 1; b <= 9; b++) {
+              if (a * b == n) {
+                  cout << a << " x " << b << endl;
+                  ketemu = true;
+                  break;
+              }
+          }
+      }
+
+      if (!ketemu) {
+          cout << "Tidak ada" << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+
+  ketemu = False
+  for a in range(1, 10):
+      for b in range(1, 10):
+          if a * b == n:
+              print(f"{a} x {b}")
+              ketemu = True
+              break
+
+  if not ketemu:
+      print("Tidak ada")
+  ```
+
+  Untuk input `12`, program ini menampilkan empat baris, bukan satu:
+
+  ```txt title="Output program"
+  2 x 6
+  3 x 4
+  4 x 3
+  6 x 2
+  ```
+
+  Jelaskan penyebabnya, lalu perbaiki programnya. Setelah diperbaiki, output-nya harus seperti ini:
+
+  | Input | Output |
+  | --- | --- |
+  | `12` | `2 x 6` |
+  | `81` | `9 x 9` |
+  | `11` | `Tidak ada` |
+
+  <Petunjuk>
+    Baca lagi bagian [break hanya keluar dari satu perulangan](#break-hanya-keluar-dari-satu-perulangan). Variabel `ketemu` sudah tersedia. Bagaimana perulangan luar bisa memakainya?
+  </Petunjuk>
+
+  <Pembahasan>
+    `break` hanya menghentikan perulangan `b`. Perulangan `a` tetap lanjut ke nilai berikutnya, sehingga setiap `a` yang punya pasangan ikut dicetak. Perbaikannya, periksa `ketemu` tepat setelah perulangan dalam selesai, lalu `break` sekali lagi dari perulangan luar. Di C++, cara lainnya adalah menambahkan syarat ke kondisi perulangan luar: `for (int a = 1; a <= 9 && !ketemu; a++)`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        bool ketemu = false;
+        for (int a = 1; a <= 9; a++) {
+            for (int b = 1; b <= 9; b++) {
+                if (a * b == n) {
+                    cout << a << " x " << b << endl;
+                    ketemu = true;
+                    break;          // keluar dari perulangan b
+                }
+            }
+            if (ketemu) {
+                break;              // keluar dari perulangan a
+            }
+        }
+
+        if (!ketemu) {
+            cout << "Tidak ada" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    ketemu = False
+    for a in range(1, 10):
+        for b in range(1, 10):
+            if a * b == n:
+                print(f"{a} x {b}")
+                ketemu = True
+                break           # keluar dari perulangan b
+        if ketemu:
+            break               # keluar dari perulangan a
+
+    if not ketemu:
+        print("Tidak ada")
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Bilangan prima sampai n">
+  Baca `n` (1 sampai 10.000), lalu tampilkan semua bilangan prima dari 2 sampai `n` dalam satu baris, dipisah satu spasi. Jika tidak ada, tampilkan `Tidak ada`.
+
+  | Input | Output |
+  | --- | --- |
+  | `20` | `2 3 5 7 11 13 17 19` |
+  | `2` | `2` |
+  | `1` | `Tidak ada` |
+
+  <Petunjuk>
+    Perulangan luar mencoba setiap bilangan `x` dari 2 sampai `n`. Perulangan dalam mengecek apakah `x` prima, dengan cara yang sama seperti mengecek satu bilangan prima: coba pembagi selama `i * i <= x`, lalu `break` begitu ketemu. Untuk pemisah, cetak spasi **sebelum** setiap bilangan kecuali yang pertama. Counter banyak prima bisa membantu.
+  </Petunjuk>
+
+  <Pembahasan>
+    Variabel `prima` harus diatur ulang menjadi `true` di **awal setiap putaran luar**, karena setiap `x` diperiksa dari awal. Jika ditulis sekali di luar kedua perulangan, begitu satu bilangan bukan prima, semua bilangan setelahnya ikut dianggap bukan prima. `break` di sini hanya keluar dari perulangan pembagi, dan memang itu yang kita mau: perulangan luar lanjut ke `x` berikutnya. Counter `banyak` dipakai dua kali, untuk menentukan perlu tidaknya spasi dan untuk mendeteksi kasus `Tidak ada`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        int banyak = 0;
+        for (int x = 2; x <= n; x++) {
+            bool prima = true;
+            for (int i = 2; i * i <= x; i++) {
+                if (x % i == 0) {
+                    prima = false;
+                    break;
+                }
+            }
+
+            if (prima) {
+                if (banyak > 0) {
+                    cout << " ";
+                }
+                cout << x;
+                banyak++;
+            }
+        }
+
+        if (banyak == 0) {
+            cout << "Tidak ada";
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    banyak = 0
+    for x in range(2, n + 1):
+        prima = True
+        i = 2
+        while i * i <= x:
+            if x % i == 0:
+                prima = False
+                break
+            i += 1
+
+        if prima:
+            if banyak > 0:
+                print(" ", end="")
+            print(x, end="")
+            banyak += 1
+
+    if banyak == 0:
+        print("Tidak ada", end="")
+    print()
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Belah ketupat">
+  Baca `n` (1 sampai 20), lalu cetak belah ketupat bintang setinggi `2n - 1` baris. Baris tengahnya berisi `2n - 1` bintang. Jangan cetak spasi di akhir baris.
+
+  ```txt title="Contoh input"
+  4
+  ```
+
+  ```txt title="Contoh output"
+     *
+    ***
+   *****
+  *******
+   *****
+    ***
+     *
+  ```
+
+  <Petunjuk>
+    Bagi menjadi dua bagian. Bagian atas (baris 1 sampai `n`) sama persis dengan piramida di materi. Bagian bawah (`n - 1` baris) adalah piramida yang sama, tetapi nomor barisnya berjalan mundur.
+  </Petunjuk>
+
+  <Pembahasan>
+    Gunakan rumus piramida yang sama untuk kedua bagian: spasi = `n - baris`, bintang = `2 * baris - 1`. Bagian atas memakai `baris` dari 1 naik ke `n`. Bagian bawah memakai `baris` dari `n - 1` turun ke 1. Baris ke-`n` hanya dicetak sekali, oleh bagian atas. Karena setiap baris berakhir dengan bintang, tidak ada spasi di akhir baris.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        for (int baris = 1; baris <= n; baris++) {
+            for (int s = 1; s <= n - baris; s++) {
+                cout << " ";
+            }
+            for (int b = 1; b <= 2 * baris - 1; b++) {
+                cout << "*";
+            }
+            cout << endl;
+        }
+
+        for (int baris = n - 1; baris >= 1; baris--) {
+            for (int s = 1; s <= n - baris; s++) {
+                cout << " ";
+            }
+            for (int b = 1; b <= 2 * baris - 1; b++) {
+                cout << "*";
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    for baris in range(1, n + 1):
+        for s in range(n - baris):
+            print(" ", end="")
+        for b in range(2 * baris - 1):
+            print("*", end="")
+        print()
+
+    for baris in range(n - 1, 0, -1):
+        for s in range(n - baris):
+            print(" ", end="")
+        for b in range(2 * baris - 1):
+            print("*", end="")
+        print()
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Tripel Pythagoras">
+  Tiga bilangan bulat positif `a < b < c` disebut tripel Pythagoras jika `a * a + b * b == c * c`, misalnya 3, 4, 5. Baca `n` (1 sampai 100), lalu tampilkan semua tripel dengan `c <= n`, satu per baris, urut berdasarkan `a` lalu `b`. Di baris terakhir, tampilkan `Banyak: k`.
+
+  ```txt title="Contoh input 1"
+  15
+  ```
+
+  ```txt title="Contoh output 1"
+  3 4 5
+  5 12 13
+  6 8 10
+  9 12 15
+  Banyak: 4
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  ```
+
+  ```txt title="Contoh output 2"
+  Banyak: 0
+  ```
+
+  <Petunjuk>
+    Pakai tiga perulangan bersarang untuk `a`, `b`, dan `c`. Agar setiap tripel muncul tepat sekali dan selalu `a < b < c`, mulai `b` dari `a + 1` dan `c` dari `b + 1`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Kuncinya ada di batas awal perulangan dalam. Jika `b` dan `c` juga dimulai dari 1, tripel yang sama akan muncul berkali-kali dalam urutan berbeda, misalnya `4 3 5`. Dengan `b` mulai dari `a + 1` dan `c` mulai dari `b + 1`, setiap kombinasi hanya dicoba sekali, dan urutan outputnya otomatis berdasarkan `a` lalu `b`.
+
+    Untuk `n = 100`, badan perulangan terdalam dijalankan 161.700 kali. Angka ini masih kecil untuk komputer, tetapi tumbuh sangat cepat jika `n` membesar, sesuai catatan tentang jumlah langkah di materi.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        int banyak = 0;
+        for (int a = 1; a <= n; a++) {
+            for (int b = a + 1; b <= n; b++) {
+                for (int c = b + 1; c <= n; c++) {
+                    if (a * a + b * b == c * c) {
+                        cout << a << " " << b << " " << c << endl;
+                        banyak++;
+                    }
+                }
+            }
+        }
+        cout << "Banyak: " << banyak << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    banyak = 0
+    for a in range(1, n + 1):
+        for b in range(a + 1, n + 1):
+            for c in range(b + 1, n + 1):
+                if a * a + b * b == c * c:
+                    print(a, b, c)
+                    banyak += 1
+    print("Banyak:", banyak)
+    ```
+  </Pembahasan>
+</Soal>

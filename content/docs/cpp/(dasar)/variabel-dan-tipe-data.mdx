@@ -18,6 +18,8 @@ sumber:
 
 Program perlu **mengingat** data: umur pengguna, nilai ujian, total belanja. Data ini disimpan di memori komputer, dan untuk mengaksesnya kita memberi nama pada tempat penyimpanan tersebut.
 
+Kamu sebenarnya sudah memakai variabel di [Input & Output](/docs/cpp/input-dan-output#membaca-input), yaitu sebagai kotak untuk menyimpan nilai yang dibaca `cin` atau `input()`. Di materi ini kita membahasnya lebih dalam.
+
 <Callout title="Definisi">
   **Variabel** adalah tempat penyimpanan di memori yang memiliki **nama**, menyimpan sebuah **nilai**, dan (di C++) memiliki **tipe data** yang menentukan jenis nilai yang boleh disimpan.
 </Callout>
@@ -171,11 +173,11 @@ NILAI_LULUS = 60
 
 ```cpp
 // ✗ Apa arti 60? Kalau batas lulus berubah, semua 60 harus dicari satu per satu.
-if (nilai >= 60) { /* ... */ }
+cout << "Kurang " << 60 - nilai << " poin lagi untuk lulus" << endl;
 
 // ✓ Maknanya jelas, dan cukup diubah di satu tempat.
 const int NILAI_LULUS = 60;
-if (nilai >= NILAI_LULUS) { /* ... */ }
+cout << "Kurang " << NILAI_LULUS - nilai << " poin lagi untuk lulus" << endl;
 ```
 
 ## Batas tipe data: overflow
@@ -261,20 +263,412 @@ Untuk mengatur jumlah angka di belakang koma, misalnya menampilkan `Rp 2500.00` 
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Tentukan tipe data yang paling tepat untuk: jumlah mahasiswa, harga barang, jenis kelamin (L/P), status aktif, dan nama kota.">
-    | Data | Tipe C++ | Tipe Python |
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Pilih tipe data">
+  Tentukan tipe data yang paling tepat di C++ dan di Python untuk menyimpan setiap data berikut.
+
+  1. Jumlah mahasiswa di sebuah kelas
+  2. Berat badan dalam kilogram, misalnya `55.5`
+  3. Inisial nama, misalnya `B`
+  4. Status sudah membayar atau belum
+  5. Nama kota
+  6. Jumlah penduduk dunia, sekitar 8 miliar
+  7. Golongan darah: `A`, `B`, `AB`, atau `O`
+
+  <Pembahasan>
+    | Data | C++ | Python | Alasan |
+    | --- | --- | --- | --- |
+    | Jumlah mahasiswa | `int` | `int` | Bilangan bulat yang kecil |
+    | Berat badan | `double` | `float` | Ada bagian pecahan |
+    | Inisial nama | `char` | `str` | Tepat satu karakter |
+    | Status membayar | `bool` | `bool` | Hanya dua kemungkinan: ya atau tidak |
+    | Nama kota | `string` | `str` | Teks |
+    | Penduduk dunia | `long long` | `int` | 8 miliar melewati batas `int` (sekitar 2,1 miliar) |
+    | Golongan darah | `string` | `str` | `AB` terdiri dari dua karakter, jadi tidak muat di `char` |
+
+    Dua data terakhir adalah jebakannya. Selalu periksa nilai **terbesar** dan nilai **terpanjang** yang mungkin muncul, bukan hanya contoh yang biasa.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Nama variabel yang sah">
+  Mana saja nama variabel C++ yang **tidak sah**? Sebutkan alasannya.
+
+  `totalNilai`, `1stPlace`, `harga_akhir`, `return`, `jumlah-data`, `_skor`, `nilai akhir`, `NilaiAkhir`, `double`, `x2`
+
+  <Pembahasan>
+    | Nama | Alasan tidak sah |
+    | --- | --- |
+    | `1stPlace` | Diawali angka |
+    | `return` | Kata kunci C++ |
+    | `jumlah-data` | `-` dibaca sebagai operator pengurangan |
+    | `nilai akhir` | Mengandung spasi |
+    | `double` | Kata kunci C++ (nama tipe data) |
+
+    Sisanya sah. `NilaiAkhir` juga sah, tetapi dianggap berbeda dari `nilaiAkhir` karena C++ bersifat case-sensitive. Menariknya, `double` sah sebagai nama variabel di Python karena bukan kata kunci Python, sedangkan `return` tetap tidak boleh.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Bagian bulat">
+  Baca sebuah bilangan pecahan, lalu tampilkan bagian bulatnya dengan cara mengubahnya ke tipe bilangan bulat.
+
+  | Input | Output |
+  | --- | --- |
+  | `7.9` | `7` |
+  | `12.35` | `12` |
+  | `-2.7` | `-2` |
+
+  <Pembahasan>
+    Konversi dari pecahan ke bilangan bulat **membuang** bagian pecahan, bukan membulatkan. Karena itu `7.9` menjadi `7`, dan `-2.7` menjadi `-2` (bukan `-3`). Di Python, ubah teks input dengan `float()` dulu, baru dengan `int()`. Langsung memakai `int(input())` akan gagal untuk teks `"7.9"`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        double x;
+        cin >> x;
+        int bagianBulat = static_cast<int>(x);
+        cout << bagianBulat << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    x = float(input())
+    bagian_bulat = int(x)
+    print(bagian_bulat)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Tebak hasil konversi">
+  Tebak output potongan program C++ dan Python berikut (lihat kedua tab).
+
+  ```cpp tab="C++"
+  int a = 7, b = 2;
+  double c = a / b;
+  double d = static_cast<double>(a) / b;
+  int e = 9.99;
+  double f = e;
+  cout << c << endl << d << endl << e << endl << f << endl;
+  ```
+
+  ```python tab="Python"
+  a, b = 7, 2
+  c = a / b
+  d = int(c)
+  e = int(9.99)
+  f = float(e)
+  print(c, d, e, f)
+  ```
+
+  <Pembahasan>
+    ```txt title="Output C++"
+    3
+    3.5
+    9
+    9
+    ```
+
+    ```txt title="Output Python"
+    3.5 3 9 9.0
+    ```
+
+    Di C++, `a / b` adalah `int / int`, jadi hasilnya `3` sebelum disimpan ke `double`. Baris `d` mengubah `a` lebih dulu, jadi pembagiannya pecahan. `int e = 9.99` membuang pecahan menjadi `9`. Nilai `f` sebenarnya `9.0`, tetapi `cout` tidak menampilkan `.0` di belakang. Python berbeda: `/` selalu menghasilkan `float`, dan `print()` selalu menampilkan `float` dengan titik, sehingga muncul `9.0`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Menit ke jam">
+  Baca lama sebuah film dalam menit (bilangan bulat). Tampilkan dalam satu baris: lama film dalam **jam bulat** (pecahannya dibuang), lalu dalam **jam pecahan**.
+
+  | Input | Output |
+  | --- | --- |
+  | `150` | `2 2.5` |
+  | `90` | `1 1.5` |
+  | `45` | `0 0.75` |
+
+  Jika jam pecahannya kebetulan bulat, misalnya input `120`, C++ menampilkan `2 2` sedangkan Python menampilkan `2 2.0`. Keduanya dianggap benar.
+
+  <Petunjuk>
+    Satu jam ada 60 menit. Ingat bahwa `int / int` di C++ membuang pecahan. Itu justru berguna untuk jam bulat, tetapi tidak untuk jam pecahan.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jam bulat cukup `menit / 60` karena keduanya `int`. Untuk jam pecahan, ubah `menit` menjadi `double` dulu. Kesalahan yang sering terjadi adalah menulis `double jamPecahan = menit / 60;`, yang tetap menghasilkan `2` untuk input `150`. Di Python, `/` selalu menghasilkan pecahan, jadi jam bulat didapat dengan `int()`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int menit;
+        cin >> menit;
+
+        int jamBulat = menit / 60;
+        double jamPecahan = static_cast<double>(menit) / 60;
+
+        cout << jamBulat << " " << jamPecahan << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    menit = int(input())
+
+    jam_pecahan = menit / 60
+    jam_bulat = int(jam_pecahan)
+
+    print(jam_bulat, jam_pecahan)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Perbaiki deklarasi">
+  Soal ini khusus C++. Program berikut tidak bisa di-compile karena ada **empat** baris yang salah. Temukan dan perbaiki semuanya, sehingga program menampilkan `A 3 Medan 3.14159`.
+
+  ```cpp
+  #include <iostream>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      const double PI = 3.14159;
+      char grade = "A";
+      int jumlah barang = 3;
+      string kota = 'Medan';
+      PI = 3.14;
+      cout << grade << " " << jumlahBarang << " " << kota << " " << PI << endl;
+      return 0;
+  }
+  ```
+
+  <Petunjuk>
+    Periksa jenis tanda kutip untuk `char` dan `string`, aturan penamaan, dan sifat konstanta.
+  </Petunjuk>
+
+  <Pembahasan>
+    | Baris salah | Masalah | Perbaikan |
     | --- | --- | --- |
-    | Jumlah mahasiswa | `int` | `int` |
-    | Harga barang | `double` (atau `long long` jika dalam rupiah tanpa sen) | `float` / `int` |
-    | Jenis kelamin (L/P) | `char` | `str` |
-    | Status aktif | `bool` | `bool` |
-    | Nama kota | `string` | `str` |
-  </Accordion>
-  <Accordion title="2. Mana nama variabel yang tidak sah: totalNilai, 1stPlace, harga_akhir, return, jumlah-data?">
-    Yang tidak sah: `1stPlace` (diawali angka), `return` (kata kunci), dan `jumlah-data` (mengandung `-`).
-  </Accordion>
-  <Accordion title="3. Berapa nilai x setelah int x = 7.9; dijalankan?">
-    `x` bernilai **7**. Saat `double` dikonversi ke `int`, bagian pecahan **dibuang**, bukan dibulatkan.
-  </Accordion>
-</Accordions>
+    | `char grade = "A";` | `char` memakai kutip tunggal | `char grade = 'A';` |
+    | `int jumlah barang = 3;` | Nama variabel tidak boleh berspasi | `int jumlahBarang = 3;` |
+    | `string kota = 'Medan';` | Teks memakai kutip ganda | `string kota = "Medan";` |
+    | `PI = 3.14;` | Konstanta tidak bisa diubah | Hapus baris ini |
+
+    Nama `jumlahBarang` dipilih karena baris `cout` sudah memakai nama itu. Baris `PI = 3.14;` dihapus, bukan diganti, karena output yang diminta memakai nilai awal `PI`.
+
+    ```cpp
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        const double PI = 3.14159;
+        char grade = 'A';
+        int jumlahBarang = 3;
+        string kota = "Medan";
+        cout << grade << " " << jumlahBarang << " " << kota << " " << PI << endl;
+        return 0;
+    }
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Tiket bioskop">
+  Harga satu tiket bioskop Rp45.000, dan setiap transaksi dikenai biaya layanan Rp2.500 (sekali saja, berapa pun jumlah tiketnya). Baca jumlah tiket yang dibeli, lalu tampilkan total bayar. Simpan harga tiket dan biaya layanan sebagai **konstanta**, jangan sebagai _magic number_.
+
+  | Input | Output |
+  | --- | --- |
+  | `1` | `47500` |
+  | `4` | `182500` |
+  | `10` | `452500` |
+
+  <Pembahasan>
+    Total bayar adalah jumlah tiket dikali harga tiket, lalu ditambah biaya layanan satu kali. Dengan konstanta, jika harga tiket naik, cukup satu baris yang diubah. Di Python, konstanta ditulis dengan huruf kapital sebagai kesepakatan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        const int HARGA_TIKET = 45000;
+        const int BIAYA_LAYANAN = 2500;
+
+        int jumlahTiket;
+        cin >> jumlahTiket;
+
+        int total = jumlahTiket * HARGA_TIKET + BIAYA_LAYANAN;
+        cout << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    HARGA_TIKET = 45000
+    BIAYA_LAYANAN = 2500
+
+    jumlah_tiket = int(input())
+
+    total = jumlah_tiket * HARGA_TIKET + BIAYA_LAYANAN
+    print(total)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Overflow yang tersembunyi">
+  Soal ini khusus C++. Tebak output program berikut, lalu jelaskan mengapa `a` berbeda dari `b` dan `c`, padahal ketiganya sama-sama `long long`.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int maks = 2147483647;
+
+      long long a = maks + 1;
+      long long b = static_cast<long long>(maks) + 1;
+      long long c = maks;
+      c = c + 1;
+
+      cout << a << endl << b << endl << c << endl;
+      return 0;
+  }
+  ```
+
+  <Petunjuk>
+    Tipe variabel tujuan baru berperan **setelah** hasil di sebelah kanan `=` selesai dihitung. Apa tipe `maks + 1`?
+  </Petunjuk>
+
+  <Pembahasan>
+    ```txt title="Output (biasanya)"
+    -2147483648
+    2147483648
+    2147483648
+    ```
+
+    Pada `a`, ekspresi `maks + 1` dihitung sebagai `int + int`, sehingga hasilnya `int` dan sudah overflow **sebelum** disimpan ke `long long`. Ini sama persis dengan jebakan `int / int` yang disimpan ke `double`. Pada `b`, `maks` diubah ke `long long` lebih dulu, jadi penjumlahannya dilakukan di tipe yang muat. Pada `c`, nilai `maks` disalin ke `c` yang bertipe `long long`, lalu `c + 1` dihitung sebagai `long long`. Ingat, overflow `int` adalah _undefined behavior_, jadi `-2147483648` hanya hasil yang **biasa** muncul, bukan jaminan.
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Detik kehidupan">
+  Baca umur seseorang dalam tahun (bilangan bulat, paling besar 150), lalu tampilkan kira-kira berapa detik ia sudah hidup. Anggap setahun selalu 365 hari.
+
+  | Input | Output |
+  | --- | --- |
+  | `19` | `599184000` |
+  | `70` | `2207520000` |
+  | `100` | `3153600000` |
+
+  <Petunjuk>
+    Coba programmu dengan input `70`. Jika hasilnya negatif, perhatikan batas `int`, lalu pikirkan **kapan** perkaliannya dihitung dan di tipe apa.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setahun ada 365 × 24 × 60 × 60 = 31.536.000 detik, masih muat di `int`. Masalahnya ada di perkalian dengan umur: untuk umur 70 hasilnya sekitar 2,2 miliar, sudah melewati batas `int`. Menulis `long long detik = umur * DETIK_PER_TAHUN;` dengan `umur` bertipe `int` **tidak** menolong, karena perkaliannya tetap dihitung sebagai `int` dan hasilnya `-2087447296`. Ubah salah satu operand ke `long long` sebelum dikalikan. Python tidak punya masalah ini karena `int` Python tidak punya batas.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        const int DETIK_PER_TAHUN = 365 * 24 * 60 * 60;
+
+        int umur;
+        cin >> umur;
+
+        long long detik = static_cast<long long>(umur) * DETIK_PER_TAHUN;
+        cout << detik << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    DETIK_PER_TAHUN = 365 * 24 * 60 * 60
+
+    umur = int(input())
+    print(umur * DETIK_PER_TAHUN)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Putar tiga nilai">
+  Lengkapi program berikut di bagian komentar. Setelah kodemu dijalankan, `a` harus berisi nilai lama `b`, `b` berisi nilai lama `c`, dan `c` berisi nilai lama `a`. Jangan mengubah baris input dan output, dan di C++ pakai paling banyak **satu** variabel tambahan.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int a, b, c;
+      cin >> a >> b >> c;
+
+      // tulis kodemu di sini
+
+      cout << a << " " << b << " " << c << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  a, b, c = map(int, input().split())
+
+  # tulis kodemu di sini
+
+  print(a, b, c)
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `1 2 3` | `2 3 1` |
+  | `7 5 9` | `5 9 7` |
+
+  <Petunjuk>
+    Coba dulu `a = b; b = c; c = a;` dan telusuri isi ketiga variabel baris demi baris dengan input `1 2 3`. Nilai mana yang hilang, dan kapan hilangnya?
+  </Petunjuk>
+
+  <Pembahasan>
+    Penugasan `=` **menimpa** isi lama. Pada `a = b; b = c; c = a;`, nilai lama `a` sudah tertimpa di langkah pertama, sehingga `c` ikut mendapat nilai lama `b` dan outputnya `2 3 2`. Solusinya, simpan nilai lama `a` di variabel bantu sebelum ditimpa.
+
+    | Langkah | `a` | `b` | `c` | `simpan` |
+    | --- | --- | --- | --- | --- |
+    | Awal | 1 | 2 | 3 | |
+    | `simpan = a` | 1 | 2 | 3 | 1 |
+    | `a = b` | 2 | 2 | 3 | 1 |
+    | `b = c` | 2 | 3 | 3 | 1 |
+    | `c = simpan` | 2 | 3 | 1 | 1 |
+
+    Python bisa melakukannya dalam satu baris, karena semua nilai di sebelah kanan `=` dibaca lebih dulu sebelum ada yang ditimpa.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b, c;
+        cin >> a >> b >> c;
+
+        int simpan = a;
+        a = b;
+        b = c;
+        c = simpan;
+
+        cout << a << " " << b << " " << c << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, b, c = map(int, input().split())
+
+    a, b, c = b, c, a
+
+    print(a, b, c)
+    ```
+  </Pembahasan>
+</Soal>

@@ -1,0 +1,1126 @@
+---
+title: Array & vector
+description: Menyimpan banyak nilai dalam satu variabel, mengaksesnya lewat indeks, dan mengolahnya dengan perulangan.
+sumber:
+  - ref: cppreference
+    judul: Array declaration
+    url: https://en.cppreference.com/w/cpp/language/array
+  - ref: cppreference
+    judul: std::vector
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: python-docs
+    judul: Tutorial, Lists
+    url: https://docs.python.org/3/tutorial/introduction.html#lists
+  - ref: busbee
+---
+
+## Masalah: data yang banyak
+
+Menyimpan nilai lima mahasiswa dengan variabel biasa berarti membuat lima variabel: `nilai1`, `nilai2`, sampai `nilai5`. Untuk 100 mahasiswa, cara ini jelas tidak mungkin, dan perulangan pun tidak bisa membantu karena setiap variabel punya nama berbeda.
+
+**Array** menyelesaikan masalah ini: satu nama untuk sekumpulan nilai **bertipe sama** yang tersimpan **berurutan** di memori. Setiap nilai disebut **elemen** dan diakses lewat nomor urutnya, yaitu **indeks**.
+
+<MemoryBoxes
+  caption="Array nilai berisi 5 elemen. Indeks dimulai dari 0, jadi elemen terakhir ada di indeks 4."
+  items={[
+    { name: 'nilai[0]', type: 'int', value: '80' },
+    { name: 'nilai[1]', type: 'int', value: '75' },
+    { name: 'nilai[2]', type: 'int', value: '90' },
+    { name: 'nilai[3]', type: 'int', value: '60' },
+    { name: 'nilai[4]', type: 'int', value: '85' },
+  ]}
+/>
+
+## Membuat dan mengakses array
+
+```cpp tab="C++"
+int nilai[5] = {80, 75, 90, 60, 85};
+
+cout << nilai[0] << endl;   // 80, elemen pertama
+cout << nilai[4] << endl;   // 85, elemen terakhir
+
+nilai[2] = 95;              // ubah elemen ketiga
+```
+
+```python tab="Python"
+# Python memakai list, padanan array yang lebih fleksibel
+nilai = [80, 75, 90, 60, 85]
+
+print(nilai[0])    # 80, elemen pertama
+print(nilai[4])    # 85, elemen terakhir
+print(nilai[-1])   # 85, indeks negatif dihitung dari belakang (khusus Python)
+
+nilai[2] = 95      # ubah elemen ketiga
+```
+
+<Callout type="warning" title="Indeks dimulai dari 0">
+  Array berukuran 5 memiliki indeks **0 sampai 4**. Tidak ada `nilai[5]`. Ini sumber kesalahan _off-by-one_ yang paling umum.
+</Callout>
+
+## Mengolah array dengan perulangan
+
+Kekuatan array muncul saat dipadukan dengan [perulangan](/docs/cpp/perulangan): indeksnya bisa berupa variabel.
+
+```cpp tab="C++"
+int nilai[5] = {80, 75, 90, 60, 85};
+int total = 0;
+
+for (int i = 0; i < 5; i++) {
+    total += nilai[i];
+}
+cout << "Rata-rata: " << total / 5.0 << endl;   // 78
+```
+
+```python tab="Python"
+nilai = [80, 75, 90, 60, 85]
+total = 0
+
+for i in range(len(nilai)):
+    total += nilai[i]
+print("Rata-rata:", total / len(nilai))          # 78.0
+```
+
+Jika indeksnya tidak dibutuhkan, ada bentuk yang lebih ringkas, yaitu mengambil elemen satu per satu:
+
+```cpp tab="C++"
+for (int x : nilai) {          // range-based for, tersedia sejak C++11
+    cout << x << " ";
+}
+```
+
+```python tab="Python"
+for x in nilai:
+    print(x, end=" ")
+
+# Python juga punya fungsi siap pakai:
+print(len(nilai), sum(nilai), max(nilai))
+```
+
+## Indeks di luar batas
+
+Apa yang terjadi jika kita mengakses `nilai[5]` pada array berukuran 5?
+
+```cpp tab="C++"
+int nilai[5] = {80, 75, 90, 60, 85};
+cout << nilai[5];      // ✗ tidak ada error! Hasilnya angka acak, atau program crash
+```
+
+```python tab="Python"
+nilai = [80, 75, 90, 60, 85]
+print(nilai[5])        # IndexError: list index out of range
+```
+
+C++ **tidak memeriksa** batas array. Program membaca memori di sebelah array, yang isinya entah apa. Situasi seperti ini disebut _undefined behavior_: standar C++ tidak menjamin apa pun tentang hasilnya. Python lebih aman karena langsung berhenti dengan `IndexError`.
+
+<DeepDive href="/docs/cpp/pendalaman/pointer-dan-array" kind="konsep" title="Pointer dan array">
+  Bagaimana elemen array tersusun di memori, kenapa indeks dimulai dari 0, dan arti `a[i]` yang sebenarnya: `*(a + i)`, yaitu maju `i` kotak dari alamat awal array.
+</DeepDive>
+
+<DeepDive href="/docs/cpp/pendalaman/undefined-behavior" kind="konsep" title="Undefined behavior">
+  Kenapa C++ tidak memeriksa indeks, kesalahan lain yang termasuk _undefined behavior_, dan cara meminta compiler menangkapnya.
+</DeepDive>
+
+## `vector`: array yang bisa bertambah
+
+Array biasa punya dua kekurangan: **ukurannya tetap** dan harus diketahui saat menulis kode. Padahal jumlah data sering baru diketahui dari input. C++ menyediakan `vector` dari pustaka `<vector>`, yang ukurannya bisa berubah. Dalam praktik modern, **gunakan `vector` kecuali ada alasan khusus memakai array biasa**.
+
+```cpp tab="C++"
+#include <vector>
+
+vector<int> nilai = {80, 75, 90};   // tipe elemen ditulis di dalam < >
+
+nilai.push_back(60);                 // tambah di akhir: {80, 75, 90, 60}
+cout << nilai.size() << endl;        // 4
+cout << nilai[1] << endl;            // 75
+```
+
+```python tab="Python"
+nilai = [80, 75, 90]
+
+nilai.append(60)        # tambah di akhir: [80, 75, 90, 60]
+print(len(nilai))       # 4
+print(nilai[1])         # 75
+```
+
+Ada juga cara membuat `vector` dengan ukuran tertentu, yang semua elemennya bernilai awal 0:
+
+```cpp
+vector<int> data(5);    // {0, 0, 0, 0, 0}
+```
+
+<Callout type="info" title="Bagaimana dengan int data[n]?">
+  Kamu mungkin melihat kode seperti `int n; cin >> n; int data[n];`. Compiler `g++` menerimanya, tetapi bentuk ini **bukan C++ standar** dan bisa gagal di compiler lain. Gunakan `vector<int> data(n);`.
+</Callout>
+
+<DeepDive href="/docs/cpp/pustaka/vector" kind="pustaka" title="<vector>: fungsi-fungsi lengkap">
+  `pop_back`, `front`, `back`, `at`, `insert`, `erase`, mengurutkan dengan `sort`, dan jebakan `size()` yang bertipe unsigned. Lengkap dengan padanan method list di Python.
+</DeepDive>
+
+## Contoh lengkap: nilai di atas rata-rata
+
+Untuk menampilkan nilai yang **di atas rata-rata**, semua data harus disimpan dulu. Rata-rata baru diketahui setelah semua data dibaca, lalu data perlu diperiksa sekali lagi. Inilah alasan kita membutuhkan array.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cout << "Banyak data: ";
+    cin >> n;
+
+    vector<int> data(n);
+    double total = 0;
+
+    for (int i = 0; i < n; i++) {
+        cin >> data[i];
+        total += data[i];
+    }
+
+    double rata = total / n;
+    cout << "Rata-rata: " << rata << endl;
+
+    cout << "Di atas rata-rata:";
+    for (int x : data) {
+        if (x > rata) {
+            cout << " " << x;
+        }
+    }
+    cout << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+n = int(input("Banyak data: "))
+data = list(map(int, input().split()))    # n angka dalam satu baris
+
+rata = sum(data) / n
+print("Rata-rata:", rata)
+
+print("Di atas rata-rata:", end="")
+for x in data:
+    if x > rata:
+        print(" ", x, sep="", end="")
+print()
+```
+
+```txt title="Contoh jalannya program (C++)"
+Banyak data: 5
+70 85 60 90 75
+Rata-rata: 76
+Di atas rata-rata: 85 90
+```
+
+## Mencari elemen
+
+Pola dasar mencari sebuah nilai di dalam array: periksa elemen satu per satu, berhenti saat ditemukan. Teknik ini disebut **pencarian linear** (_linear search_).
+
+```cpp tab="C++"
+int dicari;
+cin >> dicari;
+
+int posisi = -1;                 // -1 berarti "belum ditemukan"
+for (int i = 0; i < n; i++) {
+    if (data[i] == dicari) {
+        posisi = i;
+        break;
+    }
+}
+
+if (posisi == -1) {
+    cout << "Tidak ditemukan" << endl;
+} else {
+    cout << "Ditemukan di indeks " << posisi << endl;
+}
+```
+
+```python tab="Python"
+dicari = int(input())
+
+posisi = -1
+for i in range(len(data)):
+    if data[i] == dicari:
+        posisi = i
+        break
+
+if posisi == -1:
+    print("Tidak ditemukan")
+else:
+    print("Ditemukan di indeks", posisi)
+
+# Versi singkat Python: if dicari in data: data.index(dicari)
+```
+
+## Mengirim vector ke fungsi
+
+Pencarian linear di atas lebih praktis jika dibungkus menjadi [fungsi](/docs/cpp/fungsi). Ingat bahwa parameter biasa menerima **salinan**. Menyalin `vector` berisi ribuan elemen setiap kali fungsi dipanggil itu boros, jadi tulislah parameternya sebagai `const vector<int>&`. Tanda `&` membuat fungsi membaca vector aslinya tanpa menyalin, dan `const` menjamin fungsi tidak mengubahnya.
+
+```cpp tab="C++"
+int cari(const vector<int>& data, int dicari) {
+    for (int i = 0; i < (int)data.size(); i++) {
+        if (data[i] == dicari) {
+            return i;            // ketemu, langsung selesai
+        }
+    }
+    return -1;                   // semua sudah diperiksa, tidak ada
+}
+
+int main() {
+    vector<int> data = {70, 85, 60, 90, 75};
+    cout << cari(data, 90) << endl;     // 3
+    cout << cari(data, 100) << endl;    // -1
+    return 0;
+}
+```
+
+```python tab="Python"
+def cari(data, dicari):
+    for i in range(len(data)):
+        if data[i] == dicari:
+            return i             # ketemu, langsung selesai
+    return -1                    # semua sudah diperiksa, tidak ada
+
+
+data = [70, 85, 60, 90, 75]
+print(cari(data, 90))     # 3
+print(cari(data, 100))    # -1
+```
+
+Berkat `return` yang langsung mengakhiri fungsi, variabel `posisi` dan `break` tidak diperlukan lagi. `(int)data.size()` dipakai karena `size()` bertipe bilangan tak bertanda, alasannya ada di [Pustaka vector](/docs/cpp/pustaka/vector#jebakan-size-unsigned). Python tidak butuh tanda khusus, karena list memang tidak disalin saat dikirim ke fungsi.
+
+<DeepDive href="/docs/cpp/pendalaman/pass-by-value-dan-reference" kind="konsep" title="Pass by value vs pass by reference">
+  Arti tanda `&` dan `const` pada parameter, kapan fungsi boleh mengubah vector milik pemanggil, dan kenapa list Python yang diubah di dalam fungsi ikut berubah di luar.
+</DeepDive>
+
+## Array dua dimensi
+
+Array juga bisa berbentuk **tabel** (baris × kolom), misalnya matriks. Aksesnya memakai dua indeks: `[baris][kolom]`, dan pengolahannya memakai [perulangan bersarang](/docs/cpp/perulangan-bersarang).
+
+```cpp tab="C++"
+int matriks[2][3] = {
+    {1, 2, 3},
+    {4, 5, 6},
+};
+
+for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+        cout << matriks[i][j] << " ";
+    }
+    cout << endl;
+}
+// Versi vector: vector<vector<int>> matriks = {{1, 2, 3}, {4, 5, 6}};
+```
+
+```python tab="Python"
+matriks = [
+    [1, 2, 3],
+    [4, 5, 6],
+]
+
+for i in range(2):
+    for j in range(3):
+        print(matriks[i][j], end=" ")
+    print()
+```
+
+```txt title="Output"
+1 2 3 
+4 5 6 
+```
+
+## Rangkuman
+
+- Array menyimpan banyak nilai bertipe sama dengan satu nama. Elemennya diakses lewat indeks yang **dimulai dari 0**.
+- Array diolah dengan perulangan: `for (int i = 0; i < n; i++)` atau `for (int x : data)`.
+- C++ **tidak memeriksa** indeks di luar batas (_undefined behavior_), sedangkan Python berhenti dengan `IndexError`.
+- `vector` adalah array yang ukurannya bisa berubah (`push_back`, `size`). Padanannya di Python adalah `list`.
+- Kirim `vector` ke fungsi sebagai `const vector<int>&` agar tidak disalin dan tidak bisa diubah oleh fungsi.
+- Data perlu disimpan di array jika harus diperiksa lebih dari sekali, misalnya membandingkan dengan rata-rata.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, input diawali banyak data `n`, lalu `n` bilangan bulat dalam satu baris.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Urutan terbalik">
+  Baca `n` bilangan, lalu tampilkan semuanya dalam urutan terbalik, dipisah spasi.
+
+  ```txt title="Contoh input"
+  5
+  3 8 1 9 4
+  ```
+
+  ```txt title="Contoh output"
+  4 9 1 8 3
+  ```
+
+  <Pembahasan>
+    Simpan semua data dulu, baru telusuri dari indeks terakhir (`n - 1`) mundur sampai indeks 0. Spasi dicetak sebelum setiap bilangan kecuali yang pertama tampil, supaya tidak ada spasi berlebih di akhir baris.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (i < n - 1) {
+                cout << " ";
+            }
+            cout << data[i];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    for i in range(n - 1, -1, -1):
+        if i < n - 1:
+            print(" ", end="")
+        print(data[i], end="")
+    print()
+    ```
+
+    Versi singkat Python: `print(*data[::-1])`. `data[::-1]` membuat list baru yang urutannya terbalik, dan `*` membuat `print` menampilkan setiap elemennya dipisah spasi.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Hitung kemunculan">
+  Baca `n` bilangan, lalu satu bilangan `x` di baris ketiga. Tampilkan berapa kali `x` muncul di dalam data dengan format `x muncul k kali`.
+
+  ```txt title="Contoh input"
+  7
+  4 2 4 4 1 2 4
+  4
+  ```
+
+  ```txt title="Contoh output"
+  4 muncul 4 kali
+  ```
+
+  ```txt title="Contoh input"
+  3
+  5 6 7
+  1
+  ```
+
+  ```txt title="Contoh output"
+  1 muncul 0 kali
+  ```
+
+  <Pembahasan>
+    Pola _counter_ dari [Perulangan](/docs/cpp/perulangan#pola-akumulator): mulai dari 0, tambah satu setiap kali menemukan elemen yang sama dengan `x`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+        int x;
+        cin >> x;
+
+        int jumlah = 0;
+        for (int v : data) {
+            if (v == x) {
+                jumlah++;
+            }
+        }
+        cout << x << " muncul " << jumlah << " kali" << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+    x = int(input())
+
+    jumlah = 0
+    for v in data:
+        if v == x:
+            jumlah += 1
+    print(x, "muncul", jumlah, "kali")
+    ```
+
+    Versi singkat Python: `data.count(x)`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tebak output: menjumlah ke kanan">
+  Tentukan output program berikut tanpa menjalankannya.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int a[5] = {3, 1, 4, 1, 5};
+
+      for (int i = 1; i < 5; i++) {
+          a[i] = a[i] + a[i - 1];
+      }
+
+      for (int x : a) {
+          cout << x << " ";
+      }
+      cout << endl;
+      cout << a[4] - a[1] << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  a = [3, 1, 4, 1, 5]
+
+  for i in range(1, 5):
+      a[i] = a[i] + a[i - 1]
+
+  for x in a:
+      print(x, end=" ")
+  print()
+  print(a[4] - a[1])
+  ```
+
+  <Pembahasan>
+    Kuncinya: saat menghitung `a[i]`, nilai `a[i - 1]` **sudah diubah** di putaran sebelumnya.
+
+    | `i` | `a[i]` lama | `a[i - 1]` | `a[i]` baru |
+    | --- | --- | --- | --- |
+    | 1 | 1 | 3 | 4 |
+    | 2 | 4 | 4 | 8 |
+    | 3 | 1 | 8 | 9 |
+    | 4 | 5 | 9 | 14 |
+
+    ```txt
+    3 4 8 9 14 
+    10
+    ```
+
+    Setiap elemen kini berisi jumlah semua elemen asli dari awal sampai posisinya. Karena itu `a[4] - a[1]` = 14 - 4 = 10, yaitu jumlah elemen asli di indeks 2 sampai 4 (4 + 1 + 5). Ide ini dipakai lagi di Soal 9.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Terbesar beserta indeksnya">
+  Tulis fungsi `indeksTerbesar` yang menerima sebuah `vector<int>` dan mengembalikan **indeks** elemen terbesarnya. Jika nilai terbesar muncul lebih dari sekali, kembalikan indeks yang paling kecil. Program menampilkan nilai terbesar dan indeksnya, dipisah spasi.
+
+  ```txt title="Contoh input"
+  6
+  4 9 2 9 7 1
+  ```
+
+  ```txt title="Contoh output"
+  9 1
+  ```
+
+  ```txt title="Contoh input"
+  3
+  -5 -2 -8
+  ```
+
+  ```txt title="Contoh output"
+  -2 1
+  ```
+
+  <Petunjuk>
+    Simpan **indeks** kandidat terbesar, bukan nilainya. Mulai dengan indeks 0 sebagai kandidat, lalu periksa indeks 1 sampai akhir. Kirim vector sebagai `const vector<int>&` seperti contoh di bagian [Mengirim vector ke fungsi](#mengirim-vector-ke-fungsi).
+  </Petunjuk>
+
+  <Pembahasan>
+    Dengan menyimpan indeks, nilainya tetap bisa diambil lewat `data[idx]`. Sebaliknya, dari nilai saja kita tidak tahu posisinya. Pakai `>` (bukan `>=`) agar kandidat hanya berganti jika ada yang benar-benar lebih besar, sehingga yang tersimpan adalah kemunculan pertama.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int indeksTerbesar(const vector<int>& data) {
+        int idx = 0;
+        for (int i = 1; i < (int)data.size(); i++) {
+            if (data[i] > data[idx]) {
+                idx = i;
+            }
+        }
+        return idx;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        int idx = indeksTerbesar(data);
+        cout << data[idx] << " " << idx << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def indeks_terbesar(data):
+        idx = 0
+        for i in range(1, len(data)):
+            if data[i] > data[idx]:
+                idx = i
+        return idx
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    idx = indeks_terbesar(data)
+    print(data[idx], idx)
+    ```
+
+    Memulai kandidat dari elemen pertama juga membuat program benar untuk data yang semuanya negatif, seperti contoh kedua.
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Perbaiki pencari terkecil">
+  Program berikut seharusnya menampilkan nilai terkecil dari `n` bilangan. Untuk input di bawah, jawabannya seharusnya `3`. Temukan **dua** kesalahannya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      int n;
+      cin >> n;
+      vector<int> data(n);
+      for (int i = 0; i < n; i++) {
+          cin >> data[i];
+      }
+
+      int terkecil = 0;
+      for (int i = 0; i <= n; i++) {
+          if (data[i] < terkecil) {
+              terkecil = data[i];
+          }
+      }
+      cout << terkecil << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  n = int(input())
+  data = list(map(int, input().split()))
+
+  terkecil = 0
+  for i in range(n + 1):
+      if data[i] < terkecil:
+          terkecil = data[i]
+  print(terkecil)
+  ```
+
+  ```txt title="Contoh input"
+  4
+  7 3 9 5
+  ```
+
+  ```txt title="Contoh output"
+  3
+  ```
+
+  <Petunjuk>
+    Jalankan versi Python dulu dan baca pesan error-nya. Lalu tanyakan: jika semua data positif, apakah ada yang lebih kecil dari nilai awal `terkecil`?
+  </Petunjuk>
+
+  <Pembahasan>
+    1. **Indeks di luar batas.** `i <= n` membuat perulangan juga membaca `data[4]`, padahal indeks terakhir adalah 3. Python langsung berhenti dengan `IndexError: list index out of range`. C++ diam saja dan membaca memori di luar vector, sehingga hasilnya tidak bisa dipercaya. Ganti menjadi `i < n`.
+    2. **Nilai awal yang salah.** Dengan `terkecil = 0`, data yang semuanya positif tidak pernah lebih kecil dari 0, sehingga hasilnya selalu 0. Mulailah dari elemen pertama, lalu periksa sisanya.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        int terkecil = data[0];
+        for (int i = 1; i < n; i++) {
+            if (data[i] < terkecil) {
+                terkecil = data[i];
+            }
+        }
+        cout << terkecil << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    terkecil = data[0]
+    for i in range(1, n):
+        if data[i] < terkecil:
+            terkecil = data[i]
+    print(terkecil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Rotasi ke kanan">
+  Baris pertama berisi `n` dan `k` (k ≥ 0), baris kedua berisi `n` bilangan. Geser semua elemen `k` langkah ke kanan. Elemen yang keluar dari ujung kanan masuk lagi dari kiri. Tampilkan hasilnya dipisah spasi.
+
+  ```txt title="Contoh input"
+  5 2
+  1 2 3 4 5
+  ```
+
+  ```txt title="Contoh output"
+  4 5 1 2 3
+  ```
+
+  ```txt title="Contoh input"
+  5 7
+  1 2 3 4 5
+  ```
+
+  ```txt title="Contoh output"
+  4 5 1 2 3
+  ```
+
+  <Petunjuk>
+    Menggeser `n` langkah mengembalikan data ke posisi semula, jadi cukup geser `k % n` langkah. Setelah digeser, elemen di posisi `j` berasal dari posisi `j - k` semula. Jika hasilnya negatif, tambahkan `n`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Tidak perlu benar-benar memindahkan elemen. Cukup hitung dari indeks mana setiap elemen hasil berasal: `(j - k + n) % n`. Penambahan `n` penting di C++, karena di C++ sisa bagi bilangan negatif bernilai negatif (lihat [Operator Aritmatika](/docs/cpp/operator-aritmatika#pembagian-dengan-bilangan-negatif)). Tanpa itu, `(0 - 2) % 5` menghasilkan `-2`, indeks yang tidak ada.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        k = k % n;
+        for (int j = 0; j < n; j++) {
+            if (j > 0) {
+                cout << " ";
+            }
+            cout << data[(j - k + n) % n];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, k = map(int, input().split())
+    data = list(map(int, input().split()))
+
+    k = k % n
+    for j in range(n):
+        if j > 0:
+            print(" ", end="")
+        print(data[(j - k + n) % n], end="")
+    print()
+    ```
+
+    Python sebenarnya aman tanpa `+ n` karena `%` di Python selalu menghasilkan nilai positif untuk pembagi positif. Menulisnya tetap tidak salah dan membuat kedua versi sama.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Jumlah baris dan kolom">
+  Baris pertama berisi banyak baris `r` dan banyak kolom `c` sebuah matriks. Lalu ada `r` baris, masing-masing berisi `c` bilangan. Tampilkan jumlah setiap baris dalam satu baris, lalu jumlah setiap kolom di baris berikutnya.
+
+  ```txt title="Contoh input"
+  2 3
+  1 2 3
+  4 5 6
+  ```
+
+  ```txt title="Contoh output"
+  6 15
+  5 7 9
+  ```
+
+  <Petunjuk>
+    Untuk jumlah baris, perulangan luar berjalan pada baris dan perulangan dalam pada kolom. Untuk jumlah kolom, tukar perannya: luar pada kolom, dalam pada baris. Matriks dengan ukuran dari input dibuat dengan `vector<vector<int>> m(r, vector<int>(c));` (lihat [Pustaka vector](/docs/cpp/pustaka/vector#vector-dua-dimensi)).
+  </Petunjuk>
+
+  <Pembahasan>
+    Indeks tetap ditulis `m[i][j]` dengan `i` sebagai baris dan `j` sebagai kolom. Yang berubah hanya perulangan mana yang di luar.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int r, c;
+        cin >> r >> c;
+        vector<vector<int>> m(r, vector<int>(c));
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cin >> m[i][j];
+            }
+        }
+
+        for (int i = 0; i < r; i++) {
+            int jumlah = 0;
+            for (int j = 0; j < c; j++) {
+                jumlah += m[i][j];
+            }
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << jumlah;
+        }
+        cout << endl;
+
+        for (int j = 0; j < c; j++) {
+            int jumlah = 0;
+            for (int i = 0; i < r; i++) {
+                jumlah += m[i][j];
+            }
+            if (j > 0) {
+                cout << " ";
+            }
+            cout << jumlah;
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    r, c = map(int, input().split())
+    m = []
+    for i in range(r):
+        m.append(list(map(int, input().split())))
+
+    for i in range(r):
+        jumlah = 0
+        for j in range(c):
+            jumlah += m[i][j]
+        if i > 0:
+            print(" ", end="")
+        print(jumlah, end="")
+    print()
+
+    for j in range(c):
+        jumlah = 0
+        for i in range(r):
+            jumlah += m[i][j]
+        if j > 0:
+            print(" ", end="")
+        print(jumlah, end="")
+    print()
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Menggabung dua data terurut">
+  Ada dua kelompok data yang masing-masing **sudah urut naik**. Input: `n`, lalu `n` bilangan kelompok pertama, lalu `m`, lalu `m` bilangan kelompok kedua. Gabungkan keduanya menjadi satu data yang tetap urut naik, **tanpa** mengurutkan ulang dari awal.
+
+  ```txt title="Contoh input"
+  4
+  1 4 7 10
+  3
+  2 4 11
+  ```
+
+  ```txt title="Contoh output"
+  1 2 4 4 7 10 11
+  ```
+
+  <Petunjuk>
+    Pakai dua penunjuk indeks, `i` untuk kelompok pertama dan `j` untuk kelompok kedua. Di setiap langkah, bandingkan `a[i]` dengan `b[j]`, ambil yang lebih kecil, lalu majukan penunjuknya. Jika salah satu kelompok habis, sisa kelompok lainnya tinggal disalin.
+  </Petunjuk>
+
+  <Pembahasan>
+    Karena kedua kelompok sudah urut, elemen terkecil yang belum diambil pasti ada di `a[i]` atau `b[j]`. Kesalahan yang sering terjadi adalah lupa menyalin sisa elemen setelah perulangan pertama berhenti. Pada contoh, `11` hanya masuk lewat perulangan sisa.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    vector<int> bacaData() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+        return data;
+    }
+
+    int main() {
+        vector<int> a = bacaData();
+        vector<int> b = bacaData();
+        int n = a.size(), m = b.size();
+
+        vector<int> hasil;
+        int i = 0, j = 0;
+        while (i < n && j < m) {
+            if (a[i] <= b[j]) {
+                hasil.push_back(a[i]);
+                i++;
+            } else {
+                hasil.push_back(b[j]);
+                j++;
+            }
+        }
+        while (i < n) {
+            hasil.push_back(a[i]);
+            i++;
+        }
+        while (j < m) {
+            hasil.push_back(b[j]);
+            j++;
+        }
+
+        for (int k = 0; k < (int)hasil.size(); k++) {
+            if (k > 0) {
+                cout << " ";
+            }
+            cout << hasil[k];
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def baca_data():
+        int(input())                      # n tidak dipakai, len() sudah cukup
+        return list(map(int, input().split()))
+
+
+    a = baca_data()
+    b = baca_data()
+    n, m = len(a), len(b)
+
+    hasil = []
+    i = j = 0
+    while i < n and j < m:
+        if a[i] <= b[j]:
+            hasil.append(a[i])
+            i += 1
+        else:
+            hasil.append(b[j])
+            j += 1
+    while i < n:
+        hasil.append(a[i])
+        i += 1
+    while j < m:
+        hasil.append(b[j])
+        j += 1
+
+    print(*hasil)
+    ```
+
+    Fungsi `bacaData` dipakai dua kali karena format kedua kelompok sama. Fungsi boleh mengembalikan sebuah `vector`. Teknik dua penunjuk ini adalah inti dari _merge sort_, salah satu cara mengurutkan yang paling cepat.
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Jumlah rentang dengan cepat">
+  Baris pertama berisi `n` dan `q`. Baris kedua berisi `n` bilangan. Lalu ada `q` pertanyaan, masing-masing berupa `l r` (1 ≤ l ≤ r ≤ n). Untuk setiap pertanyaan, tampilkan jumlah elemen ke-`l` sampai ke-`r` (posisi dihitung dari 1).
+
+  Nilai `n` dan `q` bisa mencapai 100.000, dan setiap bilangan bisa mencapai ±1.000.000.000. Program yang menjumlah ulang dengan perulangan untuk setiap pertanyaan akan terlalu lambat.
+
+  ```txt title="Contoh input"
+  6 3
+  4 -2 7 1 3 5
+  1 3
+  2 6
+  4 4
+  ```
+
+  ```txt title="Contoh output"
+  9
+  14
+  1
+  ```
+
+  <Petunjuk>
+    Ingat Soal 3. Siapkan `p` berukuran `n + 1` dengan `p[0] = 0` dan `p[i]` = jumlah `i` elemen pertama. Jumlah elemen ke-`l` sampai ke-`r` sama dengan `p[r] - p[l - 1]`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Array `p` disebut **prefix sum**. Array ini dihitung sekali dengan satu perulangan, lalu setiap pertanyaan dijawab dengan satu pengurangan, berapa pun panjang rentangnya. Cara menjumlah ulang butuh sampai 100.000 × 100.000 = 10 miliar langkah, sedangkan cara ini hanya sekitar 200.000 langkah.
+
+    `p[0] = 0` membuat rumus `p[r] - p[l - 1]` tetap benar saat `l = 1`. Jumlahnya bisa mencapai 100.000 × 10⁹ = 10¹⁴, jadi `p` harus bertipe `long long`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n, q;
+        cin >> n >> q;
+
+        vector<long long> p(n + 1);         // p[0] = 0
+        for (int i = 1; i <= n; i++) {
+            long long x;
+            cin >> x;
+            p[i] = p[i - 1] + x;
+        }
+
+        for (int k = 0; k < q; k++) {
+            int l, r;
+            cin >> l >> r;
+            cout << p[r] - p[l - 1] << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n, q = map(int, input().split())
+    data = list(map(int, input().split()))
+
+    p = [0] * (n + 1)                       # p[0] = 0
+    for i in range(1, n + 1):
+        p[i] = p[i - 1] + data[i - 1]
+
+    for k in range(q):
+        l, r = map(int, input().split())
+        print(p[r] - p[l - 1])
+    ```
+
+    Untuk contoh di atas, `p` = `0 4 2 9 10 13 18`. Pertanyaan `2 6` dijawab dengan `p[6] - p[1]` = 18 - 4 = 14. Cara menghitung "berapa langkah" sebuah program dibahas di [Kompleksitas Waktu](/docs/cpp/pendalaman/kompleksitas-waktu).
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Bubble sort per putaran">
+  Urutkan `n` bilangan (n ≥ 2) secara naik dengan **bubble sort**: dalam satu putaran, bandingkan setiap pasangan elemen yang bersebelahan dari kiri ke kanan, dan tukar jika yang kiri lebih besar. Ulangi putaran sampai data urut.
+
+  Tampilkan isi data setelah **setiap** putaran. Berhenti tepat setelah ada putaran yang tidak menukar apa pun (putaran itu tetap ditampilkan).
+
+  ```txt title="Contoh input"
+  5
+  5 1 4 2 8
+  ```
+
+  ```txt title="Contoh output"
+  1 4 2 5 8
+  1 2 4 5 8
+  1 2 4 5 8
+  ```
+
+  ```txt title="Contoh input"
+  3
+  1 2 3
+  ```
+
+  ```txt title="Contoh output"
+  1 2 3
+  ```
+
+  <Petunjuk>
+    Setelah putaran pertama, elemen terbesar pasti sudah "menggelembung" ke ujung kanan. Setelah putaran kedua, dua elemen terbesar sudah di tempatnya, dan seterusnya. Catat dengan sebuah variabel `bool` apakah ada pertukaran di putaran ini.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pada putaran ke-`p` (mulai dari 0), `p` elemen terakhir sudah di posisi akhirnya, jadi perbandingan cukup sampai indeks `n - 2 - p`. Penanda `ditukar` membuat pengurutan berhenti lebih awal: putaran ketiga pada contoh tidak menukar apa pun, berarti data sudah urut, dan putaran keempat tidak perlu dijalankan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    void cetak(const vector<int>& data) {
+        for (int i = 0; i < (int)data.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << data[i];
+        }
+        cout << endl;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> data(n);
+        for (int i = 0; i < n; i++) {
+            cin >> data[i];
+        }
+
+        for (int p = 0; p < n - 1; p++) {
+            bool ditukar = false;
+            for (int j = 0; j < n - 1 - p; j++) {
+                if (data[j] > data[j + 1]) {
+                    int sementara = data[j];
+                    data[j] = data[j + 1];
+                    data[j + 1] = sementara;
+                    ditukar = true;
+                }
+            }
+            cetak(data);
+            if (!ditukar) {
+                break;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def cetak(data):
+        print(*data)
+
+
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    for p in range(n - 1):
+        ditukar = False
+        for j in range(n - 1 - p):
+            if data[j] > data[j + 1]:
+                data[j], data[j + 1] = data[j + 1], data[j]
+                ditukar = True
+        cetak(data)
+        if not ditukar:
+            break
+    ```
+
+    Untuk menukar dua elemen, C++ butuh variabel sementara (atau fungsi `swap(data[j], data[j + 1])`). Python bisa menukar langsung dengan `a, b = b, a`. Di program nyata, pakai `sort` dari pustaka standar yang jauh lebih cepat. Bubble sort dipelajari karena idenya mudah ditelusuri.
+  </Pembahasan>
+</Soal>

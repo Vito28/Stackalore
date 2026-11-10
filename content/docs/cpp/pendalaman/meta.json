@@ -4,7 +4,12 @@
   "pages": [
     "buffer",
     "baris-ajaib",
+    "bilangan-biner",
     "pass-by-value-dan-reference",
-    "undefined-behavior"
+    "pointer",
+    "pointer-dan-array",
+    "memori-dinamis",
+    "undefined-behavior",
+    "kompleksitas-waktu"
   ]
 }

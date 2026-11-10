@@ -2,10 +2,10 @@
   "title": "C++ Dasar",
   "icon": "SquareCode",
   "pages": [
-    "program-pertama",
+    "input-dan-output",
     "variabel-dan-tipe-data",
-    "input-dengan-cin",
     "operator-aritmatika",
-    "operator-perbandingan-dan-logika"
+    "operator-perbandingan-dan-logika",
+    "operator-bitwise"
   ]
 }

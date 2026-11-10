@@ -1,0 +1,249 @@
+---
+title: Kompleksitas Waktu (Big-O)
+description: Mengukur seberapa cepat langkah program bertambah saat datanya membesar, ditambah contekan kompleksitas operasi struktur data di C++ dan Python.
+sumber:
+  - ref: cppreference
+    judul: Containers library
+    url: https://en.cppreference.com/w/cpp/container
+  - ref: cppreference
+    judul: "std::vector"
+    url: https://en.cppreference.com/w/cpp/container/vector
+  - ref: cppreference
+    judul: "std::deque"
+    url: https://en.cppreference.com/w/cpp/container/deque
+  - ref: cppreference
+    judul: "std::map"
+    url: https://en.cppreference.com/w/cpp/container/map
+  - ref: cppreference
+    judul: "std::unordered_map"
+    url: https://en.cppreference.com/w/cpp/container/unordered_map
+  - ref: python-docs
+    judul: Time complexity of operations on built-in types
+    url: https://docs.python.org/3/builtins/time-complexity.html
+  - ref: python-docs
+    judul: "collections.deque"
+    url: https://docs.python.org/3/library/collections.html#collections.deque
+---
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & Vector" />
+
+## Mengapa tidak diukur dengan detik?
+
+Lama program berjalan dalam detik bergantung pada banyak hal: kecepatan komputer, bahasa, compiler, bahkan program lain yang sedang berjalan. Program yang sama bisa butuh 1 detik di laptopmu dan 0,1 detik di komputer lain.
+
+Pertanyaan yang lebih berguna adalah: **jika datanya 10 kali lebih banyak, berapa kali lebih banyak langkah yang dibutuhkan?** Jawabannya hanya bergantung pada cara kerja programnya (algoritmanya), bukan pada komputernya. Inilah yang diukur oleh **kompleksitas waktu**.
+
+## Menghitung langkah
+
+Ambil contoh menjumlahkan `n` bilangan di dalam array:
+
+```cpp tab="C++"
+int total = 0;
+for (int i = 0; i < n; i++) {
+    total += data[i];
+}
+```
+
+```python tab="Python"
+total = 0
+for i in range(n):
+    total += data[i]
+```
+
+Isi perulangan dijalankan tepat `n` kali. Jika `n` menjadi dua kali lipat, langkahnya juga dua kali lipat. Kita tidak peduli berapa lama satu langkah, hanya **bagaimana jumlah langkah tumbuh** saat `n` membesar.
+
+## Notasi Big-O
+
+Kompleksitas waktu ditulis dengan **notasi Big-O**, misalnya O(n), dibaca "O dari n". Cara menentukannya:
+
+1. Hitung kira-kira berapa langkah yang dibutuhkan untuk data berukuran `n`.
+2. Ambil **suku yang tumbuh paling cepat** dan buang sisanya.
+3. Buang **pengali konstan**.
+
+Program yang butuh `3n + 5` langkah ditulis O(n). Program yang butuh `n²/2 + n` langkah ditulis O(n²). Saat `n` sangat besar, suku kecil dan pengali tidak lagi menentukan.
+
+Biasanya Big-O menggambarkan **kasus terburuk**. Pencarian linear bisa saja menemukan yang dicari di elemen pertama, tetapi kita menilainya dari kemungkinan terburuk: yang dicari ada di akhir atau tidak ada sama sekali.
+
+## Kompleksitas yang paling sering ditemui
+
+### O(1): konstan
+
+Jumlah langkahnya **tidak bergantung** pada `n`. Contoh terbaiknya adalah akses lewat indeks, `data[i]`. Alamat elemen ke-`i` langsung dihitung dari alamat awal (lihat [Pointer & Array](/docs/cpp/pendalaman/pointer-dan-array)), jadi `data[5]` dan `data[999999]` sama cepatnya.
+
+### O(n): linear
+
+Langkahnya sebanding dengan `n`: data 10 kali lebih banyak, langkahnya 10 kali lebih banyak. Contohnya menjumlahkan semua elemen, mencari nilai terbesar, dan **pencarian linear** dari materi [Array & Vector](/docs/cpp/array-dan-vector).
+
+### O(n²): kuadratik
+
+Biasanya muncul dari [perulangan bersarang](/docs/cpp/perulangan-bersarang) yang masing-masing berjalan sampai `n`. Misalnya memeriksa apakah ada dua elemen kembar dengan membandingkan setiap pasangan:
+
+```cpp tab="C++"
+bool adaKembar = false;
+for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+        if (data[i] == data[j]) {
+            adaKembar = true;
+        }
+    }
+}
+```
+
+```python tab="Python"
+ada_kembar = False
+for i in range(n):
+    for j in range(i + 1, n):
+        if data[i] == data[j]:
+            ada_kembar = True
+```
+
+Untuk `n = 1.000`, perbandingan dilakukan 499.500 kali, sekitar `n²/2`. Data 10 kali lebih banyak berarti langkahnya **100 kali** lebih banyak.
+
+### O(log n): logaritmik
+
+Muncul saat setiap langkah **membuang separuh** data. Berapa kali `n` bisa dibagi dua sampai tersisa 1?
+
+```cpp tab="C++"
+int langkah = 0;
+while (n > 1) {
+    n = n / 2;       // buang separuh
+    langkah++;
+}
+cout << langkah << endl;
+```
+
+```python tab="Python"
+langkah = 0
+while n > 1:
+    n = n // 2       # buang separuh
+    langkah += 1
+print(langkah)
+```
+
+| `n` | `langkah` |
+| --- | --- |
+| 10 | 3 |
+| 1.000 | 9 |
+| 1.000.000 | 19 |
+
+Sejuta data hanya butuh 19 langkah. Angka ini adalah logaritma basis 2 dari `n`, dibulatkan ke bawah. Itulah O(log n): data seribu kali lebih banyak hanya menambah sekitar 10 langkah.
+
+Contoh nyatanya adalah **pencarian biner** (_binary search_) pada data yang **sudah terurut**. Bandingkan yang dicari dengan elemen tengah. Jika yang dicari lebih besar, separuh kiri pasti tidak berisi jawabannya dan bisa dibuang, begitu pula sebaliknya. Misalnya mencari `57`:
+
+| Langkah | Kandidat tersisa | Elemen tengah | Keputusan |
+| --- | --- | --- | --- |
+| 1 | `3 8 15 21 30 42 57 64` (8 elemen) | `21` | 57 lebih besar, buang separuh kiri |
+| 2 | `30 42 57 64` (4 elemen) | `42` | 57 lebih besar, buang separuh kiri |
+| 3 | `57 64` (2 elemen) | `57` | ketemu |
+
+Untuk sejuta data terurut, pencarian linear bisa butuh 1.000.000 perbandingan, sedangkan pencarian biner paling banyak sekitar 20.
+
+## Seberapa besar bedanya?
+
+Tabel ini menunjukkan perkiraan jumlah langkah. Kolom O(n log n) ditambahkan karena itulah kompleksitas pengurutan yang baik, seperti `sort` di C++ dan `sorted()` di Python.
+
+| `n` | O(1) | O(log n) | O(n) | O(n log n) | O(n²) |
+| --- | --- | --- | --- | --- | --- |
+| 10 | 1 | ≈ 3 | 10 | ≈ 33 | 100 |
+| 1.000 | 1 | ≈ 10 | 1.000 | ≈ 10.000 | 1.000.000 |
+| 1.000.000 | 1 | ≈ 20 | 1.000.000 | ≈ 20.000.000 | 1.000.000.000.000 |
+
+Sebagai perkiraan kasar, anggap komputer mengerjakan sekitar 100 juta langkah sederhana per detik. Untuk `n = 1.000.000`, algoritma O(n log n) selesai dalam sekitar 0,2 detik, sedangkan algoritma O(n²) butuh sekitar 10.000 detik, hampir 3 jam.
+
+<Callout type="info" title="Big-O bukan segalanya">
+  Big-O hanya menjelaskan bagaimana jumlah langkah **tumbuh**. Untuk data kecil, algoritma O(n²) yang sederhana bisa saja lebih cepat daripada algoritma O(n log n) yang rumit. Namun untuk data besar, pertumbuhanlah yang menentukan.
+</Callout>
+
+## Contekan: operasi pada struktur data
+
+Dua istilah sebelum masuk ke tabel:
+
+- **O(1) amortized**: biasanya O(1), tetapi sesekali O(n) saat wadahnya penuh dan semua elemen harus dipindah ke tempat yang lebih besar. Jika dirata-rata atas banyak operasi, hasilnya tetap O(1). Contohnya `push_back` dan `append`.
+- **Rata-rata O(1)**: berlaku untuk struktur berbasis _hashing_, seperti `unordered_map`, `unordered_set`, serta `dict` dan `set` Python. Jika banyak kunci "bertabrakan", operasinya bisa memburuk menjadi O(n). Dalam praktik, kasus ini jarang terjadi.
+
+### Array, `vector`, dan `list` Python
+
+| Operasi | C++ (`vector`) | Python (`list`) | Kompleksitas |
+| --- | --- | --- | --- |
+| Akses lewat indeks | `v[i]` | `lst[i]` | O(1) |
+| Tambah atau hapus di akhir | `v.push_back(x)`, `v.pop_back()` | `lst.append(x)`, `lst.pop()` | O(1) amortized |
+| Sisip atau hapus di depan/tengah | `v.insert(...)`, `v.erase(...)` | `lst.insert(i, x)`, `lst.pop(0)` | O(n) |
+| Cari sebuah nilai | perulangan atau `find` | `x in lst`, `lst.index(x)` | O(n) |
+| Banyak elemen | `v.size()` | `len(lst)` | O(1) |
+| Mengurutkan | `sort(v.begin(), v.end())` | `lst.sort()` | O(n log n) |
+
+Sisip di depan atau tengah bernilai O(n) karena elemen harus tetap bersebelahan: semua elemen sesudahnya digeser satu tempat.
+
+### Linked list
+
+| Operasi | Kompleksitas | Alasan |
+| --- | --- | --- |
+| Sisip atau hapus di depan (head) | O(1) | cukup mengubah beberapa pointer |
+| Sisip atau hapus setelah node yang sudah dipegang | O(1) | cukup mengubah beberapa pointer |
+| Akses elemen ke-`i` | O(n) | harus berjalan dari head mengikuti `next` |
+| Cari sebuah nilai | O(n) | harus memeriksa node satu per satu |
+
+Pustaka C++ juga menyediakan linked list siap pakai, `list` dari `<list>`, dengan kompleksitas yang sama. Lihat [Linked List](/docs/cpp/linked-list).
+
+### Stack, queue, dan deque
+
+| Struktur | C++ | Python | Kompleksitas |
+| --- | --- | --- | --- |
+| [Stack](/docs/cpp/stack) | `stack`: `push`, `pop`, `top` | `list`: `append`, `pop`, `lst[-1]` | O(1), di Python amortized |
+| [Queue](/docs/cpp/queue) | `queue`: `push`, `pop`, `front` | `deque`: `append`, `popleft`, `q[0]` | O(1) |
+| Deque | `deque`: `push_front`, `push_back`, `pop_front`, `pop_back` | `deque`: `appendleft`, `append`, `popleft`, `pop` | O(1) |
+| Antrean dengan `list` Python | | `lst.pop(0)` | **O(n)** |
+
+Satu perbedaan kecil: `deque` C++ bisa diakses lewat indeks di posisi mana pun dalam O(1), sedangkan `deque` Python hanya O(1) di kedua ujungnya dan O(n) di tengah.
+
+### Map dan set
+
+| Struktur | Cari, tambah, hapus | Catatan |
+| --- | --- | --- |
+| C++ `map`, `set` | O(log n) | kunci selalu terurut |
+| C++ `unordered_map`, `unordered_set` | rata-rata O(1), terburuk O(n) | berbasis hashing, tidak terurut |
+| Python `dict`, `set` | rata-rata O(1), terburuk O(n) | berbasis hashing |
+| Sebagai perbandingan: cari di `vector` atau `list` | O(n) | memeriksa satu per satu |
+
+Penjelasan lengkapnya ada di [Map & Set](/docs/cpp/map-dan-set).
+
+## Jebakan: perulangan yang tersembunyi
+
+Satu baris kode bisa menyembunyikan perulangan. `x in lst`, `lst.pop(0)`, dan `v.erase(v.begin())` masing-masing O(n). Jika dipanggil di dalam perulangan sebanyak `n` kali, totalnya menjadi **O(n²)**, walaupun kodenya hanya terlihat seperti satu perulangan.
+
+```python
+import time
+from collections import deque
+
+n = 200000
+
+antrean = list(range(n))
+mulai = time.perf_counter()
+while len(antrean) > 0:
+    antrean.pop(0)          # O(n) setiap kali: semua elemen sisanya digeser
+print("list.pop(0)    :", round(time.perf_counter() - mulai, 3), "detik")
+
+antrean = deque(range(n))
+mulai = time.perf_counter()
+while len(antrean) > 0:
+    antrean.popleft()       # O(1)
+print("deque.popleft():", round(time.perf_counter() - mulai, 3), "detik")
+```
+
+```txt title="Output (angkanya bergantung komputer)"
+list.pop(0)    : 2.248 detik
+deque.popleft(): 0.012 detik
+```
+
+Isinya sama-sama mengosongkan antrean berisi 200.000 elemen, tetapi versi `list` ratusan kali lebih lambat. Hal yang sama berlaku di C++ untuk `v.erase(v.begin())` dibandingkan `pop_front()` pada `deque`. Begitu pula memeriksa `x in lst` berulang kali: jika datanya banyak, simpan di `set` agar setiap pemeriksaan rata-rata O(1).
+
+## Rangkuman
+
+- Kompleksitas waktu mengukur bagaimana jumlah langkah **tumbuh** saat ukuran data `n` membesar, bukan waktu dalam detik.
+- Big-O mengambil suku terbesar dan membuang konstanta: `3n + 5` langkah adalah O(n).
+- O(1): akses indeks. O(log n): membuang separuh setiap langkah, seperti pencarian biner. O(n): satu perulangan, seperti pencarian linear. O(n²): perulangan bersarang.
+- `push_back` dan `append` O(1) amortized. Sisip atau hapus di depan `vector`/`list` O(n), jadi gunakan `deque` untuk antrean.
+- `map` dan `set` C++ O(log n). `unordered_map`, `dict`, dan `set` Python rata-rata O(1), terburuk O(n).
+- Waspadai operasi O(n) di dalam perulangan: totalnya menjadi O(n²).
+
+<BackToLesson href="/docs/cpp/array-dan-vector" label="Array & Vector" />

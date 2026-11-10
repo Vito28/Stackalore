@@ -353,8 +353,22 @@ Ekspresi (contoh 8 / 2): 7 * 6
 
 ## Latihan
 
-<Accordions>
-  <Accordion title="1. Baca sebuah bilangan bulat, lalu tampilkan apakah bilangan itu positif, negatif, atau nol.">
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Semua soal cukup diselesaikan dengan percabangan, tanpa perulangan.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Positif, negatif, atau nol">
+  Baca sebuah bilangan bulat `n`, lalu tampilkan `Positif`, `Negatif`, atau `Nol`.
+
+  | Input | Output |
+  | --- | --- |
+  | `15` | `Positif` |
+  | `-7` | `Negatif` |
+  | `0` | `Nol` |
+
+  <Pembahasan>
+    Ada tiga kemungkinan, jadi pakai `if`, `else if`, dan `else`. Kasus terakhir tidak perlu dicek lagi: jika `n` tidak positif dan tidak negatif, pasti nol.
+
     ```cpp tab="C++"
     #include <iostream>
     using namespace std;
@@ -384,60 +398,653 @@ Ekspresi (contoh 8 / 2): 7 * 6
     else:
         print("Nol")
     ```
-  </Accordion>
-  <Accordion title="2. Baca tiga bilangan, lalu tampilkan yang terbesar.">
-    Simpan kandidat terbesar di sebuah variabel, lalu bandingkan satu per satu:
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Genap atau ganjil">
+  Baca sebuah bilangan bulat `n` (boleh negatif), lalu tampilkan `Genap` atau `Ganjil`. Tulis keputusannya dengan operator ternary.
+
+  | Input | Output |
+  | --- | --- |
+  | `8` | `Genap` |
+  | `-3` | `Ganjil` |
+  | `0` | `Genap` |
+
+  <Pembahasan>
+    Bilangan genap jika sisa baginya dengan 2 adalah 0, jadi periksa `n % 2 == 0`. Jangan memeriksa ganjil dengan `n % 2 == 1`: di C++, `-3 % 2` bernilai `-1`, sehingga -3 akan salah dianggap genap. Pemeriksaan `== 0` aman di kedua bahasa.
 
     ```cpp tab="C++"
-    int a, b, c;
-    cin >> a >> b >> c;
+    #include <iostream>
+    #include <string>
+    using namespace std;
 
-    int terbesar = a;
-    if (b > terbesar) {
-        terbesar = b;
+    int main() {
+        int n;
+        cin >> n;
+
+        string hasil = (n % 2 == 0) ? "Genap" : "Ganjil";
+        cout << hasil << endl;
+        return 0;
     }
-    if (c > terbesar) {
-        terbesar = c;
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+
+    hasil = "Genap" if n % 2 == 0 else "Ganjil"
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Urutan kondisi suhu">
+  Program berikut seharusnya menampilkan `Panas` untuk suhu 30 ke atas, `Sejuk` untuk 20 sampai 29, dan `Dingin` untuk suhu di bawah 20.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int suhu;
+      cin >> suhu;
+
+      if (suhu >= 20) {
+          cout << "Sejuk" << endl;
+      } else if (suhu >= 30) {
+          cout << "Panas" << endl;
+      } else {
+          cout << "Dingin" << endl;
+      }
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  suhu = int(input())
+
+  if suhu >= 20:
+      print("Sejuk")
+  elif suhu >= 30:
+      print("Panas")
+  else:
+      print("Dingin")
+  ```
+
+  Tanpa menjalankannya, apa output program ini jika input-nya `35`? Bagaimana jika `15`? Jelaskan kesalahannya, lalu perbaiki.
+
+  <Pembahasan>
+    Input `35` menampilkan `Sejuk`, sedangkan input `15` menampilkan `Dingin`. Kondisi diperiksa dari atas, dan 35 sudah memenuhi `suhu >= 20`, jadi program berhenti di cabang pertama. Cabang `Panas` tidak akan pernah dijalankan, karena setiap suhu yang memenuhi `suhu >= 30` pasti juga memenuhi `suhu >= 20`.
+
+    Perbaikannya, periksa kondisi yang paling sempit lebih dulu:
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int suhu;
+        cin >> suhu;
+
+        if (suhu >= 30) {
+            cout << "Panas" << endl;
+        } else if (suhu >= 20) {
+            cout << "Sejuk" << endl;
+        } else {
+            cout << "Dingin" << endl;
+        }
+        return 0;
     }
-    cout << terbesar << endl;
+    ```
+
+    ```python tab="Python"
+    suhu = int(input())
+
+    if suhu >= 30:
+        print("Panas")
+    elif suhu >= 20:
+        print("Sejuk")
+    else:
+        print("Dingin")
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Kalkulator bilangan bulat">
+  Baca sebuah ekspresi berbentuk `a op b`, dengan spasi di antara bilangan dan operatornya. `a` dan `b` adalah bilangan bulat tidak negatif, dan `op` salah satu dari `+`, `-`, `*`, `/`, atau `%`. Tampilkan hasilnya sebagai bilangan bulat, dengan `/` berarti pembagian bulat.
+
+  - Jika `op` adalah `/` atau `%` dan `b` bernilai 0, tampilkan `Tidak bisa membagi dengan nol`.
+  - Jika `op` bukan salah satu dari lima operator itu, tampilkan `Operator tidak dikenal`.
+
+  | Input | Output |
+  | --- | --- |
+  | `17 / 5` | `3` |
+  | `9 % 0` | `Tidak bisa membagi dengan nol` |
+  | `4 ^ 2` | `Operator tidak dikenal` |
+
+  <Petunjuk>
+    Simpan operator di variabel `char`, lalu pilih operasinya dengan `switch`. Pengecekan nol cukup ditulis di dalam `case '/'` dan `case '%'`. Di Python, pembagian bulat memakai `//`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Strukturnya sama dengan contoh kalkulator di atas, tetapi memakai `int`. Untuk dua `int`, `/` di C++ sudah berupa pembagian bulat, sedangkan Python perlu `//`. Soal ini membatasi bilangan tidak negatif karena pembagian bilangan negatif memberi hasil berbeda di C++ dan Python, seperti dibahas di [Operator Aritmatika](/docs/cpp/operator-aritmatika).
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b;
+        char op;
+        cin >> a >> op >> b;
+
+        switch (op) {
+            case '+':
+                cout << a + b << endl;
+                break;
+            case '-':
+                cout << a - b << endl;
+                break;
+            case '*':
+                cout << a * b << endl;
+                break;
+            case '/':
+                if (b == 0) {
+                    cout << "Tidak bisa membagi dengan nol" << endl;
+                } else {
+                    cout << a / b << endl;
+                }
+                break;
+            case '%':
+                if (b == 0) {
+                    cout << "Tidak bisa membagi dengan nol" << endl;
+                } else {
+                    cout << a % b << endl;
+                }
+                break;
+            default:
+                cout << "Operator tidak dikenal" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    a, op, b = input().split()
+    a = int(a)
+    b = int(b)
+
+    match op:
+        case "+":
+            print(a + b)
+        case "-":
+            print(a - b)
+        case "*":
+            print(a * b)
+        case "/":
+            if b == 0:
+                print("Tidak bisa membagi dengan nol")
+            else:
+                print(a // b)
+        case "%":
+            if b == 0:
+                print("Tidak bisa membagi dengan nol")
+            else:
+                print(a % b)
+        case _:
+            print("Operator tidak dikenal")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Kategori BMI">
+  BMI (_Body Mass Index_) dihitung dari berat badan (kg) dibagi kuadrat tinggi badan (meter). Baca berat dalam kg dan tinggi dalam **cm**, keduanya bilangan bulat dalam satu baris. Tampilkan nilai BMI dengan satu angka di belakang koma, lalu kategorinya. Skala berikut hanya contoh untuk latihan:
+
+  | BMI | Kategori |
+  | --- | --- |
+  | kurang dari `18.5` | Kurus |
+  | `18.5` sampai kurang dari `25` | Normal |
+  | `25` sampai kurang dari `30` | Gemuk |
+  | `30` ke atas | Obesitas |
+
+  | Input | Output |
+  | --- | --- |
+  | `70 175` | `22.9 Normal` |
+  | `50 170` | `17.3 Kurus` |
+  | `95 170` | `32.9 Obesitas` |
+
+  <Petunjuk>
+    Ubah tinggi ke meter dengan `tinggiCm / 100.0`. Pikirkan apa yang terjadi jika kamu menulis `tinggiCm / 100`. Untuk satu angka di belakang koma, pakai `fixed` dan `setprecision(1)` dari [`<iomanip>`](/docs/cpp/pustaka/iomanip) di C++, atau `f"{bmi:.1f}"` di Python.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jebakan utamanya ada di pembagian bilangan bulat: jika `tinggiCm` bertipe `int`, `tinggiCm / 100` untuk 175 menghasilkan 1, bukan 1.75, sehingga BMI-nya salah besar. Setelah BMI dihitung sebagai `double`, kategorinya ditentukan dengan `else if` dari batas terkecil. Kategori dipilih dari nilai BMI yang asli, bukan dari angka yang sudah dibulatkan. Contohnya, input `60 155` menghasilkan BMI sekitar 24,97, yang tampil sebagai `25.0`, tetapi kategorinya tetap Normal.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <iomanip>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int berat, tinggiCm;
+        cin >> berat >> tinggiCm;
+
+        double tinggiM = tinggiCm / 100.0;
+        double bmi = berat / (tinggiM * tinggiM);
+
+        string kategori;
+        if (bmi < 18.5) {
+            kategori = "Kurus";
+        } else if (bmi < 25) {
+            kategori = "Normal";
+        } else if (bmi < 30) {
+            kategori = "Gemuk";
+        } else {
+            kategori = "Obesitas";
+        }
+
+        cout << fixed << setprecision(1) << bmi << " " << kategori << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    berat, tinggi_cm = map(int, input().split())
+
+    tinggi_m = tinggi_cm / 100
+    bmi = berat / (tinggi_m * tinggi_m)
+
+    if bmi < 18.5:
+        kategori = "Kurus"
+    elif bmi < 25:
+        kategori = "Normal"
+    elif bmi < 30:
+        kategori = "Gemuk"
+    else:
+        kategori = "Obesitas"
+
+    print(f"{bmi:.1f} {kategori}")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Nilai akhir dan mutu">
+  Nilai akhir sebuah mata kuliah dihitung dari tugas (20%), UTS (30%), dan UAS (50%). Baca tiga bilangan bulat `tugas uts uas` dalam satu baris.
+
+  - Jika ada nilai di luar rentang 0 sampai 100, tampilkan `Nilai tidak valid`.
+  - Jika semua valid, tampilkan nilai akhir dengan satu angka di belakang koma, lalu huruf mutunya menurut tabel di bagian [Banyak pilihan](#banyak-pilihan-else-if).
+
+  | Input | Output |
+  | --- | --- |
+  | `80 75 90` | `83.5 B` |
+  | `90 85 88` | `87.5 A` |
+  | `70 101 60` | `Nilai tidak valid` |
+
+  <Petunjuk>
+    Periksa validitas lebih dulu dengan satu kondisi yang digabung memakai `||`. Hitung nilai akhir hanya jika semuanya valid, yaitu di cabang `else`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Validasi dikerjakan sebelum perhitungan, sehingga nilai yang salah tidak pernah ikut dihitung. Huruf mutu ditentukan dengan `else if` dari batas tertinggi, persis seperti contoh di materi. Perhatikan bahwa percabangan mutu berada **di dalam** cabang `else` validasi.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <iomanip>
+    using namespace std;
+
+    int main() {
+        int tugas, uts, uas;
+        cin >> tugas >> uts >> uas;
+
+        if (tugas < 0 || tugas > 100 || uts < 0 || uts > 100 || uas < 0 || uas > 100) {
+            cout << "Nilai tidak valid" << endl;
+        } else {
+            double akhir = 0.2 * tugas + 0.3 * uts + 0.5 * uas;
+
+            char mutu;
+            if (akhir >= 85) {
+                mutu = 'A';
+            } else if (akhir >= 70) {
+                mutu = 'B';
+            } else if (akhir >= 55) {
+                mutu = 'C';
+            } else if (akhir >= 40) {
+                mutu = 'D';
+            } else {
+                mutu = 'E';
+            }
+
+            cout << fixed << setprecision(1) << akhir << " " << mutu << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    tugas, uts, uas = map(int, input().split())
+
+    if tugas < 0 or tugas > 100 or uts < 0 or uts > 100 or uas < 0 or uas > 100:
+        print("Nilai tidak valid")
+    else:
+        akhir = 0.2 * tugas + 0.3 * uts + 0.5 * uas
+
+        if akhir >= 85:
+            mutu = "A"
+        elif akhir >= 70:
+            mutu = "B"
+        elif akhir >= 55:
+            mutu = "C"
+        elif akhir >= 40:
+            mutu = "D"
+        else:
+            mutu = "E"
+
+        print(f"{akhir:.1f} {mutu}")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Jumlah hari dalam sebulan">
+  Baca nomor bulan (1 sampai 12) dan tahun dalam satu baris, lalu tampilkan jumlah hari di bulan itu. Februari punya 29 hari pada tahun kabisat dan 28 hari pada tahun lainnya. Jika nomor bulan di luar 1 sampai 12, tampilkan `Bulan tidak valid`.
+
+  | Input | Output |
+  | --- | --- |
+  | `2 2024` | `29` |
+  | `2 1900` | `28` |
+  | `11 2023` | `30` |
+  | `13 2023` | `Bulan tidak valid` |
+
+  <Petunjuk>
+    Bulan 1, 3, 5, 7, 8, 10, dan 12 punya 31 hari. Bulan 4, 6, 9, dan 11 punya 30 hari. Di `switch`, beberapa `case` boleh ditulis berurutan tanpa isi agar berbagi kode yang sama. Rumus tahun kabisat ada di [Operator Perbandingan & Logika](/docs/cpp/operator-perbandingan-dan-logika).
+  </Petunjuk>
+
+  <Pembahasan>
+    Di sini _fall-through_ justru dimanfaatkan. `case 1:` yang tidak berisi apa-apa langsung "jatuh" ke `case` berikutnya, sampai bertemu kode dan `break`. Hanya `case 2` yang butuh percabangan tambahan untuk tahun kabisat. Di Python, beberapa nilai dalam satu `case` digabung dengan tanda `|`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int bulan, tahun;
+        cin >> bulan >> tahun;
+
+        switch (bulan) {
+            case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+                cout << 31 << endl;
+                break;
+            case 4: case 6: case 9: case 11:
+                cout << 30 << endl;
+                break;
+            case 2:
+                if ((tahun % 4 == 0 && tahun % 100 != 0) || tahun % 400 == 0) {
+                    cout << 29 << endl;
+                } else {
+                    cout << 28 << endl;
+                }
+                break;
+            default:
+                cout << "Bulan tidak valid" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    bulan, tahun = map(int, input().split())
+
+    match bulan:
+        case 1 | 3 | 5 | 7 | 8 | 10 | 12:
+            print(31)
+        case 4 | 6 | 9 | 11:
+            print(30)
+        case 2:
+            if (tahun % 4 == 0 and tahun % 100 != 0) or tahun % 400 == 0:
+                print(29)
+            else:
+                print(28)
+        case _:
+            print("Bulan tidak valid")
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Jenis segitiga">
+  Baca tiga bilangan bulat `a b c`, yaitu panjang sisi-sisi sebuah segitiga. Tiga sisi bisa membentuk segitiga hanya jika semuanya positif **dan** setiap sisi lebih pendek dari jumlah dua sisi lainnya. Tampilkan:
+
+  - `Bukan segitiga` jika syarat di atas tidak terpenuhi.
+  - `Sama sisi` jika ketiga sisinya sama.
+  - `Sama kaki` jika tepat dua sisinya sama.
+  - `Sembarang` jika ketiga sisinya berbeda.
+
+  | Input | Output |
+  | --- | --- |
+  | `5 5 8` | `Sama kaki` |
+  | `3 4 5` | `Sembarang` |
+  | `1 2 3` | `Bukan segitiga` |
+  | `2 2 5` | `Bukan segitiga` |
+
+  <Petunjuk>
+    Periksa `Bukan segitiga` paling awal. Jika tidak, `2 2 5` akan dianggap sama kaki. Syarat "setiap sisi lebih pendek dari jumlah dua sisi lainnya" berarti ada tiga perbandingan, satu untuk setiap sisi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Urutan pemeriksaannya adalah kuncinya: validitas, lalu sama sisi, lalu sama kaki, terakhir sembarang. Karena `else if` berhenti di kondisi pertama yang benar, kondisi sama kaki `a == b || b == c || a == c` tidak perlu lagi menyingkirkan kasus sama sisi. Perhatikan juga `1 2 3`: 1 + 2 tepat sama dengan 3, sehingga ketiga sisi hanya membentuk garis lurus. Karena itu syaratnya memakai `<=`, bukan `<`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int a, b, c;
+        cin >> a >> b >> c;
+
+        if (a <= 0 || b <= 0 || c <= 0 || a + b <= c || a + c <= b || b + c <= a) {
+            cout << "Bukan segitiga" << endl;
+        } else if (a == b && b == c) {
+            cout << "Sama sisi" << endl;
+        } else if (a == b || b == c || a == c) {
+            cout << "Sama kaki" << endl;
+        } else {
+            cout << "Sembarang" << endl;
+        }
+        return 0;
+    }
     ```
 
     ```python tab="Python"
     a, b, c = map(int, input().split())
 
-    terbesar = a
-    if b > terbesar:
-        terbesar = b
-    if c > terbesar:
-        terbesar = c
-    print(terbesar)
+    if a <= 0 or b <= 0 or c <= 0 or a + b <= c or a + c <= b or b + c <= a:
+        print("Bukan segitiga")
+    elif a == b and b == c:
+        print("Sama sisi")
+    elif a == b or b == c or a == c:
+        print("Sama kaki")
+    else:
+        print("Sembarang")
     ```
+  </Pembahasan>
+</Soal>
 
-    Pola "simpan kandidat lalu perbarui" ini akan sangat berguna saat mencari nilai terbesar dari banyak data dengan perulangan.
-  </Accordion>
-  <Accordion title="3. Lanjutkan contoh tahun kabisat dari materi 07: tampilkan jumlah hari di bulan Februari (28 atau 29).">
+<Soal no={9} level="sulit" judul="Urutkan tiga bilangan">
+  Baca tiga bilangan bulat, lalu tampilkan ketiganya dari yang terkecil sampai yang terbesar, dipisah spasi. Gunakan percabangan saja, tanpa perulangan.
+
+  | Input | Output |
+  | --- | --- |
+  | `7 2 5` | `2 5 7` |
+  | `3 1 3` | `1 3 3` |
+  | `-4 10 -9` | `-9 -4 10` |
+
+  <Petunjuk>
+    Menukar isi dua variabel butuh variabel bantu: `int temp = a; a = b; b = temp;`. Coba langkah "bandingkan lalu tukar jika urutannya salah" untuk pasangan `a` dan `b`, lalu `b` dan `c`, lalu `a` dan `b` sekali lagi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setelah dua langkah pertama, bilangan terbesar pasti sudah berada di `c`. Langkah ketiga merapikan dua bilangan sisanya. Contoh untuk input `7 2 5`:
+
+    | Langkah | `a` | `b` | `c` |
+    | --- | --- | --- | --- |
+    | Awal | 7 | 2 | 5 |
+    | Tukar `a`, `b` | 2 | 7 | 5 |
+    | Tukar `b`, `c` | 2 | 5 | 7 |
+    | `a` dan `b` sudah urut | 2 | 5 | 7 |
+
+    Python bisa menukar dua variabel dalam satu baris, `a, b = b, a`, sehingga tidak perlu variabel bantu.
+
     ```cpp tab="C++"
-    int tahun;
-    cin >> tahun;
+    #include <iostream>
+    using namespace std;
 
-    bool kabisat = (tahun % 4 == 0 && tahun % 100 != 0) || (tahun % 400 == 0);
+    int main() {
+        int a, b, c;
+        cin >> a >> b >> c;
 
-    if (kabisat) {
-        cout << "Februari " << tahun << ": 29 hari" << endl;
-    } else {
-        cout << "Februari " << tahun << ": 28 hari" << endl;
+        if (a > b) {
+            int temp = a;
+            a = b;
+            b = temp;
+        }
+        if (b > c) {
+            int temp = b;
+            b = c;
+            c = temp;
+        }
+        if (a > b) {
+            int temp = a;
+            a = b;
+            b = temp;
+        }
+
+        cout << a << " " << b << " " << c << endl;
+        return 0;
     }
     ```
 
     ```python tab="Python"
-    tahun = int(input())
+    a, b, c = map(int, input().split())
 
-    kabisat = (tahun % 4 == 0 and tahun % 100 != 0) or (tahun % 400 == 0)
+    if a > b:
+        a, b = b, a
+    if b > c:
+        b, c = c, b
+    if a > b:
+        a, b = b, a
 
-    hari = 29 if kabisat else 28
-    print(f"Februari {tahun}: {hari} hari")
+    print(a, b, c)
     ```
+  </Pembahasan>
+</Soal>
 
-    Perhatikan bahwa `if (kabisat)` sudah cukup, tidak perlu `if (kabisat == true)`.
-  </Accordion>
-</Accordions>
+<Soal no={10} level="sulit" judul="Perbaiki program parkir">
+  Program C++ berikut seharusnya menghitung biaya parkir dengan aturan:
+
+  - Jenis `1` (motor) Rp2.000 per jam, jenis `2` (mobil) Rp5.000 per jam.
+  - Parkir 0 jam gratis. Tampilkan `Gratis`.
+  - Parkir lebih dari 5 jam mendapat potongan Rp3.000. Tampilkan `Potongan parkir lama` sebelum biayanya.
+
+  ```cpp
+  #include <iostream>
+  using namespace std;
+
+  int main() {
+      int jenis, jam;
+      cin >> jenis >> jam;
+
+      int tarif = 0;
+      switch (jenis) {
+          case 1:
+              tarif = 2000;
+          case 2:
+              tarif = 5000;
+              break;
+      }
+
+      if (jam = 0) {
+          cout << "Gratis" << endl;
+      } else {
+          int biaya = tarif * jam;
+          if (jam > 5);
+          {
+              biaya -= 3000;
+              cout << "Potongan parkir lama" << endl;
+          }
+          cout << "Biaya: " << biaya << endl;
+      }
+      return 0;
+  }
+  ```
+
+  Apa pun input-nya, program ini selalu menampilkan:
+
+  ```txt title="Output program"
+  Potongan parkir lama
+  Biaya: -3000
+  ```
+
+  Ada **tiga** kesalahan. Temukan dan perbaiki semuanya. Setelah diperbaiki, outputnya harus seperti ini:
+
+  | Input | Output |
+  | --- | --- |
+  | `1 3` | `Biaya: 6000` |
+  | `1 0` | `Gratis` |
+
+  ```txt title="Contoh input"
+  2 7
+  ```
+
+  ```txt title="Contoh output"
+  Potongan parkir lama
+  Biaya: 32000
+  ```
+
+  Soal ini khusus C++, karena ketiga kesalahannya tidak mungkin terjadi di Python.
+
+  <Petunjuk>
+    Kompilasi dengan `g++ -Wall -Wextra`. Compiler memberi peringatan di ketiga tempat yang salah. Jika tidak memakai compiler, telusuri program untuk input `1 3` baris demi baris dan catat nilai `tarif`, `jam`, dan `biaya`.
+  </Petunjuk>
+
+  <Pembahasan>
+    1. `if (jam = 0)` **mengisi** `jam` dengan 0, lalu nilainya dianggap `false`. Program selalu masuk ke `else` dengan `jam` yang sudah menjadi 0, sehingga biayanya 0. Seharusnya `jam == 0`.
+    2. Titik koma pada `if (jam > 5);` mengakhiri `if` di situ. Blok di bawahnya berdiri sendiri dan selalu dijalankan, sehingga biaya 0 dipotong menjadi -3000.
+    3. `case 1` tidak diakhiri `break`, sehingga motor ikut "jatuh" ke `case 2` dan dikenai tarif mobil. Kesalahan ini baru terlihat setelah dua kesalahan lainnya diperbaiki: input `1 3` menghasilkan `Biaya: 15000`.
+
+    Pelajarannya, satu kesalahan bisa menutupi kesalahan lain. Perbaiki satu per satu, lalu uji lagi dengan beberapa input.
+
+    ```cpp
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+        int jenis, jam;
+        cin >> jenis >> jam;
+
+        int tarif = 0;
+        switch (jenis) {
+            case 1:
+                tarif = 2000;
+                break;
+            case 2:
+                tarif = 5000;
+                break;
+        }
+
+        if (jam == 0) {
+            cout << "Gratis" << endl;
+        } else {
+            int biaya = tarif * jam;
+            if (jam > 5) {
+                biaya -= 3000;
+                cout << "Potongan parkir lama" << endl;
+            }
+            cout << "Biaya: " << biaya << endl;
+        }
+        return 0;
+    }
+    ```
+  </Pembahasan>
+</Soal>

@@ -1,0 +1,289 @@
+---
+title: "Memori Dinamis: new & delete"
+description: Umur variabel di stack dan heap, cara memakai new dan delete, serta kebocoran memori, dangling pointer, dan cara mendeteksinya.
+sumber:
+  - ref: cppreference
+    judul: new expression
+    url: https://en.cppreference.com/w/cpp/language/new
+  - ref: cppreference
+    judul: delete expression
+    url: https://en.cppreference.com/w/cpp/language/delete
+  - ref: cppreference
+    judul: "std::unique_ptr"
+    url: https://en.cppreference.com/w/cpp/memory/unique_ptr
+  - ref: gcc-docs
+    judul: Program Instrumentation Options
+    url: https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html
+  - ref: python-docs
+    judul: Data model, Objects, values and types
+    url: https://docs.python.org/3/reference/datamodel.html#objects-values-and-types
+  - ref: python-docs
+    judul: gc, Garbage Collector interface
+    url: https://docs.python.org/3/library/gc.html
+---
+
+<BackToLesson href="/docs/cpp/linked-list" label="Linked List" />
+
+Linked list membuat node baru saat program berjalan, sebanyak yang dibutuhkan, dan node-node itu harus tetap hidup walaupun fungsi yang membuatnya sudah selesai. Variabel biasa tidak bisa melakukan itu. Halaman ini membahas alasannya dan solusinya, yaitu **memori dinamis**. Halaman ini memakai pointer, jadi baca [Pointer](/docs/cpp/pendalaman/pointer) dulu jika belum.
+
+## Umur sebuah variabel
+
+Variabel yang dibuat di dalam fungsi punya umur **otomatis**: tercipta saat barisnya dijalankan dan hilang saat bloknya (`{ }`) selesai. Memori untuk variabel seperti ini diatur di area yang disebut **stack**.
+
+Biasanya inilah yang kita mau. Masalah muncul jika sesuatu harus tetap hidup setelah fungsinya selesai:
+
+```cpp
+int* buatAngka() {
+    int x = 42;
+    return &x;           // ✗ x hilang begitu fungsi selesai
+}
+
+// di main:
+int* p = buatAngka();
+cout << *p << endl;
+```
+
+```txt title="Warning"
+warning: address of local variable ‘x’ returned [-Wreturn-local-addr]
+```
+
+Saat `main` menerima alamatnya, `x` sudah tidak ada. `p` menjadi **dangling pointer**, yaitu pointer yang menunjuk kotak yang sudah tidak berlaku. Membukanya adalah [undefined behavior](/docs/cpp/pendalaman/undefined-behavior). Saat dicoba dengan g++ 13, program ini langsung crash dengan `Segmentation fault`.
+
+## Memori dinamis: `new` dan `delete`
+
+Selain stack, program punya area memori lain yang disebut **heap**. Kotak di heap dipesan dengan **`new`** dan **tetap hidup sampai dikembalikan** dengan **`delete`**, tidak peduli fungsi mana yang sedang berjalan.
+
+```cpp
+int* buatAngka() {
+    int* p = new int(42);    // pesan kotak baru di heap, isinya 42
+    return p;                // aman: kotak itu tetap hidup
+}
+
+// di main:
+int* angka = buatAngka();
+cout << *angka << endl;      // 42
+
+delete angka;                // kembalikan kotaknya
+angka = nullptr;             // tandai bahwa angka tidak menunjuk apa pun lagi
+```
+
+`new int(42)` melakukan dua hal: memesan kotak `int` di heap, lalu menghasilkan **alamatnya**. Kotak itu tidak punya nama. Satu-satunya cara menjangkaunya adalah lewat pointer yang menyimpan alamat tersebut.
+
+| | Stack (otomatis) | Heap (dinamis) |
+| --- | --- | --- |
+| Cara membuat | `int x = 42;` | `int* p = new int(42);` |
+| Punya nama? | ya, `x` | tidak, hanya dijangkau lewat pointer |
+| Kapan hilang | otomatis saat bloknya selesai | saat `delete` dipanggil |
+| Ruang | terbatas, umumnya beberapa MB | jauh lebih besar |
+| Yang bertanggung jawab | compiler | **programmer** |
+
+Beginilah node linked list biasanya dibuat:
+
+```cpp
+struct Node {
+    int nilai;
+    Node* next;
+};
+
+Node* baru = new Node{10, nullptr};   // node baru di heap
+cout << baru->nilai << endl;          // 10
+delete baru;
+```
+
+Setiap node yang dibuat dengan `new` harus di-`delete` satu per satu saat list tidak dipakai lagi.
+
+## Array dinamis: `new[]` dan `delete[]`
+
+`new` juga bisa memesan array yang ukurannya baru diketahui saat program berjalan:
+
+```cpp
+int n;
+cin >> n;
+
+int* data = new int[n];          // array berisi n int di heap
+for (int i = 0; i < n; i++) {
+    data[i] = i * i;             // n = 5: 0 1 4 9 16
+}
+
+delete[] data;                   // array dikembalikan dengan delete[]
+data = nullptr;
+```
+
+`data[i]` berlaku karena `data` adalah pointer ke elemen pertama dan `data[i]` sama dengan `*(data + i)`, seperti dijelaskan di [Pointer & Array](/docs/cpp/pendalaman/pointer-dan-array).
+
+Pasangannya wajib cocok: yang dipesan dengan `new` dikembalikan dengan `delete`, yang dipesan dengan `new[]` dikembalikan dengan `delete[]`. Mencampurnya adalah _undefined behavior_. Untuk kasus sederhana, `g++ -Wall` bisa memperingatkannya:
+
+```txt title="Warning untuk delete data; setelah data = new int[5];"
+warning: ‘void operator delete(void*, std::size_t)’ called on pointer returned from a mismatched allocation function [-Wmismatched-new-delete]
+```
+
+## Menangkap kesalahan memori dengan sanitizer
+
+Kesalahan memori sering **tidak terlihat**: program tetap berjalan dan hasilnya kadang benar. Cara paling andal untuk menemukannya adalah **AddressSanitizer**. Kompilasi dengan:
+
+```bash
+g++ -g -fsanitize=address program.cpp -o program
+./program
+```
+
+- `-fsanitize=address` menambahkan pemeriksaan pada setiap akses memori dan setiap `new`/`delete`.
+- `-g` membuat laporannya menyebut **nama file dan nomor baris**.
+
+Setiap laporan diawali baris `ERROR` yang menyebut jenis kesalahannya, lalu daftar fungsi yang sedang berjalan. Cari baris yang menyebut file kodemu, misalnya `program.cpp:7`. Contoh-contoh di bawah dipotong agar mudah dibaca.
+
+Sanitizer paling lengkap di Linux. g++ versi MinGW di Windows umumnya tidak mendukungnya, jadi pengguna Windows bisa memakai WSL.
+
+## Tiga kesalahan klasik
+
+### 1. Memory leak (kebocoran memori)
+
+Kotak di heap yang tidak pernah di-`delete` tetap terpakai sampai program selesai. Lebih parah lagi jika alamatnya hilang, karena kotak itu tidak mungkin dikembalikan lagi:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    int* p = new int(1);
+    p = new int(2);          // kotak berisi 1 kini tidak bisa dijangkau lagi
+    cout << *p << endl;
+    delete p;
+    return 0;
+}
+```
+
+Program ini mencetak `2` dengan normal. Sanitizer melaporkan kebocorannya saat program selesai:
+
+```txt title="Output dengan sanitizer (dipotong)"
+2
+
+=================================================================
+==293668==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4 byte(s) in 1 object(s) allocated from:
+    #0 0x7f4d4eefe548 in operator new(unsigned long) ...
+    #1 0x61d79ddf527e in main program.cpp:5
+...
+SUMMARY: AddressSanitizer: 4 byte(s) leaked in 1 allocation(s).
+```
+
+Sistem operasi mengambil kembali semua memori saat program selesai, jadi 4 byte ini tidak berbahaya. Namun kebocoran di dalam perulangan, atau di program yang berjalan berhari-hari seperti server dan game, membuat pemakaian memori terus naik sampai komputer kehabisan.
+
+### 2. Dangling pointer dan use after free
+
+Setelah `delete p`, kotaknya sudah dikembalikan, tetapi `p` masih menyimpan alamat yang sama. `p` kini **dangling pointer**. Memakai `*p` setelah itu disebut **use after free**, dan hasilnya _undefined behavior_:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    int* p = new int(42);
+    delete p;
+    cout << *p << endl;      // memakai kotak yang sudah dikembalikan
+    return 0;
+}
+```
+
+Tanpa sanitizer, program ini belum tentu crash. Saat dicoba, ia mencetak angka acak seperti `-507767614` lalu selesai dengan normal, sehingga kesalahannya mudah lolos. Dengan sanitizer:
+
+```txt title="Output dengan sanitizer (dipotong)"
+==293678==ERROR: AddressSanitizer: heap-use-after-free on address 0x502000000010 ...
+READ of size 4 at 0x502000000010 thread T0
+    #0 0x573df297f30c in main program.cpp:7
+...
+freed by thread T0 here:
+    #0 0x7b0ec80ff5e8 in operator delete(void*, unsigned long) ...
+    #1 0x573df297f2d5 in main program.cpp:6
+...
+previously allocated by thread T0 here:
+    #0 0x7b0ec80fe548 in operator new(unsigned long) ...
+    #1 0x573df297f27e in main program.cpp:5
+```
+
+Laporannya menyebut tiga tempat sekaligus: baris yang **memakai** (7), baris yang **mengembalikan** (6), dan baris yang **memesan** kotak itu (5).
+
+Dangling pointer juga muncul dari hal yang lebih halus: alamat variabel lokal yang fungsinya sudah selesai (contoh di awal halaman ini), atau pointer ke elemen `vector` yang kemudian pindah tempat karena `push_back`.
+
+### 3. Double delete
+
+Mengembalikan kotak yang sama dua kali juga _undefined behavior_. Ini sering terjadi saat dua pointer menunjuk kotak yang sama:
+
+```cpp
+int main() {
+    int* p = new int(42);
+    int* q = p;              // q menunjuk kotak yang sama
+    delete p;
+    delete q;                // kotak yang sama dikembalikan dua kali
+    return 0;
+}
+```
+
+```txt title="Output tanpa sanitizer (Linux)"
+free(): double free detected in tcache 2
+Aborted (core dumped)
+```
+
+```txt title="Output dengan sanitizer (dipotong)"
+==308653==ERROR: AddressSanitizer: attempting double-free on 0x502000000010 in thread T0:
+    #0 0x74b6180ff5e8 in operator delete(void*, unsigned long) ...
+    #1 0x5d4e15532253 in main program.cpp:5
+...
+freed by thread T0 here:
+    #0 0x74b6180ff5e8 in operator delete(void*, unsigned long) ...
+    #1 0x5d4e1553223d in main program.cpp:4
+```
+
+Baris 5 adalah `delete` yang kedua, dan baris 4 adalah tempat kotak itu pertama kali dikembalikan.
+
+### Kebiasaan yang membantu
+
+- Setiap `new` harus punya **tepat satu** `delete` yang cocok, dan `new[]` dengan `delete[]`.
+- Setelah `delete p;`, langsung tulis `p = nullptr;`. `delete` pada `nullptr` dijamin tidak melakukan apa pun, dan pemeriksaan `if (p != nullptr)` kembali bermakna. Namun cara ini tidak menolong pointer lain (seperti `q` di atas) yang masih menyimpan alamat lama.
+- Selama belajar, uji programmu dengan `-fsanitize=address`.
+
+## C++ modern: biarkan objek yang mengurus memori
+
+Memasangkan setiap `new` dengan `delete` secara benar ternyata sulit, bahkan bagi programmer berpengalaman. Karena itu C++ modern menyarankan **jarang memakai `new` dan `delete` secara langsung**. Gunakan objek yang mengembalikan memorinya sendiri:
+
+```cpp
+// butuh #include <vector> dan #include <memory>
+vector<int> data(n);                            // pengganti new int[n]
+unique_ptr<int> angka = make_unique<int>(42);   // pengganti new int(42)
+cout << *angka << endl;                         // 42
+
+// tidak ada delete: keduanya dibersihkan otomatis saat bloknya selesai
+```
+
+- `vector` sebenarnya memakai heap, tetapi ia sendiri yang memesan dan mengembalikan memorinya. Saat `data` hilang di akhir blok, memorinya ikut dikembalikan.
+- `unique_ptr` dari `<memory>` adalah pointer "pemilik". Saat `unique_ptr` hilang, ia memanggil `delete` untuk kotak yang ditunjuknya. Cara memakainya sama dengan pointer biasa: `*angka` atau `angka->x`.
+
+Lalu untuk apa belajar `new` dan `delete`? Agar kamu paham apa yang terjadi di balik `vector` dan linked list, dan bisa membaca kode lama yang masih banyak memakainya.
+
+## Bagaimana dengan Python?
+
+Python tidak punya `new` dan `delete`. Objek dibuat otomatis, misalnya saat kamu menulis `[1, 2, 3]`, dan **dibersihkan otomatis** saat tidak ada lagi yang menunjuknya.
+
+CPython melakukannya dengan **reference counting**: setiap objek mencatat berapa banyak referensi yang menunjuknya. Saat hitungannya menjadi 0, objek langsung dihapus. Untuk objek yang saling menunjuk (_reference cycle_), ada **garbage collector** (modul `gc`) yang sesekali mencari dan membersihkannya.
+
+```python
+a = [1, 2, 3]
+b = a
+del a          # hanya menghapus NAMA a, bukan objeknya
+print(b)       # [1, 2, 3]: objeknya masih hidup karena masih ditunjuk b
+```
+
+`del` di Python **bukan** `delete` di C++. `del a` hanya melepas nama `a`. Objeknya baru dihapus jika tidak ada lagi yang menunjuknya.
+
+Akibatnya, dangling pointer, use after free, dan double delete **tidak mungkin terjadi** di Python. Kebocoran memori masih mungkin, misalnya list yang terus ditambah dan tidak pernah dikosongkan, tetapi itu kesalahan logika, bukan lupa `delete`. Harganya, Python harus terus mencatat referensi, yang menambah sedikit waktu dan memori, dan kamu tidak bisa menentukan sendiri kapan memori dikembalikan.
+
+## Rangkuman
+
+- Variabel lokal hidup di **stack** dan hilang otomatis saat bloknya selesai. Jangan mengembalikan alamatnya dari fungsi.
+- `new` memesan kotak di **heap** yang tetap hidup sampai `delete`. `new[]` berpasangan dengan `delete[]`, dan mencampurnya adalah _undefined behavior_.
+- **Memory leak**: kotak tidak pernah di-`delete`. **Dangling pointer**: pointer ke kotak yang sudah dikembalikan, dan memakainya (**use after free**) adalah _undefined behavior_. **Double delete**: mengembalikan kotak yang sama dua kali.
+- Kesalahan-kesalahan ini bisa ditangkap dengan `g++ -g -fsanitize=address`.
+- Di C++ modern, gunakan `vector` dan `unique_ptr` agar memori dikembalikan otomatis.
+- Python membersihkan objek otomatis dengan reference counting dan garbage collector. `del` hanya menghapus nama.
+
+<BackToLesson href="/docs/cpp/linked-list" label="Linked List" />

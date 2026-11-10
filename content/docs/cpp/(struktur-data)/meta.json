@@ -1,0 +1,5 @@
+{
+  "title": "Struktur Data",
+  "icon": "Boxes",
+  "pages": ["array-dan-vector", "string", "struct", "stack", "queue", "linked-list", "map-dan-set"]
+}

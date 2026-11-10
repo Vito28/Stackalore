@@ -1,0 +1,942 @@
+---
+title: String
+description: Mengolah teks sebagai deretan karakter, menggabungkan, membandingkan, memotong, dan mencari di dalam string.
+sumber:
+  - ref: cppreference
+    judul: std::basic_string
+    url: https://en.cppreference.com/w/cpp/string/basic_string
+  - ref: python-docs
+    judul: Text Sequence Type (str)
+    url: https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str
+  - ref: py4e
+---
+
+## String adalah deretan karakter
+
+Kamu sudah memakai `string` sejak materi [Variabel & Tipe Data](/docs/cpp/variabel-dan-tipe-data). Sekarang kita lihat isinya: sebuah string adalah **deretan karakter** yang tersusun seperti [array](/docs/cpp/array-dan-vector), sehingga setiap karakternya bisa diakses lewat indeks yang dimulai dari 0.
+
+<MemoryBoxes
+  caption={'string kota = "Medan"; setiap karakter menempati satu posisi dengan indeksnya sendiri.'}
+  items={[
+    { name: 'kota[0]', type: 'char', value: "'M'" },
+    { name: 'kota[1]', type: 'char', value: "'e'" },
+    { name: 'kota[2]', type: 'char', value: "'d'" },
+    { name: 'kota[3]', type: 'char', value: "'a'" },
+    { name: 'kota[4]', type: 'char', value: "'n'" },
+  ]}
+/>
+
+```cpp tab="C++"
+#include <string>
+
+string kota = "Medan";
+
+cout << kota[0] << endl;          // M
+cout << kota.length() << endl;    // 5 (kota.size() juga boleh)
+```
+
+```python tab="Python"
+kota = "Medan"
+
+print(kota[0])      # M
+print(len(kota))    # 5
+```
+
+Di C++, satu karakter bertipe `char` (kutip tunggal `'M'`), sedangkan teks bertipe `string` (kutip ganda `"Medan"`). Python tidak membedakan keduanya: `kota[0]` pun bertipe `str`.
+
+## Menggabungkan string
+
+Operator `+` menyambung dua string, dan `+=` menambahkan di akhir:
+
+```cpp tab="C++"
+string depan = "Budi";
+string belakang = "Santoso";
+
+string lengkap = depan + " " + belakang;   // "Budi Santoso"
+lengkap += "!";                            // "Budi Santoso!"
+```
+
+```python tab="Python"
+depan = "Budi"
+belakang = "Santoso"
+
+lengkap = depan + " " + belakang   # "Budi Santoso"
+lengkap += "!"                     # "Budi Santoso!"
+```
+
+### Jebakan: menggabung angka
+
+```cpp tab="C++"
+int umur = 19;
+
+string a = "Umur: " + to_string(umur);   // ✓ "Umur: 19"
+string b = "Umur: " + umur;              // ✗ BUKAN "Umur: 19"!
+```
+
+```python tab="Python"
+umur = 19
+
+a = "Umur: " + str(umur)   # ✓ "Umur: 19"
+b = "Umur: " + umur        # ✗ TypeError: can only concatenate str (not "int") to str
+```
+
+Python langsung menolak dengan `TypeError`. C++ justru **menerima** `"Umur: " + umur` tanpa error, tetapi hasilnya bukan teks yang diharapkan. Teks literal `"Umur: "` diperlakukan sebagai alamat memori, sehingga `+ 19` menggeser alamat itu sejauh 19 karakter, melewati ujung teks. Ini termasuk [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior). Selalu ubah angka menjadi string dengan `to_string()`.
+
+## Membandingkan string
+
+Operator perbandingan bisa dipakai langsung pada string:
+
+```cpp tab="C++"
+string jawaban = "ya";
+
+if (jawaban == "ya") {
+    cout << "Lanjut" << endl;
+}
+
+cout << boolalpha << (string("apel") < "jeruk") << endl;   // true, urut abjad
+```
+
+```python tab="Python"
+jawaban = "ya"
+
+if jawaban == "ya":
+    print("Lanjut")
+
+print("apel" < "jeruk")    # True, urut abjad
+```
+
+Perbandingan bersifat **case-sensitive**: `"Ya"` tidak sama dengan `"ya"`. Urutannya mengikuti kode karakter, dan semua huruf kapital berada **sebelum** huruf kecil, sehingga `"Zebra" < "apel"` bernilai `true`.
+
+## Menelusuri setiap karakter
+
+Karena string adalah deretan karakter, ia bisa diolah dengan perulangan. Contoh: menghitung huruf vokal dalam satu kalimat.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <cctype>
+using namespace std;
+
+int main() {
+    string kalimat;
+    getline(cin, kalimat);
+
+    int vokal = 0;
+    for (char c : kalimat) {
+        char k = tolower(c);     // ubah ke huruf kecil agar 'A' dan 'a' sama
+        if (k == 'a' || k == 'i' || k == 'u' || k == 'e' || k == 'o') {
+            vokal++;
+        }
+    }
+    cout << "Jumlah vokal: " << vokal << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+kalimat = input()
+
+vokal = 0
+for c in kalimat.lower():
+    if c in "aiueo":
+        vokal += 1
+print("Jumlah vokal:", vokal)
+```
+
+```txt title="Contoh jalannya program"
+Belajar Pemrograman Itu Seru
+Jumlah vokal: 11
+```
+
+Kalimat dibaca dengan [`getline`](/docs/cpp/pustaka/getline) karena berisi spasi. `cin >> kalimat` hanya akan membaca kata pertama.
+
+## Operasi yang sering dipakai
+
+| Operasi | C++ | Python |
+| --- | --- | --- |
+| Panjang | `s.length()` | `len(s)` |
+| Kosong? | `s.empty()` | `s == ""` atau `not s` |
+| Potong sebagian | `s.substr(posisi, panjang)` | `s[awal:akhir]` |
+| Cari posisi teks | `s.find("x")` | `s.find("x")` |
+| Jika tidak ditemukan | `string::npos` | `-1` |
+| Huruf besar | `toupper(c)` per karakter (`<cctype>`) | `s.upper()` |
+| Angka → string | `to_string(19)` | `str(19)` |
+| String → angka | `stoi("42")`, `stod("3.5")` | `int("42")`, `float("3.5")` |
+
+Contoh memecah alamat email menjadi nama pengguna dan domain:
+
+```cpp tab="C++"
+string email = "budi@kampus.ac.id";
+
+size_t at = email.find('@');               // 4
+string pengguna = email.substr(0, at);     // "budi"
+string domain = email.substr(at + 1);      // "kampus.ac.id"
+
+if (email.find('#') == string::npos) {
+    cout << "Tidak ada karakter #" << endl;
+}
+```
+
+```python tab="Python"
+email = "budi@kampus.ac.id"
+
+at = email.find("@")            # 4
+pengguna = email[:at]           # "budi"
+domain = email[at + 1:]         # "kampus.ac.id"
+
+if email.find("#") == -1:
+    print("Tidak ada karakter #")
+```
+
+Perhatikan perbedaannya: `substr(posisi, panjang)` di C++ menerima **panjang** potongan, sedangkan `s[awal:akhir]` di Python menerima **indeks akhir** (yang tidak ikut terambil).
+
+## Mengubah isi string
+
+String C++ bisa diubah karakter per karakter. String Python **tidak bisa diubah** (_immutable_). Kita harus membuat string baru.
+
+```cpp tab="C++"
+string kata = "Batu";
+kata[0] = 'R';               // "Ratu"
+```
+
+```python tab="Python"
+kata = "Batu"
+kata[0] = "R"                # ✗ TypeError: 'str' object does not support item assignment
+kata = "R" + kata[1:]        # ✓ buat string baru: "Ratu"
+```
+
+## Karakter adalah angka
+
+Di balik layar, setiap karakter disimpan sebagai angka menurut tabel **ASCII**. Contohnya `'A'` = 65, `'B'` = 66, dan `'a'` = 97. Karena itu karakter bisa dihitung:
+
+```cpp tab="C++"
+char c = 'A';
+cout << (int)c << endl;        // 65
+cout << (char)(c + 2) << endl; // C
+
+char digit = '7';
+int angka = digit - '0';       // 7, trik mengubah karakter digit menjadi angka
+```
+
+```python tab="Python"
+c = "A"
+print(ord(c))             # 65
+print(chr(ord(c) + 2))    # C
+
+digit = "7"
+angka = int(digit)        # 7
+```
+
+Sifat ini menjadi dasar banyak teknik, termasuk sandi sederhana di dunia kriptografi (lihat [Soal 4](#soal-4) di Latihan).
+
+## Rangkuman
+
+- String adalah deretan karakter. Setiap karakter diakses lewat indeks mulai 0. Panjangnya `s.length()` (Python: `len(s)`).
+- `+` menyambung string. Di C++, ubah angka dengan `to_string()` dulu, karena `"teks" + angka` tidak menghasilkan teks gabungan.
+- Perbandingan string bersifat case-sensitive dan mengikuti urutan kode karakter.
+- `substr`/`find` di C++ setara dengan _slicing_/`find` di Python. `find` mengembalikan `string::npos` (Python: `-1`) jika tidak ditemukan.
+- String C++ bisa diubah per karakter. String Python _immutable_.
+- Karakter adalah angka (ASCII), sehingga bisa dihitung dan dibandingkan.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Jika input berupa satu baris yang bisa berisi spasi, bacalah dengan `getline` (Python: `input()`).
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Palindrom">
+  Baca satu kata (huruf kecil semua). Tampilkan `Palindrom` jika kata itu dibaca sama dari depan maupun dari belakang, dan `Bukan palindrom` jika tidak.
+
+  | Input | Output |
+  | --- | --- |
+  | `katak` | `Palindrom` |
+  | `kodok` | `Palindrom` |
+  | `makan` | `Bukan palindrom` |
+
+  <Pembahasan>
+    Bandingkan karakter pertama dengan yang terakhir, kedua dengan kedua dari belakang, dan seterusnya sampai tengah. Pasangan dari `kata[i]` adalah `kata[n - 1 - i]`. Begitu ada satu pasangan yang berbeda, jawabannya sudah pasti, jadi perulangan bisa dihentikan.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string kata;
+        cin >> kata;
+
+        int n = kata.length();
+        bool palindrom = true;
+        for (int i = 0; i < n / 2; i++) {
+            if (kata[i] != kata[n - 1 - i]) {
+                palindrom = false;
+                break;
+            }
+        }
+        cout << (palindrom ? "Palindrom" : "Bukan palindrom") << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    kata = input()
+
+    n = len(kata)
+    palindrom = True
+    for i in range(n // 2):
+        if kata[i] != kata[n - 1 - i]:
+            palindrom = False
+            break
+    print("Palindrom" if palindrom else "Bukan palindrom")
+    ```
+
+    Versi singkat Python: `kata == kata[::-1]`. Untuk kata dengan panjang ganjil, karakter tengahnya tidak perlu dibandingkan dengan apa pun, dan `n / 2` yang dibulatkan ke bawah otomatis melewatinya.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Kapital, kecil, dan digit">
+  Baca satu baris teks. Tampilkan banyak huruf kapital, banyak huruf kecil, dan banyak digit di dalamnya, dipisah spasi. Karakter lain (spasi, tanda baca) tidak dihitung.
+
+  | Input | Output |
+  | --- | --- |
+  | `Halo Dunia 2024!` | `2 7 4` |
+  | `C++ itu SERU` | `5 3 0` |
+
+  <Pembahasan>
+    Karena karakter adalah angka, huruf kapital adalah karakter dari `'A'` sampai `'Z'`, huruf kecil dari `'a'` sampai `'z'`, dan digit dari `'0'` sampai `'9'`. Cukup satu perulangan dengan tiga _counter_.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string s;
+        getline(cin, s);
+
+        int besar = 0, kecil = 0, digit = 0;
+        for (char c : s) {
+            if (c >= 'A' && c <= 'Z') {
+                besar++;
+            } else if (c >= 'a' && c <= 'z') {
+                kecil++;
+            } else if (c >= '0' && c <= '9') {
+                digit++;
+            }
+        }
+        cout << besar << " " << kecil << " " << digit << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    s = input()
+
+    besar = kecil = digit = 0
+    for c in s:
+        if "A" <= c <= "Z":
+            besar += 1
+        elif "a" <= c <= "z":
+            kecil += 1
+        elif "0" <= c <= "9":
+            digit += 1
+    print(besar, kecil, digit)
+    ```
+
+    Pustaka `<cctype>` juga menyediakan `isupper(c)`, `islower(c)`, dan `isdigit(c)`. Di Python ada `c.isupper()`, `c.islower()`, dan `c.isdigit()`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Tebak output: potong dan cari">
+  Tentukan output program berikut tanpa menjalankannya.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      string s = "Pemrograman";
+      cout << s.length() << endl;
+      cout << s.substr(3, 4) << endl;
+      cout << s.find("ra") << endl;
+
+      s[0] = 'p';
+      s += "!";
+      cout << s << endl;
+      cout << s[s.length() - 2] << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  s = "Pemrograman"
+  print(len(s))
+  print(s[3:7])
+  print(s.find("ra"))
+
+  s = "p" + s[1:]
+  s += "!"
+  print(s)
+  print(s[len(s) - 2])
+  ```
+
+  <Pembahasan>
+    Kedua versi menampilkan:
+
+    ```txt
+    11
+    rogr
+    6
+    pemrograman!
+    n
+    ```
+
+    | Indeks | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+    | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    | Karakter | P | e | m | r | o | g | r | a | m | a | n |
+
+    - `substr(3, 4)` mengambil **4 karakter** mulai indeks 3. Padanannya di Python adalah `s[3:7]`, yaitu indeks 3 sampai **sebelum** 7.
+    - `find("ra")` mengembalikan posisi kemunculan **pertama**. Huruf `r` di indeks 3 diikuti `o`, jadi yang cocok baru di indeks 6.
+    - Setelah `"!"` ditambahkan, panjangnya 12. Karakter di indeks 10 adalah `n`.
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Caesar cipher">
+  Baris pertama berisi teks, baris kedua berisi bilangan `k` (0 ≤ k ≤ 1000). Geser setiap huruf `k` posisi ke depan dalam abjad. Setelah `z` kembali ke `a`, dan setelah `Z` kembali ke `A`. Huruf kapital tetap kapital, huruf kecil tetap kecil, dan karakter lain tidak berubah.
+
+  ```txt title="Contoh input"
+  Halo Dunia, xyz!
+  3
+  ```
+
+  ```txt title="Contoh output"
+  Kdor Gxqld, abc!
+  ```
+
+  ```txt title="Contoh input"
+  Zebra 2024
+  27
+  ```
+
+  ```txt title="Contoh output"
+  Afcsb 2024
+  ```
+
+  <Petunjuk>
+    Ubah huruf kecil menjadi urutan 0 sampai 25 dengan `c - 'a'`, tambahkan `k`, ambil sisa bagi 26, lalu kembalikan menjadi huruf dengan `'a' + ...`. Lakukan hal yang sama untuk huruf kapital dengan `'A'`. Teks dibaca sebelum `k` sehingga `getline` tidak terkena [jebakan `cin >>` lalu `getline`](/docs/cpp/pustaka/getline#jebakan-cin-dan-getline).
+  </Petunjuk>
+
+  <Pembahasan>
+    `% 26` membuat pergeseran berputar: `x` (urutan 23) + 3 = 26, dan 26 % 26 = 0, yaitu `a`. Ini juga menangani `k` yang lebih dari 26, seperti contoh kedua: menggeser 27 posisi sama dengan menggeser 1 posisi. Menaruh aturan pergeseran di fungsi `geser` membuat perulangan di `main` tetap pendek.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    char geser(char c, int k) {
+        if (c >= 'a' && c <= 'z') {
+            return 'a' + (c - 'a' + k) % 26;
+        }
+        if (c >= 'A' && c <= 'Z') {
+            return 'A' + (c - 'A' + k) % 26;
+        }
+        return c;
+    }
+
+    int main() {
+        string teks;
+        getline(cin, teks);
+        int k;
+        cin >> k;
+
+        for (int i = 0; i < (int)teks.length(); i++) {
+            teks[i] = geser(teks[i], k);
+        }
+        cout << teks << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def geser(c, k):
+        if "a" <= c <= "z":
+            return chr(ord("a") + (ord(c) - ord("a") + k) % 26)
+        if "A" <= c <= "Z":
+            return chr(ord("A") + (ord(c) - ord("A") + k) % 26)
+        return c
+
+
+    teks = input()
+    k = int(input())
+
+    hasil = ""
+    for c in teks:
+        hasil += geser(c, k)
+    print(hasil)
+    ```
+
+    Sandi kuno ini adalah contoh paling sederhana dari kriptografi. Untuk membuka sandinya, geser lagi sejauh `26 - k % 26`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Huruf besar di awal kata">
+  Baca satu baris teks. Ubah huruf pertama setiap kata menjadi kapital dan huruf lainnya menjadi kecil. Kata dipisahkan oleh satu spasi atau lebih, dan spasinya harus tetap seperti semula.
+
+  | Input | Output |
+  | --- | --- |
+  | `belajar PEMROGRAMAN itu seru` | `Belajar Pemrograman Itu Seru` |
+  | `halo` | `Halo` |
+  | `c++ DAN python` | `C++ Dan Python` |
+
+  <Petunjuk>
+    Sebuah karakter adalah awal kata jika ia berada di indeks 0 **atau** karakter sebelumnya adalah spasi. `toupper` dan `tolower` tidak mengubah karakter yang bukan huruf, jadi tidak perlu dicek terpisah.
+  </Petunjuk>
+
+  <Pembahasan>
+    Urutan kondisi `i == 0 || s[i - 1] == ' '` penting. Berkat [_short-circuit_](/docs/cpp/operator-perbandingan-dan-logika), `s[i - 1]` tidak pernah diperiksa saat `i` bernilai 0, sehingga tidak ada akses ke indeks -1. Di Python, `s[-1]` tidak error tetapi mengambil karakter **terakhir**, jadi tanpa `i == 0` hasilnya bisa diam-diam salah.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <cctype>
+    using namespace std;
+
+    int main() {
+        string s;
+        getline(cin, s);
+
+        for (int i = 0; i < (int)s.length(); i++) {
+            if (i == 0 || s[i - 1] == ' ') {
+                s[i] = toupper(s[i]);
+            } else {
+                s[i] = tolower(s[i]);
+            }
+        }
+        cout << s << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    s = input()
+
+    hasil = ""
+    for i in range(len(s)):
+        if i == 0 or s[i - 1] == " ":
+            hasil += s[i].upper()
+        else:
+            hasil += s[i].lower()
+    print(hasil)
+    ```
+
+    Python juga punya `s.title()`, tetapi aturannya sedikit berbeda: huruf setelah tanda baca seperti `'` ikut dijadikan kapital.
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Perbaiki penghitung kata">
+  Program berikut seharusnya menghitung banyak kata dalam satu baris. Kata dipisahkan oleh satu spasi atau lebih, dan baris boleh diawali atau diakhiri spasi. Program ini benar untuk `saya suka kopi` (hasilnya `3`), tetapi salah untuk input lain. Temukan penyebabnya dan perbaiki.
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <string>
+  using namespace std;
+
+  int main() {
+      string s;
+      getline(cin, s);
+
+      int kata = 1;
+      for (int i = 0; i < (int)s.length(); i++) {
+          if (s[i] == ' ') {
+              kata++;
+          }
+      }
+      cout << kata << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  s = input()
+
+  kata = 1
+  for c in s:
+      if c == " ":
+          kata += 1
+  print(kata)
+  ```
+
+  Hasil yang benar (tanda `·` mewakili spasi):
+
+  | Input | Output |
+  | --- | --- |
+  | `saya·suka·kopi` | `3` |
+  | `··saya···suka·kopi·` | `3` |
+  | (baris kosong) | `0` |
+
+  <Petunjuk>
+    Coba telusuri input kedua dengan tangan. Berapa banyak spasinya? Lalu pikirkan: karakter seperti apa yang **pasti** muncul tepat satu kali untuk setiap kata?
+  </Petunjuk>
+
+  <Pembahasan>
+    Program menganggap "banyak kata = banyak spasi + 1". Anggapan itu hanya benar jika antarkata dipisah tepat satu spasi dan tidak ada spasi di awal atau akhir. Input kedua punya 7 spasi, sehingga hasilnya 8. Baris kosong juga dihitung 1 kata.
+
+    Yang muncul tepat sekali untuk setiap kata adalah **huruf pertamanya**: karakter bukan spasi yang berada di indeks 0 atau didahului spasi. Hitung karakter seperti itu.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string s;
+        getline(cin, s);
+
+        int kata = 0;
+        for (int i = 0; i < (int)s.length(); i++) {
+            if (s[i] != ' ' && (i == 0 || s[i - 1] == ' ')) {
+                kata++;
+            }
+        }
+        cout << kata << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    s = input()
+
+    kata = 0
+    for i in range(len(s)):
+        if s[i] != " " and (i == 0 or s[i - 1] == " "):
+            kata += 1
+    print(kata)
+    ```
+
+    Versi singkat Python: `len(s.split())`. Tanpa argumen, `split()` memotong di setiap kelompok spasi dan membuang spasi di awal dan akhir.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Kompresi huruf berulang">
+  Baca satu kata yang hanya berisi huruf kecil. Ganti setiap deretan huruf yang sama dan berurutan dengan huruf itu diikuti panjang deretannya.
+
+  | Input | Output |
+  | --- | --- |
+  | `aaabccdddd` | `a3b1c2d4` |
+  | `abc` | `a1b1c1` |
+  | `zzzzzzzzzzzz` | `z12` |
+
+  <Petunjuk>
+    Olah per deretan, bukan per karakter. Catat huruf di awal deretan, lalu majukan indeks selama hurufnya masih sama sambil menghitung. Ubah hitungan menjadi teks dengan `to_string`.
+  </Petunjuk>
+
+  <Pembahasan>
+    Perulangan luar berjalan sekali untuk setiap deretan. Perulangan dalam memajukan `i` sampai hurufnya berganti, sehingga setelah perulangan dalam selesai, `i` sudah menunjuk awal deretan berikutnya. Syarat `i < n` di perulangan dalam harus dicek **lebih dulu** agar `s[i]` tidak dibaca di luar batas.
+
+    Contoh ketiga menjebak cara `'0' + jumlah`. Cara itu hanya benar untuk hitungan 0 sampai 9, sedangkan `to_string(12)` menghasilkan `"12"`.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        string s;
+        cin >> s;
+
+        string hasil = "";
+        int n = s.length();
+        int i = 0;
+        while (i < n) {
+            char huruf = s[i];
+            int jumlah = 0;
+            while (i < n && s[i] == huruf) {
+                jumlah++;
+                i++;
+            }
+            hasil += huruf;
+            hasil += to_string(jumlah);
+        }
+        cout << hasil << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    s = input()
+
+    hasil = ""
+    n = len(s)
+    i = 0
+    while i < n:
+        huruf = s[i]
+        jumlah = 0
+        while i < n and s[i] == huruf:
+            jumlah += 1
+            i += 1
+        hasil += huruf + str(jumlah)
+    print(hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Anagram">
+  Dua kata disebut **anagram** jika yang satu bisa disusun dari huruf-huruf kata lainnya, dengan banyak setiap huruf yang sama persis. Baca dua kata huruf kecil dalam satu baris, lalu tampilkan `Anagram` atau `Bukan anagram`.
+
+  | Input | Output |
+  | --- | --- |
+  | `kasur rusak` | `Anagram` |
+  | `aab abb` | `Bukan anagram` |
+  | `kopi pikok` | `Bukan anagram` |
+
+  <Petunjuk>
+    Siapkan `vector<int> hitung(26)`, satu kotak untuk setiap huruf. Huruf `c` menempati kotak `c - 'a'`. Tambah satu untuk setiap huruf kata pertama, kurangi satu untuk setiap huruf kata kedua. Apa isi semua kotak jika keduanya anagram?
+  </Petunjuk>
+
+  <Pembahasan>
+    Jika kedua kata anagram, setiap penambahan dari kata pertama "dibatalkan" oleh pengurangan dari kata kedua, sehingga semua kotak kembali 0. Contoh kedua menunjukkan kenapa memeriksa "hurufnya sama" saja tidak cukup: `aab` dan `abb` sama-sama memakai huruf `a` dan `b`, tetapi banyaknya berbeda. Memeriksa panjang lebih dulu adalah jalan pintas: kata dengan panjang berbeda pasti bukan anagram.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    bool isAnagram(const string& a, const string& b) {
+        if (a.length() != b.length()) {
+            return false;
+        }
+
+        vector<int> hitung(26);
+        for (char c : a) {
+            hitung[c - 'a']++;
+        }
+        for (char c : b) {
+            hitung[c - 'a']--;
+        }
+
+        for (int x : hitung) {
+            if (x != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    int main() {
+        string a, b;
+        cin >> a >> b;
+        cout << (isAnagram(a, b) ? "Anagram" : "Bukan anagram") << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def is_anagram(a, b):
+        if len(a) != len(b):
+            return False
+
+        hitung = [0] * 26
+        for c in a:
+            hitung[ord(c) - ord("a")] += 1
+        for c in b:
+            hitung[ord(c) - ord("a")] -= 1
+
+        for x in hitung:
+            if x != 0:
+                return False
+        return True
+
+
+    a, b = input().split()
+    print("Anagram" if is_anagram(a, b) else "Bukan anagram")
+    ```
+
+    String dikirim sebagai `const string&` dengan alasan yang sama seperti `const vector<int>&`: tidak disalin, dan tidak bisa diubah oleh fungsi.
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Membalik urutan kata">
+  Baca satu baris teks. Tampilkan kata-katanya dalam urutan terbalik, dipisah **tepat satu** spasi, tanpa spasi di awal maupun di akhir. Baris input bisa berisi beberapa spasi di antara kata, di awal, maupun di akhir.
+
+  | Input | Output |
+  | --- | --- |
+  | `saya suka belajar C++` | `C++ belajar suka saya` |
+  | `··halo···dunia·` | `dunia halo` |
+
+  Tanda `·` mewakili spasi.
+
+  <Petunjuk>
+    Pecah dulu baris menjadi `vector<string>` berisi kata-kata. Kumpulkan karakter ke sebuah `string` sementara. Saat bertemu spasi, simpan kata sementara itu jika tidak kosong, lalu kosongkan. Jangan lupa kata terakhir, yang tidak diikuti spasi.
+  </Petunjuk>
+
+  <Pembahasan>
+    Memecah baris menjadi kata adalah pekerjaan yang sering dibutuhkan, jadi layak dijadikan fungsi `pisahKata`. Setelah kata-katanya ada di vector, tinggal ditampilkan dari indeks terakhir. Kesalahan yang paling sering adalah lupa menyimpan kata terakhir setelah perulangan selesai, sehingga `C++` hilang dari hasil.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    vector<string> pisahKata(const string& s) {
+        vector<string> hasil;
+        string kata = "";
+        for (char c : s) {
+            if (c == ' ') {
+                if (!kata.empty()) {
+                    hasil.push_back(kata);
+                    kata = "";
+                }
+            } else {
+                kata += c;
+            }
+        }
+        if (!kata.empty()) {
+            hasil.push_back(kata);       // kata terakhir
+        }
+        return hasil;
+    }
+
+    int main() {
+        string s;
+        getline(cin, s);
+
+        vector<string> kata = pisahKata(s);
+        for (int i = (int)kata.size() - 1; i >= 0; i--) {
+            cout << kata[i];
+            if (i > 0) {
+                cout << " ";
+            }
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def pisah_kata(s):
+        hasil = []
+        kata = ""
+        for c in s:
+            if c == " ":
+                if kata != "":
+                    hasil.append(kata)
+                    kata = ""
+            else:
+                kata += c
+        if kata != "":
+            hasil.append(kata)           # kata terakhir
+        return hasil
+
+
+    s = input()
+
+    kata = pisah_kata(s)
+    for i in range(len(kata) - 1, -1, -1):
+        print(kata[i], end="")
+        if i > 0:
+            print(" ", end="")
+    print()
+    ```
+
+    Pada `(int)kata.size() - 1`, ukuran diubah ke `int` **sebelum** dikurangi. Ini kebiasaan aman untuk menghindari [jebakan `size()`](/docs/cpp/pustaka/vector#jebakan-size-unsigned) saat vector kosong. Versi singkat Python: `print(" ".join(reversed(s.split())))`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Kurung yang seimbang">
+  Baca satu baris teks. Abaikan semua karakter selain `(` dan `)`. Kurungnya **seimbang** jika setiap `(` punya pasangan `)` sesudahnya dan tidak ada `)` yang muncul tanpa pasangan. Jika seimbang, tampilkan `Valid` diikuti kedalaman kurung terdalam. Jika tidak, tampilkan `Tidak valid`.
+
+  | Input | Output |
+  | --- | --- |
+  | `(a + b) * (c - (d / e))` | `Valid 2` |
+  | `())(` | `Tidak valid` |
+  | `((x)` | `Tidak valid` |
+
+  Teks tanpa kurung sama sekali dianggap valid dengan kedalaman 0.
+
+  <Petunjuk>
+    Cukup satu _counter_ `buka`: tambah satu saat bertemu `(`, kurangi satu saat bertemu `)`. Ada dua syarat seimbang. Satu diperiksa **di tengah** perulangan, satu lagi **setelah** perulangan selesai.
+  </Petunjuk>
+
+  <Pembahasan>
+    `buka` menyatakan berapa kurung yang sedang terbuka. Jika `buka` pernah menjadi negatif, ada `)` yang muncul sebelum pasangannya, seperti pada `())(`. Jika `buka` belum 0 di akhir, ada `(` yang tidak pernah ditutup, seperti pada `((x)`. Contoh kedua juga menunjukkan bahwa sekadar membandingkan banyak `(` dan `)` tidak cukup: banyaknya sama, tetapi urutannya salah. Kedalaman terdalam adalah nilai `buka` terbesar selama perulangan.
+
+    Fungsi `kedalamanMaks` mengembalikan -1 untuk menandai "tidak valid", karena kedalaman yang sah tidak mungkin negatif.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int kedalamanMaks(const string& s) {
+        int buka = 0, terdalam = 0;
+        for (char c : s) {
+            if (c == '(') {
+                buka++;
+                if (buka > terdalam) {
+                    terdalam = buka;
+                }
+            } else if (c == ')') {
+                buka--;
+                if (buka < 0) {
+                    return -1;           // ) tanpa pasangan
+                }
+            }
+        }
+        if (buka != 0) {
+            return -1;                   // ( yang tidak ditutup
+        }
+        return terdalam;
+    }
+
+    int main() {
+        string s;
+        getline(cin, s);
+
+        int k = kedalamanMaks(s);
+        if (k == -1) {
+            cout << "Tidak valid" << endl;
+        } else {
+            cout << "Valid " << k << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def kedalaman_maks(s):
+        buka = 0
+        terdalam = 0
+        for c in s:
+            if c == "(":
+                buka += 1
+                if buka > terdalam:
+                    terdalam = buka
+            elif c == ")":
+                buka -= 1
+                if buka < 0:
+                    return -1            # ) tanpa pasangan
+        if buka != 0:
+            return -1                    # ( yang tidak ditutup
+        return terdalam
+
+
+    s = input()
+
+    k = kedalaman_maks(s)
+    if k == -1:
+        print("Tidak valid")
+    else:
+        print("Valid", k)
+    ```
+
+    Satu _counter_ hanya cukup untuk satu jenis kurung. Jika ada beberapa jenis, misalnya `(`, `[`, dan `{`, kita perlu tahu jenis kurung mana yang terakhir dibuka. Itulah tugas [Stack](/docs/cpp/stack).
+  </Pembahasan>
+</Soal>

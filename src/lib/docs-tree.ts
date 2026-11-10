@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
  * Inside a subject folder:
  * - the folder index page is the introduction (no number),
  * - lessons live in module folders whose names are wrapped in parentheses,
- *   e.g. `(dasar)`, so they keep short URLs like `/docs/cpp/program-pertama`,
+ *   e.g. `(dasar)`, so they keep short URLs like `/docs/cpp/input-dan-output`,
  * - pages with a deeper URL (`/docs/cpp/pendalaman/...`) are optional references.
  */
 
