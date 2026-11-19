@@ -5,12 +5,17 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import type { MDXComponents } from 'mdx/types';
 import { LessonList } from '@/components/docs/lesson-list';
+// Shared lesson components, usable in every subject.
 import { BackToLesson } from '@/components/mdx/back-to-lesson';
-import { BufferStepper } from '@/components/mdx/buffer-stepper';
+import { ComingSoon } from '@/components/mdx/coming-soon';
 import { DeepDive, Term } from '@/components/mdx/deep-dive';
-import { ComingSoon, MemoryBoxes, Pipeline, TruthTable } from '@/components/mdx/diagrams';
 import { Pembahasan, Petunjuk, Soal } from '@/components/mdx/exercise';
 import { Flowchart, FlowchartSymbols } from '@/components/mdx/flowchart';
+import { Pipeline } from '@/components/mdx/pipeline';
+// Subject-specific components live in a folder named after the subject.
+import { BufferStepper } from '@/components/mdx/cpp/buffer-stepper';
+import { MemoryBoxes } from '@/components/mdx/cpp/memory-boxes';
+import { TruthTable } from '@/components/mdx/cpp/truth-table';
 
 const languageTabs = new Set(['C++', 'Python']);
 

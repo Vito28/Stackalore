@@ -17,7 +17,7 @@ import { cn } from '../../lib/cn';
 import { buttonVariants } from '../ui/button';
 import { useChat, type UseChatHelpers } from '@ai-sdk/react';
 import { DefaultChatTransport, type Tool, type UIMessage, type UIToolInvocation } from 'ai';
-import { Markdown } from '../markdown';
+import { Markdown } from './markdown';
 
 export type ChatUIMessage = UIMessage<
   never,

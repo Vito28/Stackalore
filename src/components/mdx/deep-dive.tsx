@@ -6,8 +6,10 @@ import { cn } from '@/lib/cn';
 interface DeepDiveProps {
   href: string;
   title: string;
-  /** `konsep` for concept deep-dives, `pustaka` for C++ library references. */
+  /** `konsep` for concept deep-dives, `pustaka` for library references. */
   kind?: 'konsep' | 'pustaka';
+  /** Overrides the small heading, e.g. `Pustaka Python` for NumPy pages. */
+  label?: string;
   children?: ReactNode;
 }
 
@@ -20,8 +22,8 @@ const kinds = {
  * A card that points to a longer explanation living on its own page, so the
  * main lesson stays short while curious readers can dig deeper.
  */
-export function DeepDive({ href, title, kind = 'konsep', children }: DeepDiveProps) {
-  const { label, icon: Icon } = kinds[kind];
+export function DeepDive({ href, title, kind = 'konsep', label, children }: DeepDiveProps) {
+  const { label: defaultLabel, icon: Icon } = kinds[kind];
 
   return (
     <Link
@@ -32,7 +34,7 @@ export function DeepDive({ href, title, kind = 'konsep', children }: DeepDivePro
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-[0.6875rem] font-semibold tracking-[0.08em] text-fd-primary uppercase">{label}</div>
+        <div className="text-[0.6875rem] font-semibold tracking-[0.08em] text-fd-primary uppercase">{label ?? defaultLabel}</div>
         <div className="mt-0.5 font-semibold text-fd-foreground">{title}</div>
         {children ? (
           <div className="mt-1 text-sm leading-6 text-fd-muted-foreground [&_p]:m-0">{children}</div>

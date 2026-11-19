@@ -26,15 +26,56 @@ Fitur **Tanya AI** membutuhkan `OPENROUTER_API_KEY` di berkas `.env.local`. Mode
 
 ## Struktur
 
-| Lokasi | Isi |
-| --- | --- |
-| `content/docs/cpp/` | Materi C++ dalam MDX. Urutan sidebar diatur oleh `meta.json`. |
-| `content/docs/cpp/(dasar)/`, `(struktur-data)/`, … | Modul materi. Nama folder dalam kurung tidak ikut masuk URL, jadi `(dasar)/input-dan-output.mdx` tampil di `/docs/cpp/input-dan-output`. Judul dan ikon modul ada di `meta.json` folder tersebut. |
-| `content/docs/cpp/pendalaman/` | Penjelasan lanjutan yang ditautkan dari materi utama, misalnya buffer, pointer, call stack, dan memoisasi |
-| `content/docs/cpp/pustaka/` | Referensi pustaka standar, misalnya `getline`, `<cmath>`, `<vector>`, dan `<algorithm>` |
-| `src/components/mdx/` | Komponen khusus materi: flowchart, diagram memori, `DeepDive`, soal latihan (`Soal`, `Petunjuk`, `Pembahasan`), dan lainnya |
-| `src/lib/references.ts` | Daftar sumber rujukan beserta lisensinya |
-| `src/app/(home)/lisensi/` | Halaman Lisensi & Atribusi |
+```text
+content/docs/                 Semua materi (MDX). Satu folder = satu subjek.
+├── meta.json                 Urutan subjek di sidebar
+├── cpp/                      Subjek C++
+│   ├── index.mdx             Halaman pengantar subjek
+│   ├── meta.json             Judul, ikon, dan urutan modul
+│   ├── (pengenalan)/         Modul materi utama. Nama dalam kurung tidak masuk URL:
+│   ├── (dasar)/              (dasar)/input-dan-output.mdx → /docs/cpp/input-dan-output
+│   ├── …
+│   ├── pendalaman/           Penjelasan lanjutan yang ditautkan dari materi utama
+│   └── pustaka/              Referensi pustaka (getline, <cmath>, <vector>, …)
+├── kriptografi/              Subjek lain memakai susunan yang sama
+├── machine-learning/
+└── deep-learning/
+
+src/
+├── app/                      Halaman dan route Next.js (beranda, /docs, /lisensi, API)
+├── components/
+│   ├── ai/                   Fitur Tanya AI
+│   ├── docs/                 Bagian tampilan halaman docs (daftar materi, sumber, riwayat baca)
+│   ├── mdx/                  Komponen yang bisa dipakai di MDX semua subjek
+│   │   └── cpp/              Komponen khusus satu subjek, dinamai sesuai slug subjek
+│   ├── site/                 Header, footer, logo, tombol tema
+│   ├── ui/                   Komponen UI dasar
+│   └── mdx.tsx               Daftar komponen yang tersedia di MDX
+└── lib/
+    ├── subjects.ts           Daftar subjek untuk beranda (nama, deskripsi, status)
+    ├── references.ts         Daftar sumber rujukan beserta lisensinya
+    └── docs-tree.ts          Penomoran materi dan navigasi sebelumnya/berikutnya
+
+design/                       Catatan rancangan UI (tidak dipakai saat build)
+```
+
+Aturan yang dipakai `src/lib/docs-tree.ts`: halaman di `/docs/<subjek>/<slug>` dihitung sebagai materi bernomor, sedangkan halaman yang lebih dalam (`/docs/<subjek>/pendalaman/<slug>`) adalah bacaan tambahan dan tidak ikut alur sebelumnya/berikutnya. Karena itu materi utama selalu ditaruh di folder modul berkurung, bukan di subfolder biasa.
+
+## Menambah materi subjek baru (misalnya Machine Learning)
+
+1. Buat folder modul di `content/docs/machine-learning/`, misalnya `(pengenalan)/`, `(regresi)/`, `(klasifikasi)/`. Setiap modul punya `meta.json`:
+
+   ```json
+   { "title": "Regresi", "icon": "TrendingUp", "pages": ["regresi-linear", "gradient-descent"] }
+   ```
+
+   Ikon memakai nama dari [Lucide](https://lucide.dev/icons).
+2. Daftarkan modul di `content/docs/machine-learning/meta.json` (`"pages": ["index", "(pengenalan)", "(regresi)", …, "pendalaman", "pustaka"]`) dan ganti `"description": "Segera hadir"`.
+3. Ganti isi `index.mdx` subjek (hapus `<ComingSoon />`) dengan pengantar subjek.
+4. Ubah `status` subjek di `src/lib/subjects.ts` menjadi `'available'` dan sesuaikan deskripsinya.
+5. Komponen interaktif khusus subjek (misalnya plot atau visualisasi jaringan saraf) ditaruh di `src/components/mdx/machine-learning/` atau `src/components/mdx/deep-learning/`, lalu didaftarkan di `src/components/mdx.tsx`.
+6. Tambahkan sumber baru (buku, kursus, dokumentasi pustaka) ke `src/lib/references.ts` sebelum dipakai di frontmatter `sumber`.
+7. Gambar diletakkan di samping berkas MDX yang memakainya, lalu dipanggil dengan path relatif (`![Grafik loss](./loss.png)`).
 
 ## Menulis materi
 
