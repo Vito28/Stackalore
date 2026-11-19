@@ -264,6 +264,10 @@ Untuk mencari `"dodi"`, hitung lagi hash-nya, yaitu 6, lalu buka loker 6. Loker 
 
 Kadang dua kunci jatuh ke loker yang sama, seperti `"andi"` dan `"dina"`. Kejadian ini disebut **tabrakan** (_collision_). Loker itu cukup menyimpan keduanya, dan saat mencari kita hanya membandingkan beberapa kunci di loker tersebut. Fungsi hash sungguhan jauh lebih pandai menyebar kunci daripada contoh mainan ini, dan tabelnya otomatis diperbesar ketika mulai penuh. Hasilnya, setiap loker rata-rata hanya berisi sangat sedikit kunci.
 
+Jalankan prosesnya langkah demi langkah di bawah ini. Kelima nama dari tabel dimasukkan bersama umurnya, lalu `dina` dicari (tabrakan di loker 2), `eko` dicari (loker 9 kosong), dan `andi` dihapus.
+
+<VisualisasiHashTable />
+
 ```cpp
 #include <unordered_map>
 

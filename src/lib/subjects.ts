@@ -25,7 +25,7 @@ export const subjects: Subject[] = [
     name: 'C++',
     shortName: 'C++',
     description:
-      'Dasar pemrograman dari nol sampai siap vibe coding: algoritma, tipe data, percabangan, perulangan, array, fungsi, dan debugging. Setiap contoh disertai padanan Python.',
+      'Dasar pemrograman dari nol sampai siap vibe coding: algoritma, tipe data, percabangan, perulangan, fungsi, struktur data dari stack sampai trie, graph, dan debugging. Setiap contoh disertai padanan Python.',
     icon: SquareCode,
     status: 'available',
   },

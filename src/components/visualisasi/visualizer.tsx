@@ -227,7 +227,7 @@ export function Visualizer<State>({
             value={index}
             onChange={(event) => dispatch({ type: 'jump', index: Number(event.target.value) })}
             aria-label="Pilih langkah"
-            className="h-10 min-w-0 flex-1 accent-[var(--color-fd-primary)]"
+            className="h-10 min-w-0 flex-1 rounded-full accent-[var(--color-fd-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-fd-ring)]"
           />
 
           <div role="radiogroup" aria-label="Kecepatan" className="flex shrink-0 rounded-lg border bg-fd-background p-0.5">

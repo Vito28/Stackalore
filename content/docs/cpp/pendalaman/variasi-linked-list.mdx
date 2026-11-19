@@ -1,0 +1,1332 @@
+---
+title: Variasi Linked List
+description: Doubly linked list yang bisa ditelusuri maju dan mundur, circular linked list yang ujungnya kembali ke awal, kapan memakai masing-masing, serta versi siap pakainya di C++ dan Python.
+sumber:
+  - ref: cppreference
+    judul: "std::list"
+    url: https://en.cppreference.com/w/cpp/container/list
+  - ref: cppreference
+    judul: "std::forward_list"
+    url: https://en.cppreference.com/w/cpp/container/forward_list
+  - ref: cppreference
+    judul: do-while loop
+    url: https://en.cppreference.com/w/cpp/language/do
+  - ref: python-docs
+    judul: collections.deque
+    url: https://docs.python.org/3/library/collections.html#collections.deque
+  - ref: python-docs
+    judul: gc, Garbage Collector interface
+    url: https://docs.python.org/3/library/gc.html
+---
+
+<BackToLesson href="/docs/cpp/linked-list" label="Linked List" />
+
+Linked list di materi [Linked List](/docs/cpp/linked-list) adalah bentuk yang paling sederhana: setiap node hanya tahu node **sesudahnya**, dan node terakhir menunjuk ke `nullptr`. Halaman ini membahas variasinya, yaitu **doubly linked list**, **circular linked list**, dan gabungan keduanya, lalu versi siap pakainya di pustaka C++ dan Python. Kodenya memakai pointer dan `new`/`delete` lebih banyak daripada materi utama, jadi baca [Pointer](/docs/cpp/pendalaman/pointer) dan [Memori Dinamis](/docs/cpp/pendalaman/memori-dinamis) dulu jika belum.
+
+## Mengingat kembali: singly linked list
+
+List di materi utama disebut **singly linked list** karena setiap node hanya punya **satu** arah panah:
+
+```txt
+head
+ |
+ v
+[3|•]-->[7|•]-->[9|∅]
+```
+
+```cpp tab="C++"
+struct Node {
+    int data;
+    Node* next;     // alamat node berikutnya
+};
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data, next=None):
+        self.data = data
+        self.next = next       # node berikutnya, None jika tidak ada
+```
+
+Bentuk ini punya dua keterbatasan:
+
+- **Hanya bisa maju.** Untuk menghapus 7, `hapusNilai` harus mencari node **sebelum** 7 mulai dari head, karena node 7 sendiri tidak tahu siapa yang menunjuknya. Mencetak isi list dari belakang juga tidak bisa tanpa membalik list lebih dulu.
+- **Ujungnya buntu.** Setelah sampai di 9, satu-satunya jalan kembali ke 3 adalah mulai lagi dari `head`.
+
+Setiap variasi menambal salah satu keterbatasan itu dengan harga tertentu.
+
+## Empat variasi
+
+| Jenis | Isi setiap node | Ujung list | Yang menjadi murah | Contoh pemakaian |
+| --- | --- | --- | --- | --- |
+| **Singly** | `data`, `next` | `next` milik node terakhir bernilai `nullptr` | Tambah dan hapus di depan, telusuri dari depan ke belakang | Stack, queue sederhana (dengan `tail`) |
+| **Doubly** | `data`, `prev`, `next` | `prev` milik head dan `next` milik tail bernilai `nullptr` | Telusuri maju **dan** mundur, hapus node yang sudah dipegang tanpa mencari node sebelumnya, tambah dan hapus di kedua ujung | Riwayat browser (tombol Kembali dan Maju), undo dan redo di editor |
+| **Circular singly** | `data`, `next` | `next` milik node terakhir kembali ke head | Berputar terus tanpa kembali ke awal, tambah di depan dan di belakang hanya dengan pointer `tail` | Giliran bergantian (_round-robin_), playlist yang diulang |
+| **Circular doubly** | `data`, `prev`, `next` | Tail dan head saling menunjuk | Berputar ke dua arah, dari head langsung ke tail lewat `head->prev` | Playlist berulang dengan tombol sebelumnya dan berikutnya, `std::list` di g++ |
+
+Coba keempat jenis itu di bawah ini. Pilih jenisnya, lalu jalankan operasi tambah, cari, hapus, dan telusuri, dan perhatikan panah mana saja yang berubah.
+
+<VisualisasiLinkedList jenis="semua" />
+
+Semua variasi tetap tidak bisa melompat langsung ke node ke-`i` seperti `data[i]`, dan tetap mencari nilai dengan memeriksa node satu per satu. Yang berubah adalah operasi di **ujung** list dan di sekitar node yang sudah dipegang.
+
+## Doubly linked list
+
+### Node dengan dua arah
+
+Pada **doubly linked list**, setiap node menyimpan alamat node sesudahnya (`next`) **dan** node sebelumnya (`prev`). Selain `head`, list juga menyimpan `tail` agar bisa ditelusuri dari belakang.
+
+```txt
+        head                      tail
+          |                         |
+          v                         v
+  ∅ <--[•|3|•]<---->[•|7|•]<---->[•|9|•]--> ∅
+        ^ ^ ^
+        | | +-- next: alamat node sesudahnya
+        | +---- data
+        +------- prev: alamat node sebelumnya
+```
+
+```cpp tab="C++"
+struct Node {
+    int data;
+    Node* prev;     // alamat node sebelumnya
+    Node* next;     // alamat node berikutnya
+};
+
+struct DList {
+    Node* head = nullptr;
+    Node* tail = nullptr;
+};
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data, prev=None, next=None):
+        self.data = data
+        self.prev = prev       # node sebelumnya, None jika tidak ada
+        self.next = next       # node berikutnya, None jika tidak ada
+
+
+class DList:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+```
+
+Operasi doubly linked list bisa mengubah `head` **dan** `tail` sekaligus, padahal fungsi hanya bisa mengembalikan satu nilai. Karena itu keduanya dibungkus dalam struct `DList`, lalu dikirim ke fungsi sebagai reference (`DList& d`) agar fungsi bisa mengubah milik pemanggil. Caranya dibahas di [Pass by Value & Pass by Reference](/docs/cpp/pendalaman/pass-by-value-dan-reference). Di Python, objek `DList` yang dikirim ke fungsi memang objek yang sama, jadi perubahan `d.head` di dalam fungsi langsung terlihat oleh pemanggil.
+
+Ada satu aturan yang harus selalu benar: **jika A menunjuk B lewat `next`, maka B menunjuk A lewat `prev`**. Setiap operasi pada dasarnya menjaga aturan ini. Begitu sebuah `next` diubah, `prev` pasangannya juga harus diubah.
+
+Harganya, setiap node butuh satu pointer tambahan. Di komputer 64-bit pada umumnya, node berisi satu `int` membesar dari 16 byte menjadi 24 byte.
+
+### Menambah di depan dan di belakang
+
+Menambah 1 di depan list `3 ⇄ 7 ⇄ 9` mengubah tiga hal: `next` milik node baru menunjuk ke 3, `prev` milik 3 menunjuk balik ke node baru, dan `head` pindah ke node baru.
+
+```txt
+sebelum:         head-->[3]<-->[7]<-->[9]<--tail
+sesudah:  head-->[1]<-->[3]<-->[7]<-->[9]<--tail
+                  (1.next = 3, 3.prev = 1, head = 1)
+```
+
+Menambah di belakang adalah cerminannya: tukar `head` dengan `tail` dan `prev` dengan `next`.
+
+```cpp tab="C++"
+void tambahDepan(DList& d, int nilai) {
+    Node* baru = new Node{nilai, nullptr, d.head};   // prev kosong, next = head lama
+    if (d.head == nullptr) {
+        d.tail = baru;                // list kosong: baru juga menjadi tail
+    } else {
+        d.head->prev = baru;          // head lama menunjuk balik ke baru
+    }
+    d.head = baru;
+}
+
+void tambahBelakang(DList& d, int nilai) {
+    Node* baru = new Node{nilai, d.tail, nullptr};   // prev = tail lama, next kosong
+    if (d.tail == nullptr) {
+        d.head = baru;                // list kosong: baru juga menjadi head
+    } else {
+        d.tail->next = baru;          // tail lama menunjuk maju ke baru
+    }
+    d.tail = baru;
+}
+```
+
+```python tab="Python"
+def tambah_depan(d, nilai):
+    baru = Node(nilai, None, d.head)  # prev kosong, next = head lama
+    if d.head is None:
+        d.tail = baru                 # list kosong: baru juga menjadi tail
+    else:
+        d.head.prev = baru            # head lama menunjuk balik ke baru
+    d.head = baru
+
+
+def tambah_belakang(d, nilai):
+    baru = Node(nilai, d.tail, None)  # prev = tail lama, next kosong
+    if d.tail is None:
+        d.head = baru                 # list kosong: baru juga menjadi head
+    else:
+        d.tail.next = baru            # tail lama menunjuk maju ke baru
+    d.tail = baru
+```
+
+Urutan isi `new Node{nilai, nullptr, d.head}` mengikuti urutan anggota struct: `data`, `prev`, lalu `next`. Kedua fungsi juga benar untuk list kosong. Node pertama sekaligus menjadi head dan tail, dan kedua pointer-nya bernilai `nullptr`.
+
+### Menelusuri maju dan mundur
+
+Menelusuri maju sama persis dengan singly linked list. Menelusuri mundur memakai pola yang sama, hanya dimulai dari `tail` dan berpindah lewat `prev`:
+
+```cpp tab="C++"
+void cetakMaju(Node* head) {
+    for (Node* p = head; p != nullptr; p = p->next) {
+        cout << p->data;
+        if (p->next != nullptr) {
+            cout << " ";
+        }
+    }
+    cout << endl;
+}
+
+void cetakMundur(Node* tail) {
+    for (Node* p = tail; p != nullptr; p = p->prev) {
+        cout << p->data;
+        if (p->prev != nullptr) {
+            cout << " ";
+        }
+    }
+    cout << endl;
+}
+```
+
+```python tab="Python"
+def cetak_maju(head):
+    p = head
+    while p is not None:
+        print(p.data, end="")
+        if p.next is not None:
+            print(" ", end="")
+        p = p.next
+    print()
+
+
+def cetak_mundur(tail):
+    p = tail
+    while p is not None:
+        print(p.data, end="")
+        if p.prev is not None:
+            print(" ", end="")
+        p = p.prev
+    print()
+```
+
+### Mencari dan menghapus
+
+Di singly linked list, `hapusNilai` mencari node **sebelum** target, karena node itulah yang `next`-nya harus diubah. Di doubly linked list, target sendiri sudah tahu tetangga kirinya lewat `prev`. Jadi cukup cari node target, lalu hapus node itu. Fungsi `cari` kini mengembalikan **alamat node**, bukan posisinya:
+
+```cpp tab="C++"
+Node* cari(Node* head, int dicari) {
+    for (Node* p = head; p != nullptr; p = p->next) {
+        if (p->data == dicari) {
+            return p;                 // alamat node yang ditemukan
+        }
+    }
+    return nullptr;                   // tidak ditemukan
+}
+```
+
+```python tab="Python"
+def cari(head, dicari):
+    p = head
+    while p is not None:
+        if p.data == dicari:
+            return p                  # node yang ditemukan
+        p = p.next
+    return None                       # tidak ditemukan
+```
+
+Untuk mencabut target, kedua tetangganya harus saling disambungkan:
+
+```txt
+hapus 7:
+
+sebelum:  head-->[1]<-->[3]<-->[7]<-->[9]<--tail
+
+sesudah:  head-->[1]<-->[3]<--------->[9]<--tail
+                  (3.next = 9, 9.prev = 3, node 7 di-delete)
+```
+
+Jika target berada di ujung, salah satu tetangganya tidak ada. Pada sisi itu, yang diubah adalah `head` atau `tail`:
+
+| Posisi target | Sisi kiri | Sisi kanan |
+| --- | --- | --- |
+| Di tengah (hapus 7 dari `1 3 7 9`) | `3.next = 9` | `9.prev = 3` |
+| Head (hapus 1 dari `1 3 7 9`) | `head = 3` | `3.prev = nullptr` |
+| Tail (hapus 9 dari `1 3 7 9`) | `7.next = nullptr` | `tail = 7` |
+| Satu-satunya node (hapus 5 dari `5`) | `head = nullptr` | `tail = nullptr` |
+
+Keempat kasus itu cukup ditangani dengan dua `if`, satu untuk setiap sisi:
+
+```cpp tab="C++"
+void hapusNode(DList& d, Node* target) {
+    if (target->prev != nullptr) {
+        target->prev->next = target->next;   // tetangga kiri melompati target
+    } else {
+        d.head = target->next;               // target adalah head
+    }
+    if (target->next != nullptr) {
+        target->next->prev = target->prev;   // tetangga kanan melompati target
+    } else {
+        d.tail = target->prev;               // target adalah tail
+    }
+    delete target;                           // baru hapus setelah tidak ditunjuk
+}
+
+void hapusNilai(DList& d, int x) {
+    Node* target = cari(d.head, x);
+    if (target != nullptr) {
+        hapusNode(d, target);
+    }
+}
+```
+
+```python tab="Python"
+def hapus_node(d, target):
+    if target.prev is not None:
+        target.prev.next = target.next       # tetangga kiri melompati target
+    else:
+        d.head = target.next                 # target adalah head
+    if target.next is not None:
+        target.next.prev = target.prev       # tetangga kanan melompati target
+    else:
+        d.tail = target.prev                 # target adalah tail
+
+
+def hapus_nilai(d, x):
+    target = cari(d.head, x)
+    if target is not None:
+        hapus_node(d, target)
+```
+
+`hapusNode` tidak menelusuri list sama sekali. Berapa pun panjang list-nya, menghapus node yang alamatnya sudah dipegang selalu butuh langkah yang sama. Inilah keunggulan utama doubly linked list, dan alasan `std::list` di C++ memakai bentuk ini.
+
+### Program lengkap
+
+Program berikut menyusun `3 7 9`, menambah 1 di depan, mencetak maju dan mundur, menghapus 7, lalu mencetak lagi:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* prev;
+    Node* next;
+};
+
+struct DList {
+    Node* head = nullptr;
+    Node* tail = nullptr;
+};
+
+void tambahDepan(DList& d, int nilai) {
+    Node* baru = new Node{nilai, nullptr, d.head};
+    if (d.head == nullptr) {
+        d.tail = baru;
+    } else {
+        d.head->prev = baru;
+    }
+    d.head = baru;
+}
+
+void tambahBelakang(DList& d, int nilai) {
+    Node* baru = new Node{nilai, d.tail, nullptr};
+    if (d.tail == nullptr) {
+        d.head = baru;
+    } else {
+        d.tail->next = baru;
+    }
+    d.tail = baru;
+}
+
+void cetakMaju(Node* head) {
+    for (Node* p = head; p != nullptr; p = p->next) {
+        cout << p->data;
+        if (p->next != nullptr) {
+            cout << " ";
+        }
+    }
+    cout << endl;
+}
+
+void cetakMundur(Node* tail) {
+    for (Node* p = tail; p != nullptr; p = p->prev) {
+        cout << p->data;
+        if (p->prev != nullptr) {
+            cout << " ";
+        }
+    }
+    cout << endl;
+}
+
+Node* cari(Node* head, int dicari) {
+    for (Node* p = head; p != nullptr; p = p->next) {
+        if (p->data == dicari) {
+            return p;
+        }
+    }
+    return nullptr;
+}
+
+void hapusNode(DList& d, Node* target) {
+    if (target->prev != nullptr) {
+        target->prev->next = target->next;
+    } else {
+        d.head = target->next;
+    }
+    if (target->next != nullptr) {
+        target->next->prev = target->prev;
+    } else {
+        d.tail = target->prev;
+    }
+    delete target;
+}
+
+void hapusNilai(DList& d, int x) {
+    Node* target = cari(d.head, x);
+    if (target != nullptr) {
+        hapusNode(d, target);
+    }
+}
+
+void hapusSemua(Node* head) {
+    while (head != nullptr) {
+        Node* berikut = head->next;
+        delete head;
+        head = berikut;
+    }
+}
+
+int main() {
+    DList daftar;
+    tambahBelakang(daftar, 3);
+    tambahBelakang(daftar, 7);
+    tambahBelakang(daftar, 9);
+    tambahDepan(daftar, 1);
+
+    cetakMaju(daftar.head);           // 1 3 7 9
+    cetakMundur(daftar.tail);         // 9 7 3 1
+
+    hapusNilai(daftar, 7);
+    cetakMaju(daftar.head);           // 1 3 9
+    cetakMundur(daftar.tail);         // 9 3 1
+
+    hapusSemua(daftar.head);
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data, prev=None, next=None):
+        self.data = data
+        self.prev = prev
+        self.next = next
+
+
+class DList:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+
+
+def tambah_depan(d, nilai):
+    baru = Node(nilai, None, d.head)
+    if d.head is None:
+        d.tail = baru
+    else:
+        d.head.prev = baru
+    d.head = baru
+
+
+def tambah_belakang(d, nilai):
+    baru = Node(nilai, d.tail, None)
+    if d.tail is None:
+        d.head = baru
+    else:
+        d.tail.next = baru
+    d.tail = baru
+
+
+def cetak_maju(head):
+    p = head
+    while p is not None:
+        print(p.data, end="")
+        if p.next is not None:
+            print(" ", end="")
+        p = p.next
+    print()
+
+
+def cetak_mundur(tail):
+    p = tail
+    while p is not None:
+        print(p.data, end="")
+        if p.prev is not None:
+            print(" ", end="")
+        p = p.prev
+    print()
+
+
+def cari(head, dicari):
+    p = head
+    while p is not None:
+        if p.data == dicari:
+            return p
+        p = p.next
+    return None
+
+
+def hapus_node(d, target):
+    if target.prev is not None:
+        target.prev.next = target.next
+    else:
+        d.head = target.next
+    if target.next is not None:
+        target.next.prev = target.prev
+    else:
+        d.tail = target.prev
+
+
+def hapus_nilai(d, x):
+    target = cari(d.head, x)
+    if target is not None:
+        hapus_node(d, target)
+
+
+daftar = DList()
+tambah_belakang(daftar, 3)
+tambah_belakang(daftar, 7)
+tambah_belakang(daftar, 9)
+tambah_depan(daftar, 1)
+
+cetak_maju(daftar.head)               # 1 3 7 9
+cetak_mundur(daftar.tail)             # 9 7 3 1
+
+hapus_nilai(daftar, 7)
+cetak_maju(daftar.head)               # 1 3 9
+cetak_mundur(daftar.tail)             # 9 3 1
+```
+
+```txt title="Output"
+1 3 7 9
+9 7 3 1
+1 3 9
+9 3 1
+```
+
+`hapusSemua` sama dengan milik singly linked list karena cukup mengikuti `next`. Mencetak mundur di program ini juga berguna sebagai pemeriksaan: jika ada `prev` yang lupa diperbarui, hasil cetak mundur tidak lagi sama dengan kebalikan cetak maju.
+
+<Callout type="info" title="Python dan node yang saling menunjuk">
+  Di doubly linked list, node 3 menunjuk 7 dan node 7 menunjuk balik ke 3. Objek yang saling menunjuk seperti ini disebut _reference cycle_. Reference counting saja tidak bisa membersihkannya, karena hitungan referensinya tidak pernah menjadi 0. Setelah list dilepas dengan `daftar = None`, **garbage collector** Python (modul `gc`) yang akan menemukan dan membebaskan node-node itu beberapa saat kemudian, seperti dijelaskan di [Memori Dinamis](/docs/cpp/pendalaman/memori-dinamis#bagaimana-dengan-python).
+</Callout>
+
+### Contoh pemakaian: riwayat browser
+
+Tombol **Kembali** dan **Maju** di browser cocok dimodelkan dengan doubly linked list. Setiap halaman yang dibuka menjadi satu node, dan sebuah pointer `sekarang` menunjuk halaman yang sedang tampil:
+
+- **Kembali** berarti `sekarang = sekarang->prev`.
+- **Maju** berarti `sekarang = sekarang->next`.
+- **Membuka halaman baru** berarti membuang semua node sesudah `sekarang` (riwayat "maju" hilang), lalu menambah halaman baru di belakang.
+
+Undo dan redo di editor teks bekerja dengan cara yang serupa: setiap node menyimpan satu keadaan dokumen, undo berarti mundur satu node, dan redo berarti maju satu node.
+
+## Circular singly linked list
+
+### Ujung yang kembali ke awal
+
+Pada **circular linked list**, `next` milik node terakhir tidak bernilai `nullptr`, melainkan menunjuk kembali ke node pertama. List membentuk lingkaran tanpa ujung.
+
+```txt
+     head                          tail
+       |                             |
+       v                             v
+  +-->[3|•]--------->[7|•]--------->[9|•]--+
+  |                                        |
+  +----------------------------------------+
+            next milik 9 kembali ke 3
+```
+
+Struct `Node`-nya sama persis dengan singly linked list. Yang berbeda hanya cara menyambungkan dan cara menelusurinya.
+
+### Cukup simpan `tail`
+
+Pada circular list, node sesudah tail adalah head (`tail->next`). Jadi cukup simpan **satu** pointer, yaitu `tail`, dan kedua ujung list tetap terjangkau dalam satu langkah.
+
+Kenapa tidak menyimpan `head` saja? Coba tambahkan node di depan. Node terakhir harus ikut menunjuk ke head yang baru agar lingkarannya tetap tertutup, dan tanpa `tail` node terakhir hanya bisa ditemukan dengan menelusuri seluruh list. Dengan `tail`, menambah di depan maupun di belakang selalu butuh langkah yang sama:
+
+```txt
+tambah 1 di depan list 3 7 9:   1 disisipkan di antara tail (9) dan head (3)
+
+sebelum:  +-->[3]-->[7]-->[9]--+          tail = 9
+          +--------------------+
+
+sesudah:  +-->[1]-->[3]-->[7]-->[9]--+    tail tetap 9, head kini 1
+          +--------------------------+
+```
+
+```cpp tab="C++"
+Node* tambahDepan(Node* tail, int nilai) {
+    Node* baru = new Node{nilai, nullptr};
+    if (tail == nullptr) {
+        baru->next = baru;          // satu-satunya node menunjuk dirinya sendiri
+        return baru;                // sekaligus head dan tail
+    }
+    baru->next = tail->next;        // baru menunjuk head lama
+    tail->next = baru;              // tail menunjuk baru, sehingga baru menjadi head
+    return tail;                    // tail tidak berubah
+}
+
+Node* tambahBelakang(Node* tail, int nilai) {
+    Node* baru = new Node{nilai, nullptr};
+    if (tail == nullptr) {
+        baru->next = baru;
+        return baru;
+    }
+    baru->next = tail->next;        // langkahnya sama persis dengan tambahDepan...
+    tail->next = baru;
+    return baru;                    // ...hanya saja baru yang menjadi tail
+}
+```
+
+```python tab="Python"
+def tambah_depan(tail, nilai):
+    baru = Node(nilai)
+    if tail is None:
+        baru.next = baru            # satu-satunya node menunjuk dirinya sendiri
+        return baru                 # sekaligus head dan tail
+    baru.next = tail.next           # baru menunjuk head lama
+    tail.next = baru                # tail menunjuk baru, sehingga baru menjadi head
+    return tail                     # tail tidak berubah
+
+
+def tambah_belakang(tail, nilai):
+    baru = Node(nilai)
+    if tail is None:
+        baru.next = baru
+        return baru
+    baru.next = tail.next           # langkahnya sama persis dengan tambah_depan...
+    tail.next = baru
+    return baru                     # ...hanya saja baru yang menjadi tail
+```
+
+Perhatikan bahwa kedua fungsi menyisipkan node di tempat yang **sama**, yaitu di antara tail dan head. Dalam lingkaran, "paling depan" dan "paling belakang" bersebelahan. Bedanya hanya node mana yang kemudian disebut tail.
+
+### Menelusuri lingkaran
+
+Circular list tidak punya `nullptr`, jadi kondisi `p != nullptr` tidak pernah salah. Penelusuran harus berhenti saat `p` **kembali ke titik awal**. Masalahnya, `p` sudah berada di titik awal sebelum perulangan dimulai, sehingga `while (p != mulai)` langsung berhenti tanpa mencetak apa pun. Solusinya [`do-while`](/docs/cpp/perulangan#do-while), yang menjalankan badannya dulu baru memeriksa kondisi:
+
+```cpp tab="C++"
+void cetakDari(Node* mulai) {
+    if (mulai == nullptr) {         // list kosong
+        cout << endl;
+        return;
+    }
+    Node* p = mulai;
+    do {
+        cout << p->data;
+        p = p->next;
+        if (p != mulai) {
+            cout << " ";
+        }
+    } while (p != mulai);           // berhenti saat kembali ke titik awal
+    cout << endl;
+}
+```
+
+```python tab="Python"
+def cetak_dari(mulai):
+    if mulai is None:               # list kosong
+        print()
+        return
+    p = mulai
+    while True:                     # Python tidak punya do-while
+        print(p.data, end="")
+        p = p.next
+        if p is mulai:              # berhenti saat kembali ke titik awal
+            break
+        print(" ", end="")
+    print()
+```
+
+Python tidak punya `do-while`, jadi polanya ditulis sebagai `while True` dengan `break` di tengah. Perbandingannya memakai `is`, karena yang diperiksa adalah apakah `p` menunjuk **objek yang sama** dengan `mulai`, bukan apakah datanya sama (lihat [Pointer](/docs/cpp/pendalaman/pointer#bagaimana-dengan-python)).
+
+Fungsi ini bisa mulai dari node **mana pun**. Dari head, isinya tercetak dari depan. Dari node lain, penelusuran tetap mengunjungi semua node, hanya titik awalnya yang berbeda.
+
+Untuk membebaskan memori, putus dulu lingkarannya. Setelah `next` milik tail diisi `nullptr`, list menjadi singly linked list biasa dan bisa dibebaskan seperti di materi utama:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* next;
+};
+
+Node* tambahDepan(Node* tail, int nilai) {
+    Node* baru = new Node{nilai, nullptr};
+    if (tail == nullptr) {
+        baru->next = baru;
+        return baru;
+    }
+    baru->next = tail->next;
+    tail->next = baru;
+    return tail;
+}
+
+Node* tambahBelakang(Node* tail, int nilai) {
+    Node* baru = new Node{nilai, nullptr};
+    if (tail == nullptr) {
+        baru->next = baru;
+        return baru;
+    }
+    baru->next = tail->next;
+    tail->next = baru;
+    return baru;
+}
+
+void cetakDari(Node* mulai) {
+    if (mulai == nullptr) {
+        cout << endl;
+        return;
+    }
+    Node* p = mulai;
+    do {
+        cout << p->data;
+        p = p->next;
+        if (p != mulai) {
+            cout << " ";
+        }
+    } while (p != mulai);
+    cout << endl;
+}
+
+void hapusSemua(Node* tail) {
+    if (tail == nullptr) {
+        return;
+    }
+    Node* p = tail->next;           // mulai dari head
+    tail->next = nullptr;           // putus lingkarannya
+    while (p != nullptr) {
+        Node* berikut = p->next;
+        delete p;
+        p = berikut;
+    }
+}
+
+int main() {
+    Node* tail = nullptr;
+    tail = tambahBelakang(tail, 3);
+    tail = tambahBelakang(tail, 7);
+    tail = tambahBelakang(tail, 9);
+    tail = tambahDepan(tail, 1);
+
+    Node* head = tail->next;
+    cetakDari(head);                // 1 3 7 9
+    cetakDari(head->next->next);    // mulai dari 7: 7 9 1 3
+    cout << tail->next->data << endl;   // sesudah 9 kembali ke 1
+
+    hapusSemua(tail);
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data, next=None):
+        self.data = data
+        self.next = next
+
+
+def tambah_depan(tail, nilai):
+    baru = Node(nilai)
+    if tail is None:
+        baru.next = baru
+        return baru
+    baru.next = tail.next
+    tail.next = baru
+    return tail
+
+
+def tambah_belakang(tail, nilai):
+    baru = Node(nilai)
+    if tail is None:
+        baru.next = baru
+        return baru
+    baru.next = tail.next
+    tail.next = baru
+    return baru
+
+
+def cetak_dari(mulai):
+    if mulai is None:
+        print()
+        return
+    p = mulai
+    while True:
+        print(p.data, end="")
+        p = p.next
+        if p is mulai:
+            break
+        print(" ", end="")
+    print()
+
+
+tail = None
+tail = tambah_belakang(tail, 3)
+tail = tambah_belakang(tail, 7)
+tail = tambah_belakang(tail, 9)
+tail = tambah_depan(tail, 1)
+
+head = tail.next
+cetak_dari(head)                    # 1 3 7 9
+cetak_dari(head.next.next)          # mulai dari 7: 7 9 1 3
+print(tail.next.data)               # sesudah 9 kembali ke 1
+```
+
+```txt title="Output"
+1 3 7 9
+7 9 1 3
+1
+```
+
+### Contoh: giliran round-robin
+
+Ani, Budi, dan Citra bergantian memakai satu konsol game, satu ronde per giliran. Ani ingin bermain 2 ronde, Budi 3 ronde, dan Citra 1 ronde. Pemain yang sudah cukup keluar dari lingkaran, dan sisanya terus bergiliran. Cara membagi giliran secara bergantian seperti ini disebut **round-robin**. Sistem operasi memakai ide yang sama untuk membagi waktu prosesor kepada program-program yang sedang berjalan.
+
+Circular list cocok untuk ini: sesudah pemain terakhir, giliran otomatis kembali ke pemain pertama. Program menyimpan `prev`, yaitu node **sebelum** pemain yang sedang mendapat giliran, karena node itulah yang `next`-nya diubah saat pemain keluar. Awalnya `prev` adalah `tail`, sehingga giliran pertama jatuh ke head.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Node {
+    string nama;
+    int sisa;                       // berapa ronde lagi yang diinginkan
+    Node* next;
+};
+
+Node* tambahBelakang(Node* tail, string nama, int sisa) {
+    Node* baru = new Node{nama, sisa, nullptr};
+    if (tail == nullptr) {
+        baru->next = baru;
+        return baru;
+    }
+    baru->next = tail->next;
+    tail->next = baru;
+    return baru;
+}
+
+int main() {
+    Node* tail = nullptr;
+    tail = tambahBelakang(tail, "Ani", 2);
+    tail = tambahBelakang(tail, "Budi", 3);
+    tail = tambahBelakang(tail, "Citra", 1);
+
+    Node* prev = tail;              // node sebelum pemain yang mendapat giliran
+    int ronde = 1;
+    while (tail != nullptr) {
+        Node* cur = prev->next;     // pemain yang mendapat giliran
+        cur->sisa--;
+        cout << "Ronde " << ronde << ": " << cur->nama;
+
+        if (cur->sisa > 0) {
+            cout << " (sisa " << cur->sisa << ")" << endl;
+            prev = cur;             // giliran pindah ke pemain berikutnya
+        } else {
+            cout << " (selesai)" << endl;
+            if (cur == prev) {      // pemain terakhir: lingkaran menjadi kosong
+                tail = nullptr;
+            } else {
+                prev->next = cur->next;   // lompati cur
+                if (cur == tail) {
+                    tail = prev;          // tail tidak boleh menunjuk node yang dihapus
+                }
+            }
+            delete cur;             // prev tidak digeser: prev->next sudah pemain berikutnya
+        }
+        ronde++;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, nama, sisa, next=None):
+        self.nama = nama
+        self.sisa = sisa            # berapa ronde lagi yang diinginkan
+        self.next = next
+
+
+def tambah_belakang(tail, nama, sisa):
+    baru = Node(nama, sisa)
+    if tail is None:
+        baru.next = baru
+        return baru
+    baru.next = tail.next
+    tail.next = baru
+    return baru
+
+
+tail = None
+tail = tambah_belakang(tail, "Ani", 2)
+tail = tambah_belakang(tail, "Budi", 3)
+tail = tambah_belakang(tail, "Citra", 1)
+
+prev = tail                         # node sebelum pemain yang mendapat giliran
+ronde = 1
+while tail is not None:
+    cur = prev.next                 # pemain yang mendapat giliran
+    cur.sisa -= 1
+    print(f"Ronde {ronde}: {cur.nama}", end="")
+
+    if cur.sisa > 0:
+        print(f" (sisa {cur.sisa})")
+        prev = cur                  # giliran pindah ke pemain berikutnya
+    else:
+        print(" (selesai)")
+        if cur is prev:             # pemain terakhir: lingkaran menjadi kosong
+            tail = None
+        else:
+            prev.next = cur.next    # lompati cur
+            if cur is tail:
+                tail = prev         # tail tidak boleh menunjuk node yang dihapus
+    ronde += 1
+```
+
+```txt title="Output"
+Ronde 1: Ani (sisa 1)
+Ronde 2: Budi (sisa 2)
+Ronde 3: Citra (selesai)
+Ronde 4: Ani (selesai)
+Ronde 5: Budi (sisa 1)
+Ronde 6: Budi (selesai)
+```
+
+Jejak lingkarannya:
+
+| Ronde | Giliran | Isi lingkaran sesudahnya | Keterangan |
+| --- | --- | --- | --- |
+| 1 | Ani | Ani, Budi, Citra | Ani masih ingin 1 ronde lagi |
+| 2 | Budi | Ani, Budi, Citra | |
+| 3 | Citra | Ani, Budi | Citra adalah tail, jadi `tail` pindah ke Budi |
+| 4 | Ani | Budi | Kembali ke awal lingkaran, Ani selesai |
+| 5 | Budi | Budi | Budi menunjuk dirinya sendiri |
+| 6 | Budi | (kosong) | `cur == prev`: node terakhir dihapus |
+
+Saat seorang pemain keluar, `prev` sengaja tidak digeser. Setelah `prev->next = cur->next`, node sesudah `prev` sudah otomatis pemain berikutnya.
+
+## Circular doubly linked list
+
+Gabungkan kedua ide: setiap node punya `prev` dan `next`, **dan** kedua ujungnya tersambung. `next` milik tail menunjuk head, dan `prev` milik head menunjuk tail.
+
+```txt
+       head
+         |
+         v
+  +-->[•|3|•]<---->[•|7|•]<---->[•|9|•]--+
+  |    |                           ^     |
+  |    +------ prev milik 3 -------+     |
+  +------------ next milik 9 ------------+
+```
+
+Karena tail selalu `head->prev`, cukup simpan `head`. Menambah di belakang berarti menyisipkan node baru di antara tail dan head. Menambah di depan adalah langkah yang sama, ditambah memindahkan `head` ke node baru:
+
+```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
+struct Node {
+    int data;
+    Node* prev;
+    Node* next;
+};
+
+Node* tambahBelakang(Node* head, int nilai) {
+    Node* baru = new Node{nilai, nullptr, nullptr};
+    if (head == nullptr) {
+        baru->prev = baru;          // satu node: prev dan next
+        baru->next = baru;          // menunjuk dirinya sendiri
+        return baru;
+    }
+    Node* tail = head->prev;
+    baru->prev = tail;              // sisipkan di antara tail dan head
+    baru->next = head;
+    tail->next = baru;
+    head->prev = baru;
+    return head;
+}
+
+Node* tambahDepan(Node* head, int nilai) {
+    head = tambahBelakang(head, nilai);
+    return head->prev;              // node baru (kini tail) dijadikan head
+}
+
+void cetakMaju(Node* head) {
+    if (head == nullptr) {
+        cout << endl;
+        return;
+    }
+    Node* p = head;
+    do {
+        cout << p->data << " ";
+        p = p->next;
+    } while (p != head);
+    cout << endl;
+}
+
+void cetakMundur(Node* head) {
+    if (head == nullptr) {
+        cout << endl;
+        return;
+    }
+    Node* p = head->prev;           // mulai dari tail
+    do {
+        cout << p->data << " ";
+        p = p->prev;
+    } while (p != head->prev);
+    cout << endl;
+}
+
+void hapusSemua(Node* head) {
+    if (head == nullptr) {
+        return;
+    }
+    head->prev->next = nullptr;     // putus lingkarannya di tail
+    while (head != nullptr) {
+        Node* berikut = head->next;
+        delete head;
+        head = berikut;
+    }
+}
+
+int main() {
+    Node* head = nullptr;
+    head = tambahBelakang(head, 3);
+    head = tambahBelakang(head, 7);
+    head = tambahBelakang(head, 9);
+    head = tambahDepan(head, 1);
+
+    cetakMaju(head);                // 1 3 7 9
+    cetakMundur(head);              // 9 7 3 1
+    cout << head->prev->data << endl;          // mundur dari 1 langsung ke 9
+    cout << head->prev->next->data << endl;    // maju dari 9 kembali ke 1
+
+    hapusSemua(head);
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self, data, prev=None, next=None):
+        self.data = data
+        self.prev = prev
+        self.next = next
+
+
+def tambah_belakang(head, nilai):
+    baru = Node(nilai)
+    if head is None:
+        baru.prev = baru            # satu node: prev dan next
+        baru.next = baru            # menunjuk dirinya sendiri
+        return baru
+    tail = head.prev
+    baru.prev = tail                # sisipkan di antara tail dan head
+    baru.next = head
+    tail.next = baru
+    head.prev = baru
+    return head
+
+
+def tambah_depan(head, nilai):
+    head = tambah_belakang(head, nilai)
+    return head.prev                # node baru (kini tail) dijadikan head
+
+
+def cetak_maju(head):
+    if head is None:
+        print()
+        return
+    p = head
+    while True:
+        print(p.data, end=" ")
+        p = p.next
+        if p is head:
+            break
+    print()
+
+
+def cetak_mundur(head):
+    if head is None:
+        print()
+        return
+    p = head.prev                   # mulai dari tail
+    while True:
+        print(p.data, end=" ")
+        p = p.prev
+        if p is head.prev:
+            break
+    print()
+
+
+head = None
+head = tambah_belakang(head, 3)
+head = tambah_belakang(head, 7)
+head = tambah_belakang(head, 9)
+head = tambah_depan(head, 1)
+
+cetak_maju(head)                    # 1 3 7 9
+cetak_mundur(head)                  # 9 7 3 1
+print(head.prev.data)               # mundur dari 1 langsung ke 9
+print(head.prev.next.data)          # maju dari 9 kembali ke 1
+```
+
+```txt title="Output"
+1 3 7 9
+9 7 3 1
+9
+1
+```
+
+Bentuk ini dipakai jika data perlu diputar ke dua arah, misalnya playlist berulang dengan tombol lagu sebelumnya dan berikutnya: dari lagu pertama, tombol "sebelumnya" langsung membawa ke lagu terakhir. `std::list` di g++ juga disusun sebagai circular doubly linked list, ditambah satu node penjaga (_sentinel_) tanpa data yang berada di antara tail dan head. Node penjaga itu membuat list kosong tetap punya satu node, sehingga kasus "list kosong" tidak perlu ditangani terpisah.
+
+## Kesalahan yang sering terjadi
+
+### Perulangan tanpa akhir pada circular list
+
+Pola penelusuran dari materi utama tidak bisa dipakai pada circular list:
+
+```cpp tab="C++"
+// ✗ pada circular list tidak ada next yang bernilai nullptr
+for (Node* p = head; p != nullptr; p = p->next) {
+    cout << p->data << " ";
+}
+```
+
+```python tab="Python"
+# ✗ pada circular list tidak ada next yang bernilai None
+p = head
+while p is not None:
+    print(p.data, end=" ")
+    p = p.next
+```
+
+Kondisinya tidak pernah salah, jadi program terus mencetak `1 3 7 9 1 3 7 9 ...` sampai dihentikan paksa. Memanggil `hapusSemua` versi singly pada circular list juga salah: setelah node terakhir dihapus, perulangan kembali ke head yang sudah di-`delete`, lalu membaca dan men-`delete` node itu sekali lagi (_double delete_). Untuk circular list, berhentilah saat kembali ke titik awal dengan `do-while`, atau putus dulu lingkarannya.
+
+Kebalikannya juga salah: `while (p != head)` dengan `p` yang dimulai dari `head` tidak berjalan sama sekali.
+
+### Lupa memperbarui `prev`
+
+```cpp tab="C++"
+// ✗ hanya arah maju yang disambungkan
+void tambahDepan(DList& d, int nilai) {
+    Node* baru = new Node{nilai, nullptr, d.head};
+    if (d.head == nullptr) {
+        d.tail = baru;
+    }
+    d.head = baru;                  // d.head->prev = baru terlupa
+}
+```
+
+```python tab="Python"
+# ✗ hanya arah maju yang disambungkan
+def tambah_depan(d, nilai):
+    baru = Node(nilai, None, d.head)
+    if d.head is None:
+        d.tail = baru
+    d.head = baru                   # d.head.prev = baru terlupa
+```
+
+Kesalahan ini tidak membuat program crash, sehingga mudah lolos. Pada contoh `3 7 9` yang ditambah 1 di depan, hasilnya:
+
+```txt title="Output"
+1 3 7 9
+9 7 3
+```
+
+Cetak maju terlihat benar, tetapi cetak mundur berhenti di 3, karena `prev` milik 3 masih `nullptr`. Kesalahannya baru muncul jauh kemudian, misalnya saat menghapus node 3: `hapusNode` mengira 3 adalah head, lalu memindahkan `head` dan membuat node 1 hilang dari list. Itulah sebabnya doubly linked list sebaiknya selalu diuji dengan mencetak ke **dua arah**.
+
+### Menghapus satu-satunya node
+
+List berisi satu node adalah kasus yang paling sering terlupa, karena node itu sekaligus head **dan** tail. Contohnya, kasus head pada doubly linked list sering ditulis seperti ini:
+
+```cpp tab="C++"
+// ✗ target adalah head
+d.head = target->next;
+d.head->prev = nullptr;     // jika target satu-satunya node, d.head sudah nullptr
+delete target;              // dan d.tail masih menunjuk node yang baru dihapus
+```
+
+```python tab="Python"
+# ✗ target adalah head
+d.head = target.next
+d.head.prev = None          # jika target satu-satunya node, d.head sudah None
+                            # dan d.tail masih menunjuk node yang baru dibuang
+```
+
+Jika list hanya berisi `5`, `d.head` menjadi `nullptr` lalu langsung di-dereference, dan program C++ crash. Python berhenti dengan `AttributeError: 'NoneType' object has no attribute 'prev'`. Seandainya baris itu dijaga dengan `if`, masih ada masalah kedua: `d.tail` tetap menunjuk node yang sudah dibuang. Di C++, `tambahBelakang` berikutnya akan menulis ke `d.tail->next`, yaitu memakai node yang sudah di-`delete` (_use after free_). Di Python tidak ada crash, tetapi node baru disambungkan ke node yang sudah dibuang sehingga tidak bisa dijangkau dari `head`. `hapusNode` di atas aman karena menangani sisi kiri dan sisi kanan secara terpisah, sehingga `head` dan `tail` sama-sama menjadi `nullptr`.
+
+Pada circular list, node tunggal menunjuk **dirinya sendiri**. Program round-robin di atas memeriksanya dengan `cur == prev`. Tanpa pemeriksaan itu, `prev->next = cur->next` tidak mengubah apa pun, node dihapus, dan `tail` tetap menunjuk node yang sudah tidak ada.
+
+<Callout title="Minta compiler membantu">
+  Kesalahan pointer seperti ini paling mudah ditemukan dengan `g++ -std=c++17 -fsanitize=address,undefined -g program.cpp`, seperti dijelaskan di [Memori Dinamis](/docs/cpp/pendalaman/memori-dinamis#menangkap-kesalahan-memori-dengan-sanitizer). Uji juga setiap fungsi dengan list kosong, list berisi satu node, dan target yang berada di head maupun tail.
+</Callout>
+
+## Memakai versi pustaka
+
+Di program nyata, kamu hampir tidak pernah perlu menulis linked list sendiri.
+
+### C++: `std::list` dan `std::forward_list`
+
+**`std::list`** dari `<list>` adalah doubly linked list. Memorinya diurus otomatis, dan list bisa ditelusuri mundur dengan `rbegin()` dan `rend()`. Keduanya menghasilkan _iterator_, yaitu penunjuk posisi yang dipakai mirip pointer: `*it` membaca nilai di posisi itu, dan `++it` berpindah ke posisi berikutnya.
+
+Python tidak punya linked list bawaan. Padanan terdekatnya adalah **`deque`** dari modul `collections`, yang cepat untuk menambah dan membuang di **kedua ujung**. Di CPython, `deque` disusun sebagai doubly linked list dari blok-blok kecil, masing-masing berisi beberapa elemen.
+
+```cpp tab="C++"
+#include <iostream>
+#include <list>
+using namespace std;
+
+int main() {
+    list<int> data = {3, 7, 9};      // doubly linked list
+    data.push_front(1);              // 1 3 7 9
+    data.remove(7);                  // 1 3 9
+    data.push_back(12);              // 1 3 9 12
+
+    for (int x : data) {             // maju
+        cout << x << " ";
+    }
+    cout << endl;
+
+    for (auto it = data.rbegin(); it != data.rend(); ++it) {   // mundur
+        cout << *it << " ";
+    }
+    cout << endl;
+
+    cout << data.front() << " " << data.back() << endl;        // 1 12
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+data = deque([3, 7, 9])
+data.appendleft(1)                   # 1 3 7 9
+data.remove(7)                       # 1 3 9
+data.append(12)                      # 1 3 9 12
+
+for x in data:                       # maju
+    print(x, end=" ")
+print()
+
+for x in reversed(data):             # mundur
+    print(x, end=" ")
+print()
+
+print(data[0], data[-1])             # 1 12
+```
+
+```txt title="Output"
+1 3 9 12
+12 9 3 1
+1 12
+```
+
+Ada satu perbedaan kecil: `remove(7)` milik `std::list` menghapus **semua** node bernilai 7, sedangkan `remove(7)` milik `deque` hanya menghapus kemunculan pertama.
+
+**`std::forward_list`** dari `<forward_list>` adalah singly linked list. Setiap node hanya menyimpan satu pointer, jadi lebih hemat memori daripada `std::list`. Sebagai gantinya, ia hanya bisa ditelusuri maju, tidak punya `push_back`, dan bahkan tidak punya `size()`:
+
+```cpp
+#include <forward_list>
+
+forward_list<int> data = {3, 7, 9};
+data.push_front(1);                  // 1 3 7 9
+data.remove(7);                      // 1 3 9
+// data.push_back(12);               // ✗ tidak ada: tidak menyimpan tail
+```
+
+### Round-robin dengan pustaka
+
+Pustaka tidak menyediakan circular list, tetapi perilaku berputarnya mudah ditiru: ambil elemen terdepan, lalu pindahkan ke belakang. Di C++ caranya `push_back` lalu `pop_front`, di Python cukup `rotate(-1)` yang menggeser semua elemen satu langkah ke kiri:
+
+```cpp tab="C++"
+#include <iostream>
+#include <list>
+#include <string>
+using namespace std;
+
+int main() {
+    list<string> pemain = {"Ani", "Budi", "Citra"};
+    for (int ronde = 1; ronde <= 5; ronde++) {
+        cout << "Ronde " << ronde << ": " << pemain.front() << endl;
+        pemain.push_back(pemain.front());    // yang terdepan pindah ke belakang
+        pemain.pop_front();
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+from collections import deque
+
+pemain = deque(["Ani", "Budi", "Citra"])
+for ronde in range(1, 6):
+    print(f"Ronde {ronde}: {pemain[0]}")
+    pemain.rotate(-1)                        # yang terdepan pindah ke belakang
+```
+
+```txt title="Output"
+Ronde 1: Ani
+Ronde 2: Budi
+Ronde 3: Citra
+Ronde 4: Ani
+Ronde 5: Budi
+```
+
+## Memilih variasi
+
+Tabel berikut merangkum banyak langkah setiap operasi untuk list berisi `n` node. Notasi O dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+| Operasi | Singly (`head` + `tail`) | Doubly (`head` + `tail`) | Circular singly (`tail`) | Circular doubly (`head`) |
+| --- | --- | --- | --- | --- |
+| Tambah di depan atau di belakang | O(1) | O(1) | O(1) | O(1) |
+| Hapus di depan | O(1) | O(1) | O(1) | O(1) |
+| Hapus di belakang | O(n), perlu node sebelum tail | O(1) | O(n), perlu node sebelum tail | O(1) |
+| Hapus node yang alamatnya sudah dipegang | O(n), perlu node sebelumnya | O(1) | O(n), perlu node sebelumnya | O(1) |
+| Telusuri mundur | Tidak bisa tanpa membalik list | O(n) | Tidak bisa tanpa membalik list | O(n) |
+| Mencari sebuah nilai | O(n) | O(n) | O(n) | O(n) |
+| Pointer per node | 1 | 2 | 1 | 2 |
+
+Pegangan praktisnya:
+
+- Butuh maju dan mundur, atau sering menghapus node di tengah yang sudah dipegang: **doubly** (`std::list`).
+- Data terus berputar bergiliran: **circular**. Di program nyata, cukup tiru dengan `deque` seperti contoh di atas.
+- Hanya butuh menambah dan membuang di ujung: `deque` di kedua bahasa, atau `vector` jika hanya di belakang. Seperti dibahas di materi utama, `vector` sering tetap paling cepat dalam praktik.
+
+## Rangkuman
+
+- **Singly linked list**: setiap node hanya tahu node sesudahnya. Sederhana dan hemat, tetapi hanya bisa maju dan harus mencari node sebelumnya untuk menghapus.
+- **Doubly linked list**: setiap node menyimpan `prev` dan `next`. List bisa ditelusuri dua arah, dan node yang sudah dipegang bisa dihapus tanpa menelusuri list. Setiap perubahan `next` harus diikuti perubahan `prev` pasangannya.
+- **Circular singly linked list**: `next` milik node terakhir kembali ke head. Cukup simpan `tail`, karena head adalah `tail->next`. Telusuri dengan `do-while` dan berhenti saat kembali ke titik awal.
+- **Circular doubly linked list**: kedua arah melingkar, jadi cukup simpan `head` dan tail adalah `head->prev`. `std::list` di g++ memakai bentuk ini dengan satu node penjaga.
+- Kesalahan umum: `p != nullptr` pada circular list (perulangan tanpa akhir), lupa memperbarui `prev`, dan lupa bahwa satu-satunya node adalah head sekaligus tail.
+- Di program nyata, pakai `std::list` atau `std::forward_list` di C++, dan `deque` di Python.
+
+<BackToLesson href="/docs/cpp/linked-list" label="Linked List" />

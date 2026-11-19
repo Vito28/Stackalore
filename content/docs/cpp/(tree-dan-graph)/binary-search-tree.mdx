@@ -202,6 +202,10 @@ Tree contoh terbentuk jika `45 23 71 11 30 58 36 64` disisipkan satu per satu ke
 | 36 | 45 (kiri), 23 (kanan), 30 (kanan) | anak kanan 30 |
 | 64 | 45 (kanan), 71 (kiri), 58 (kanan) | anak kanan 58 |
 
+Jalankan penyisipan yang sama langkah demi langkah di bawah ini, dilanjutkan dengan mencari 36 dan 50 seperti tabel di bagian [Mencari nilai](#mencari-nilai). Subtree yang berubah abu-abu adalah subtree yang dilewati, karena nilai yang dicari pasti tidak ada di sana. Lewat **Ubah operasi**, kamu juga bisa mencoba nilai lain, misalnya nilai kembar.
+
+<VisualisasiBST />
+
 Program lengkap berikut membaca `n` bilangan, menyisipkannya ke BST, lalu mencetaknya secara inorder. Fungsi `inorder` dan `hapusTree` sama dengan di materi [Tree](/docs/cpp/tree).
 
 ```cpp tab="C++" input="8\n45 23 71 11 30 58 36 64"
@@ -470,6 +474,10 @@ Jika 11, 30, lalu 45 dihapus berturut-turut dari tree contoh, hasilnya:
 ```
 
 Inorder-nya `23 36 58 64 71`, masih terurut.
+
+Ikuti ketiga penghapusan itu langkah demi langkah di bawah ini, mulai dari tree contoh. Pada `hapus(45)`, perhatikan bagaimana pengganti dicari, nilainya disalin ke root, lalu node pengganti yang lama dihapus dari subtree kanan.
+
+<VisualisasiBST awal="45 23 71 11 30 58 36 64" operasi="hapus(11) hapus(30) hapus(45)" judul="Visualisasi menghapus nilai dari BST" />
 
 ## Bentuk tree bergantung pada urutan sisip
 

@@ -192,6 +192,10 @@ Tabel berikut mengikuti isi queue selama program di atas berjalan. Isi queue dit
 
 Lihat langkah 5. Simpul 6 sudah punya jarak sejak langkah 4 walaupun masih menunggu di queue, jadi simpul 5 tidak memasukkannya lagi. Urutan keluarnya, `1 2 4 3 5 7 6 8`, persis mengikuti lapisan: semua simpul lapis 1, lalu semua simpul lapis 2, lalu lapis 3.
 
+Jalankan BFS yang sama langkah demi langkah di bawah ini. Perhatikan bahwa `dist` diisi saat simpul **masuk** queue, dan angka kecil di setiap simpul menunjukkan lapisnya. Lewat **Ubah graph**, kamu juga bisa mencoba graph dan simpul awal lain.
+
+<VisualisasiBFS />
+
 ## Kenapa jaraknya pasti terpendek
 
 Di jejak tadi, jarak simpul yang keluar dari queue tidak pernah turun: 0, lalu 1, 1, lalu 2, 2, 2, lalu 3, 3. Ini selalu berlaku. Simpul berjarak `d + 1` hanya dimasukkan saat simpul berjarak `d` diproses, dan masuknya di belakang, sehingga isi queue selalu terurut menurut jarak.
@@ -329,6 +333,10 @@ Rute: 1 4 7 8
 </DeepDive>
 
 Jika ada beberapa rute dengan panjang yang sama, BFS memilih salah satunya. Rute mana yang terpilih bergantung pada urutan tetangga di adjacency list.
+
+Visualisasi berikut menjalankan BFS yang sama sambil mencatat `induk`, lalu menyusun rute ke stasiun 8 dengan mengikuti `induk` mundur. Lewat **Ubah graph**, kamu bisa memilih simpul awal dan tujuan lain.
+
+<VisualisasiBFS tujuan={8} judul="Visualisasi BFS dengan rute" />
 
 ## BFS pada labirin grid
 

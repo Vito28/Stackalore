@@ -1,0 +1,2232 @@
+---
+title: Trie
+description: Menyimpan kumpulan kata sebagai pohon huruf agar mencari kata, mengecek awalan, dan menampilkan semua kata berawalan tertentu bisa cepat, beserta cara menghitung kata per awalan dan perbandingannya dengan set dan hash table.
+sumber:
+  - ref: cppreference
+    judul: std::map
+    url: https://en.cppreference.com/w/cpp/container/map
+  - ref: cppreference
+    judul: std::vector::push_back
+    url: https://en.cppreference.com/w/cpp/container/vector/push_back
+  - ref: python-docs
+    judul: Mapping Types, dict
+    url: https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+  - ref: python-docs
+    judul: Tutorial, Classes
+    url: https://docs.python.org/3/tutorial/classes.html
+  - ref: python-docs
+    judul: sorted
+    url: https://docs.python.org/3/library/functions.html#sorted
+---
+
+## Masalah: mencari kata berdasarkan awalan
+
+Saat kamu mengetik `ka` di kolom pencarian atau di papan ketik ponsel, langsung muncul saran seperti `kata` dan `katak`. Setiap huruf yang kamu tambahkan mempersempit sarannya. Program kamus dan pemeriksa ejaan juga sering menghadapi dua pertanyaan yang mirip tetapi berbeda:
+
+1. Apakah `kita` adalah kata yang terdaftar? Ini pertanyaan tentang **kata utuh**.
+2. Adakah kata yang diawali `kat`, dan kata apa saja itu? Ini pertanyaan tentang **awalan** (_prefix_).
+
+Pertanyaan pertama sudah bisa dijawab dengan cepat oleh [Map & Set](/docs/cpp/map-dan-set) maupun [Hash Table](/docs/cpp/hash-table). Pertanyaan kedua lebih merepotkan:
+
+- Hash table menghitung nomor loker dari **seluruh** huruf kata. `kata` dan `katak` hanya berbeda satu huruf, tetapi lokernya bisa berjauhan. Tidak ada cara menemukan semua kata berawalan `kat` selain memeriksa semua kata satu per satu.
+- `set` di C++ menyimpan kata secara terurut, jadi kata-kata berawalan sama memang berdampingan. Namun untuk melompat ke awal kelompok itu, kita butuh pencarian biner dan perbandingan string yang hati-hati. Vector terurut punya masalah yang sama, ditambah menyisipkan kata baru harus menggeser elemen, seperti yang kamu lihat di materi [Binary Search Tree](/docs/cpp/binary-search-tree).
+
+Cara paling sederhana adalah memeriksa setiap kata:
+
+```cpp tab="C++"
+// semua kata di kamus yang berawalan s
+for (const string& w : kamus) {
+    if (w.substr(0, s.length()) == s) {
+        cout << w << endl;
+    }
+}
+```
+
+```python tab="Python"
+# semua kata di kamus yang berawalan s
+for w in kamus:
+    if w[:len(s)] == s:
+        print(w)
+```
+
+Untuk kamus berisi sejuta kata, setiap huruf yang diketik pengguna memicu sejuta pemeriksaan. Padahal ada pola yang bisa dimanfaatkan. `kata` dan `katak` berbagi awalan `kata`, dan ketiga kata `kata`, `katak`, `kita` berbagi huruf `k`. Jika awalan yang sama hanya disimpan **sekali**, kata-kata itu tersusun menjadi sebuah [tree](/docs/cpp/tree). Tree seperti ini disebut **trie**.
+
+## Bentuk trie
+
+Nama _trie_ diambil dari kata re**trie**val (pengambilan kembali). Banyak orang mengucapkannya seperti "trai" agar tidak tertukar dengan _tree_. Nama lainnya adalah **prefix tree** (pohon awalan). Aturannya:
+
+- **Root** mewakili string kosong.
+- Setiap edge diberi **satu huruf**. Anak-anak dari satu node selalu punya huruf yang berbeda.
+- Jalur dari root ke sebuah node mengeja sebuah awalan. Setiap node mewakili tepat satu awalan.
+- Node yang jalurnya mengeja kata yang disimpan diberi tanda **akhir kata**.
+
+Contoh yang dipakai sepanjang materi ini adalah lima kata yang disisipkan berurutan: `kata`, `katak`, `kita`, `buku`, `bus`. Trie-nya terlihat seperti ini, dengan anak-anak setiap node diurutkan sesuai abjad:
+
+```txt
+         (root)
+        /      \
+       b        k
+       |       / \
+       u      a   i
+      / \     |   |
+     k   s*   t   t
+     |        |   |
+     u*       a*  a*
+              |
+              k*
+```
+
+Huruf di setiap node adalah huruf pada edge yang masuk ke node itu, dan tanda `*` berarti akhir kata. Baca dari root ke bawah: `k`, `a`, `t`, `a` mengeja `kata`, dan node terakhirnya bertanda, jadi `kata` tersimpan. Jalur `k`, `a`, `t` juga ada, tetapi node `t` tidak bertanda. Artinya `kat` hanya **awalan** dari kata lain, bukan kata yang disimpan.
+
+Beberapa hal yang perlu diperhatikan:
+
+- Trie ini berisi **14 node**: root ditambah 13 node huruf. Jika kelima kata disimpan terpisah, totalnya 4 + 5 + 4 + 4 + 3 = 20 huruf. Ada 7 huruf yang dihemat karena awalan `kata` (dipakai `katak`), `k` (dipakai `kita`), dan `bu` (dipakai `bus`) hanya disimpan sekali.
+- Node `kata` bertanda akhir kata, tetapi masih punya anak `k` menuju `katak`. Jadi akhir kata **tidak sama** dengan daun. Itulah sebabnya kita butuh tanda khusus.
+- Setiap daun pasti akhir kata, karena node hanya dibuat saat menyisipkan sebuah kata.
+- Tinggi trie sama dengan panjang kata terpanjang. Di sini 5, untuk `katak`.
+
+## Menyimpan trie di vector
+
+Node binary tree punya tepat dua tempat anak, `left` dan `right`. Node trie bisa punya sampai 26 anak, satu untuk setiap huruf, dan kita perlu menemukan anak **berdasarkan hurufnya**. Itu pekerjaan yang cocok untuk map: kuncinya huruf, nilainya anak yang dituju.
+
+Daripada memakai pointer, semua node disimpan di satu `vector`, dan anak dicatat lewat **indeks**-nya di vector itu. Idenya sama dengan penomoran node di bagian [membaca tree dari input](/docs/cpp/tree#membaca-tree-dari-input): nomor node berperan sebagai alamat. Root selalu berada di indeks 0, dan node baru selalu ditambahkan di ujung vector.
+
+```cpp tab="C++"
+#include <map>
+#include <vector>
+
+struct Node {
+    map<char, int> anak;       // huruf → indeks node anak di vector
+    bool akhirKata = false;    // true jika ada kata yang berakhir di node ini
+};
+
+vector<Node> trie(1);          // satu node kosong: trie[0] adalah root
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self):
+        self.anak = {}             # huruf -> indeks node anak di list
+        self.akhir_kata = False    # True jika ada kata yang berakhir di node ini
+
+
+trie = [Node()]                    # satu node kosong: trie[0] adalah root
+```
+
+Setelah kelima kata contoh disisipkan, isi vector-nya seperti ini. Indeks mengikuti urutan pembuatan node:
+
+| Indeks | Awalan | `anak` | `akhirKata` |
+| --- | --- | --- | --- |
+| 0 | (kosong, root) | `b` → 9, `k` → 1 | false |
+| 1 | `k` | `a` → 2, `i` → 6 | false |
+| 2 | `ka` | `t` → 3 | false |
+| 3 | `kat` | `a` → 4 | false |
+| 4 | `kata` | `k` → 5 | **true** |
+| 5 | `katak` | | **true** |
+| 6 | `ki` | `t` → 7 | false |
+| 7 | `kit` | `a` → 8 | false |
+| 8 | `kita` | | **true** |
+| 9 | `b` | `u` → 10 | false |
+| 10 | `bu` | `k` → 11, `s` → 13 | false |
+| 11 | `buk` | `u` → 12 | false |
+| 12 | `buku` | | **true** |
+| 13 | `bus` | | **true** |
+
+Awalan di kolom kedua **tidak** disimpan di mana pun. Ia hanya muncul dari jalur yang ditempuh dari root. Node 4 tidak tahu bahwa dirinya mewakili `kata`. Yang ia simpan hanya tanda akhir kata dan anak-anaknya.
+
+Ada satu keuntungan lagi dari `map`: kuncinya selalu terurut. Saat anak-anak sebuah node ditelusuri, hurufnya keluar dalam urutan abjad (`b` sebelum `k`), tidak peduli urutan penyisipannya. `dict` Python mengingat urutan masuk, jadi di Python kita memakai `sorted()` setiap kali urutan abjad dibutuhkan.
+
+## Menyisipkan kata
+
+Mulai dari root, lalu proses kata huruf demi huruf:
+
+1. Jika node sekarang sudah punya anak untuk huruf `c`, turun ke anak itu.
+2. Jika belum, buat node baru di ujung vector, catat indeksnya di `anak[c]`, lalu turun ke node baru itu.
+3. Setelah huruf terakhir, tandai node tempat kita berhenti sebagai akhir kata.
+
+```cpp tab="C++"
+void sisipkan(vector<Node>& trie, const string& kata) {
+    int p = 0;                                   // mulai dari root
+    for (char c : kata) {
+        if (trie[p].anak.count(c) == 0) {        // belum ada jalan untuk huruf c
+            int baru = trie.size();              // indeks node yang akan dibuat
+            trie.push_back(Node());
+            trie[p].anak[c] = baru;              // sambungkan ke node baru
+        }
+        p = trie[p].anak[c];                     // turun ke anak
+    }
+    trie[p].akhirKata = true;                    // tandai akhir kata
+}
+```
+
+```python tab="Python"
+def sisipkan(trie, kata):
+    p = 0                                        # mulai dari root
+    for c in kata:
+        if c not in trie[p].anak:                # belum ada jalan untuk huruf c
+            baru = len(trie)                     # indeks node yang akan dibuat
+            trie.append(Node())
+            trie[p].anak[c] = baru               # sambungkan ke node baru
+        p = trie[p].anak[c]                      # turun ke anak
+    trie[p].akhir_kata = True                    # tandai akhir kata
+```
+
+Variabel `p` berperan seperti pointer yang berjalan di linked list, hanya saja isinya indeks, dan di setiap langkah ia memilih anak sesuai huruf berikutnya. Baris `trie[p].anak[c]` aman dibaca dengan `[]`, karena tepat sebelumnya kita sudah memastikan kunci `c` ada.
+
+Berikut jalannya `sisipkan(trie, "kita")`, saat `kata` dan `katak` sudah tersimpan (node 0 sampai 5):
+
+| Huruf | Node `p` | Anak untuk huruf ini sudah ada? | Tindakan |
+| --- | --- | --- | --- |
+| `k` | 0 (root) | ya, node 1 | turun ke node 1 |
+| `i` | 1 (`k`) | tidak | buat node 6, turun ke sana |
+| `t` | 6 (`ki`) | tidak | buat node 7, turun ke sana |
+| `a` | 7 (`kit`) | tidak | buat node 8, turun ke sana |
+| (selesai) | 8 (`kita`) | | `akhirKata = true` |
+
+Huruf `k` sudah ada, jadi hanya tiga node baru yang dibuat. Saat `bus` disisipkan sesudah `buku`, langkahnya lebih pendek lagi: `b` dan `u` sudah ada (node 9 dan 10), sehingga hanya node 13 untuk huruf `s` yang dibuat.
+
+Bagaimana jika kata yang disisipkan sudah merupakan awalan, misalnya `kat`? Semua hurufnya sudah punya jalan, jadi tidak ada node baru. Yang berubah hanya node 3, yang kini bertanda akhir kata. Menyisipkan kata yang sudah ada juga aman: tanda yang sudah `true` hanya diisi `true` lagi.
+
+## Mencari kata dan mengecek awalan
+
+Kedua pertanyaan di awal materi diawali langkah yang sama: ikuti jalur huruf demi huruf dari root. Langkah ini ditulis sebagai fungsi `telusuri`, yang mengembalikan indeks node di ujung jalur, atau -1 jika di tengah jalan tidak ada anak untuk huruf berikutnya.
+
+```cpp tab="C++"
+// indeks node di ujung jalur s, atau -1 jika jalurnya terputus
+int telusuri(const vector<Node>& trie, const string& s) {
+    int p = 0;
+    for (char c : s) {
+        auto it = trie[p].anak.find(c);
+        if (it == trie[p].anak.end()) {
+            return -1;                           // tidak ada anak untuk huruf c
+        }
+        p = it->second;                          // turun ke anak
+    }
+    return p;
+}
+
+bool cari(const vector<Node>& trie, const string& kata) {
+    int p = telusuri(trie, kata);
+    return p != -1 && trie[p].akhirKata;         // jalurnya ada DAN bertanda akhir kata
+}
+
+bool awalan(const vector<Node>& trie, const string& s) {
+    return telusuri(trie, s) != -1;              // cukup jalurnya ada
+}
+```
+
+```python tab="Python"
+# indeks node di ujung jalur s, atau -1 jika jalurnya terputus
+def telusuri(trie, s):
+    p = 0
+    for c in s:
+        if c not in trie[p].anak:
+            return -1                            # tidak ada anak untuk huruf c
+        p = trie[p].anak[c]                      # turun ke anak
+    return p
+
+
+def cari(trie, kata):
+    p = telusuri(trie, kata)
+    return p != -1 and trie[p].akhir_kata        # jalurnya ada DAN bertanda akhir kata
+
+
+def awalan(trie, s):
+    return telusuri(trie, s) != -1               # cukup jalurnya ada
+```
+
+Ketiga fungsi menerima trie sebagai `const`, karena tidak ada yang perlu diubah. Akibatnya, di C++ kita tidak boleh menulis `trie[p].anak[c]`, sebab `[]` pada map bisa menambah kunci baru, seperti jebakan yang dibahas di materi [Map & Set](/docs/cpp/map-dan-set). Kita memakai `find`, yang hanya mencari. Di Python, `in` memeriksa keberadaan kunci tanpa mengubah apa pun.
+
+Satu-satunya perbedaan `cari` dan `awalan` adalah pemeriksaan tanda akhir kata. Berikut empat pertanyaan pada trie contoh:
+
+| Pemanggilan | Jalur yang ditelusuri | `telusuri` | Tanda akhir kata | Jawaban |
+| --- | --- | --- | --- | --- |
+| `cari("kita")` | 0 → 1 → 6 → 7 → 8 | 8 | true | **ada** |
+| `cari("kat")` | 0 → 1 → 2 → 3 | 3 | false | **tidak ada**, `kat` hanya awalan |
+| `awalan("kat")` | 0 → 1 → 2 → 3 | 3 | tidak diperiksa | **ada** |
+| `cari("bukit")` | 0 → 9 → 10 → 11, lalu node 11 tidak punya anak `i` | -1 | | **tidak ada** |
+
+Pada `cari("bukit")`, penelusuran berhenti di huruf keempat. Tiga huruf pertama `buk` memang ada di trie, tetapi node `buk` hanya punya anak `u`. Huruf `t` sesudahnya tidak pernah diperiksa.
+
+### Berapa langkah yang dibutuhkan?
+
+Ketiga operasi menelusuri satu jalur dari root ke bawah, satu langkah per huruf. Di setiap langkah, mencari anak di map yang berisi paling banyak 26 huruf hanya butuh beberapa perbandingan. Jadi menyisipkan, mencari, dan mengecek awalan sebuah kata sepanjang `L` huruf butuh waktu **O(L)**.
+
+Perhatikan bahwa banyak kata di trie, `n`, tidak muncul sama sekali. Mencari `kita` di trie berisi lima kata atau lima juta kata sama-sama butuh empat langkah. Penjelasan notasi O ada di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+Jalankan kelima penyisipan dan keempat pertanyaan tadi langkah demi langkah di bawah ini. Lewat **Ubah operasi**, kamu juga bisa menyisipkan dan mencari kata sendiri.
+
+<VisualisasiTrie />
+
+## Program lengkap
+
+Program berikut membaca `n` kata, menyisipkannya ke trie, lalu menjawab `q` pertanyaan. Setiap pertanyaan berupa `cari` atau `awalan` diikuti sebuah string.
+
+```cpp tab="C++" input="5\nkata katak kita buku bus\n4\ncari kita\ncari kat\nawalan kat\ncari bukit"
+#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Node {
+    map<char, int> anak;
+    bool akhirKata = false;
+};
+
+void sisipkan(vector<Node>& trie, const string& kata) {
+    int p = 0;
+    for (char c : kata) {
+        if (trie[p].anak.count(c) == 0) {
+            int baru = trie.size();
+            trie.push_back(Node());
+            trie[p].anak[c] = baru;
+        }
+        p = trie[p].anak[c];
+    }
+    trie[p].akhirKata = true;
+}
+
+int telusuri(const vector<Node>& trie, const string& s) {
+    int p = 0;
+    for (char c : s) {
+        auto it = trie[p].anak.find(c);
+        if (it == trie[p].anak.end()) {
+            return -1;
+        }
+        p = it->second;
+    }
+    return p;
+}
+
+bool cari(const vector<Node>& trie, const string& kata) {
+    int p = telusuri(trie, kata);
+    return p != -1 && trie[p].akhirKata;
+}
+
+bool awalan(const vector<Node>& trie, const string& s) {
+    return telusuri(trie, s) != -1;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<Node> trie(1);                        // trie[0] adalah root
+    for (int i = 0; i < n; i++) {
+        string kata;
+        cin >> kata;
+        sisipkan(trie, kata);
+    }
+    cout << "Banyak node: " << trie.size() << endl;
+
+    int q;
+    cin >> q;
+    for (int i = 0; i < q; i++) {
+        string perintah, s;
+        cin >> perintah >> s;
+        bool hasil;
+        if (perintah == "cari") {
+            hasil = cari(trie, s);
+        } else {
+            hasil = awalan(trie, s);
+        }
+        string jawaban = hasil ? "ada" : "tidak ada";
+        cout << perintah << "(\"" << s << "\"): " << jawaban << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self):
+        self.anak = {}
+        self.akhir_kata = False
+
+
+def sisipkan(trie, kata):
+    p = 0
+    for c in kata:
+        if c not in trie[p].anak:
+            baru = len(trie)
+            trie.append(Node())
+            trie[p].anak[c] = baru
+        p = trie[p].anak[c]
+    trie[p].akhir_kata = True
+
+
+def telusuri(trie, s):
+    p = 0
+    for c in s:
+        if c not in trie[p].anak:
+            return -1
+        p = trie[p].anak[c]
+    return p
+
+
+def cari(trie, kata):
+    p = telusuri(trie, kata)
+    return p != -1 and trie[p].akhir_kata
+
+
+def awalan(trie, s):
+    return telusuri(trie, s) != -1
+
+
+n = int(input())
+trie = [Node()]                                  # trie[0] adalah root
+for kata in input().split():
+    sisipkan(trie, kata)
+print("Banyak node:", len(trie))
+
+q = int(input())
+for _ in range(q):
+    perintah, s = input().split()
+    if perintah == "cari":
+        hasil = cari(trie, s)
+    else:
+        hasil = awalan(trie, s)
+    jawaban = "ada" if hasil else "tidak ada"
+    print(f'{perintah}("{s}"): {jawaban}')
+```
+
+```txt title="Contoh input"
+5
+kata katak kita buku bus
+4
+cari kita
+cari kat
+awalan kat
+cari bukit
+```
+
+```txt title="Contoh output"
+Banyak node: 14
+cari("kita"): ada
+cari("kat"): tidak ada
+awalan("kat"): ada
+cari("bukit"): tidak ada
+```
+
+Banyak node adalah ukuran vector, karena setiap node menempati tepat satu tempat di dalamnya.
+
+## Menampilkan semua kata berawalan tertentu
+
+Sekarang fitur _autocomplete_: tampilkan semua kata yang diawali `s`. Dengan trie, pekerjaannya terbagi dua:
+
+1. **Turun ke node awalan.** Panggil `telusuri(trie, s)`. Jika hasilnya -1, tidak ada kata berawalan `s`.
+2. **Kumpulkan semua kata di subtree node itu.** Setiap kata berawalan `s` pasti melewati node tersebut, dan setiap node bertanda akhir kata di bawahnya adalah sebuah kata berawalan `s`.
+
+Langkah kedua adalah penelusuran rekursif yang mirip preorder di materi [Tree](/docs/cpp/tree). Fungsinya membawa string yang sudah dieja sejauh ini. Setiap kali turun ke anak, huruf anak itu ditambahkan di belakangnya.
+
+```cpp tab="C++"
+void kumpulkan(const vector<Node>& trie, int p, string sekarang, vector<string>& hasil) {
+    if (trie[p].akhirKata) {                     // jalur sampai sini adalah sebuah kata
+        hasil.push_back(sekarang);
+    }
+    for (auto& [c, berikut] : trie[p].anak) {    // map: huruf keluar urut a-z
+        kumpulkan(trie, berikut, sekarang + c, hasil);
+    }
+}
+```
+
+```python tab="Python"
+def kumpulkan(trie, p, sekarang, hasil):
+    if trie[p].akhir_kata:                       # jalur sampai sini adalah sebuah kata
+        hasil.append(sekarang)
+    for c in sorted(trie[p].anak):               # urutkan agar huruf keluar urut a-z
+        kumpulkan(trie, trie[p].anak[c], sekarang + c, hasil)
+```
+
+Fungsi ini tidak butuh kasus dasar terpisah. Pada daun, perulangannya tidak berjalan sama sekali, jadi rekursi berhenti dengan sendirinya. Kedalaman rekursinya paling banyak sepanjang kata terpanjang, jadi aman dari masalah <Term href="/docs/cpp/pendalaman/call-stack">call stack</Term>.
+
+Hasilnya selalu terurut sesuai abjad, karena dua hal:
+
+- Kata milik sebuah node dicatat **sebelum** kata-kata di subtree-nya. Jadi `kata` keluar sebelum `katak`, sama seperti di kamus.
+- Anak-anak dikunjungi sesuai urutan huruf. Semua kata di bawah `ka` keluar sebelum kata-kata di bawah `ki`.
+
+Berikut jalannya untuk awalan `k`. `telusuri` berhenti di node 1, lalu `kumpulkan` dimulai dari sana dengan `sekarang = "k"`:
+
+```txt
+kumpulkan(1, "k")
+├── kumpulkan(2, "ka")
+│   └── kumpulkan(3, "kat")
+│       └── kumpulkan(4, "kata")         akhir kata, catat "kata"
+│           └── kumpulkan(5, "katak")    akhir kata, catat "katak"
+└── kumpulkan(6, "ki")
+    └── kumpulkan(7, "kit")
+        └── kumpulkan(8, "kita")         akhir kata, catat "kita"
+```
+
+Program lengkapnya membaca daftar kata, lalu beberapa awalan. Untuk awalan yang tidak dimiliki kata mana pun, program mencetak `-`.
+
+```cpp tab="C++" input="5\nkata katak kita buku bus\n4\nk\nka\nbu\nx"
+#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Node {
+    map<char, int> anak;
+    bool akhirKata = false;
+};
+
+void sisipkan(vector<Node>& trie, const string& kata) {
+    int p = 0;
+    for (char c : kata) {
+        if (trie[p].anak.count(c) == 0) {
+            int baru = trie.size();
+            trie.push_back(Node());
+            trie[p].anak[c] = baru;
+        }
+        p = trie[p].anak[c];
+    }
+    trie[p].akhirKata = true;
+}
+
+int telusuri(const vector<Node>& trie, const string& s) {
+    int p = 0;
+    for (char c : s) {
+        auto it = trie[p].anak.find(c);
+        if (it == trie[p].anak.end()) {
+            return -1;
+        }
+        p = it->second;
+    }
+    return p;
+}
+
+void kumpulkan(const vector<Node>& trie, int p, string sekarang, vector<string>& hasil) {
+    if (trie[p].akhirKata) {
+        hasil.push_back(sekarang);
+    }
+    for (auto& [c, berikut] : trie[p].anak) {
+        kumpulkan(trie, berikut, sekarang + c, hasil);
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<Node> trie(1);
+    for (int i = 0; i < n; i++) {
+        string kata;
+        cin >> kata;
+        sisipkan(trie, kata);
+    }
+
+    int q;
+    cin >> q;
+    for (int i = 0; i < q; i++) {
+        string s;
+        cin >> s;
+        vector<string> hasil;
+        int p = telusuri(trie, s);
+        if (p != -1) {
+            kumpulkan(trie, p, s, hasil);        // mulai dari node awalan, dengan teks s
+        }
+
+        cout << s << ":";
+        if (hasil.empty()) {
+            cout << " -";
+        }
+        for (const string& w : hasil) {
+            cout << " " << w;
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self):
+        self.anak = {}
+        self.akhir_kata = False
+
+
+def sisipkan(trie, kata):
+    p = 0
+    for c in kata:
+        if c not in trie[p].anak:
+            baru = len(trie)
+            trie.append(Node())
+            trie[p].anak[c] = baru
+        p = trie[p].anak[c]
+    trie[p].akhir_kata = True
+
+
+def telusuri(trie, s):
+    p = 0
+    for c in s:
+        if c not in trie[p].anak:
+            return -1
+        p = trie[p].anak[c]
+    return p
+
+
+def kumpulkan(trie, p, sekarang, hasil):
+    if trie[p].akhir_kata:
+        hasil.append(sekarang)
+    for c in sorted(trie[p].anak):
+        kumpulkan(trie, trie[p].anak[c], sekarang + c, hasil)
+
+
+n = int(input())
+trie = [Node()]
+for kata in input().split():
+    sisipkan(trie, kata)
+
+q = int(input())
+for _ in range(q):
+    s = input()
+    hasil = []
+    p = telusuri(trie, s)
+    if p != -1:
+        kumpulkan(trie, p, s, hasil)             # mulai dari node awalan, dengan teks s
+
+    if len(hasil) == 0:
+        print(f"{s}: -")
+    else:
+        print(f"{s}:", *hasil)
+```
+
+```txt title="Contoh input"
+5
+kata katak kita buku bus
+4
+k
+ka
+bu
+x
+```
+
+```txt title="Contoh output"
+k: kata katak kita
+ka: kata katak
+bu: buku bus
+x: -
+```
+
+Langkah pertama butuh O(L), dengan `L` panjang awalan. Langkah kedua hanya mengunjungi node di subtree awalan itu, bukan seluruh trie. Kata-kata berawalan `b` tidak pernah disentuh saat mencari awalan `k`. Jika `kumpulkan` dipanggil dari root dengan string kosong, hasilnya adalah **semua** kata dalam urutan abjad: `buku bus kata katak kita`.
+
+## Menghitung kata berawalan tertentu
+
+Kadang yang dibutuhkan hanya **banyaknya**, misalnya "ada berapa kata yang diawali `ka`?". `kumpulkan` bisa menjawabnya, tetapi harus menelusuri seluruh subtree. Ada cara yang lebih cepat: tambahkan anggota `banyak` di setiap node, yang mencatat berapa kata yang jalurnya **melewati** node itu.
+
+```cpp tab="C++"
+struct Node {
+    map<char, int> anak;
+    bool akhirKata = false;
+    int banyak = 0;            // banyak kata yang jalurnya melewati node ini
+};
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self):
+        self.anak = {}
+        self.akhir_kata = False
+        self.banyak = 0            # banyak kata yang jalurnya melewati node ini
+```
+
+Setiap kali sebuah kata disisipkan, semua node di jalurnya, termasuk root, bertambah satu. Banyak kata berawalan `s` adalah nilai `banyak` di node ujung jalur `s`. Pada trie contoh:
+
+| Node | `k` | `ka` | `kat` | `kata` | `katak` | `ki` | `kit` | `kita` | `b` | `bu` | `buk` | `buku` | `bus` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `banyak` | 3 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 1 |
+
+Root bernilai 5, yaitu banyak semua kata. Perhatikan node `kata` bernilai 2, karena dilewati `kata` dan `katak`.
+
+Ada satu jebakan. Jika kata yang sama disisipkan dua kali, semua penghitung di jalurnya ikut bertambah dua kali, padahal kata itu hanya tersimpan sekali. Karena itu, `sisipkan` versi ini memeriksa dulu apakah kata sudah ada:
+
+```cpp tab="C++" input="6\nkata katak kita buku bus kata\n5\nk\nka\nki\nbu\nx"
+#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Node {
+    map<char, int> anak;
+    bool akhirKata = false;
+    int banyak = 0;
+};
+
+int telusuri(const vector<Node>& trie, const string& s) {
+    int p = 0;
+    for (char c : s) {
+        auto it = trie[p].anak.find(c);
+        if (it == trie[p].anak.end()) {
+            return -1;
+        }
+        p = it->second;
+    }
+    return p;
+}
+
+bool cari(const vector<Node>& trie, const string& kata) {
+    int p = telusuri(trie, kata);
+    return p != -1 && trie[p].akhirKata;
+}
+
+void sisipkan(vector<Node>& trie, const string& kata) {
+    if (cari(trie, kata)) {
+        return;                                  // sudah ada: jangan dihitung dua kali
+    }
+    int p = 0;
+    trie[p].banyak++;                            // root dilewati setiap kata
+    for (char c : kata) {
+        if (trie[p].anak.count(c) == 0) {
+            int baru = trie.size();
+            trie.push_back(Node());
+            trie[p].anak[c] = baru;
+        }
+        p = trie[p].anak[c];
+        trie[p].banyak++;                        // satu kata lagi lewat sini
+    }
+    trie[p].akhirKata = true;
+}
+
+int hitungAwalan(const vector<Node>& trie, const string& s) {
+    int p = telusuri(trie, s);
+    if (p == -1) {
+        return 0;                                // jalurnya tidak ada: tidak ada kata
+    }
+    return trie[p].banyak;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<Node> trie(1);
+    for (int i = 0; i < n; i++) {
+        string kata;
+        cin >> kata;
+        sisipkan(trie, kata);
+    }
+    cout << "Banyak kata berbeda: " << trie[0].banyak << endl;
+
+    int q;
+    cin >> q;
+    for (int i = 0; i < q; i++) {
+        string s;
+        cin >> s;
+        cout << s << ": " << hitungAwalan(trie, s) << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+class Node:
+    def __init__(self):
+        self.anak = {}
+        self.akhir_kata = False
+        self.banyak = 0
+
+
+def telusuri(trie, s):
+    p = 0
+    for c in s:
+        if c not in trie[p].anak:
+            return -1
+        p = trie[p].anak[c]
+    return p
+
+
+def cari(trie, kata):
+    p = telusuri(trie, kata)
+    return p != -1 and trie[p].akhir_kata
+
+
+def sisipkan(trie, kata):
+    if cari(trie, kata):
+        return                                   # sudah ada: jangan dihitung dua kali
+    p = 0
+    trie[p].banyak += 1                          # root dilewati setiap kata
+    for c in kata:
+        if c not in trie[p].anak:
+            baru = len(trie)
+            trie.append(Node())
+            trie[p].anak[c] = baru
+        p = trie[p].anak[c]
+        trie[p].banyak += 1                      # satu kata lagi lewat sini
+    trie[p].akhir_kata = True
+
+
+def hitung_awalan(trie, s):
+    p = telusuri(trie, s)
+    if p == -1:
+        return 0                                 # jalurnya tidak ada: tidak ada kata
+    return trie[p].banyak
+
+
+n = int(input())
+trie = [Node()]
+for kata in input().split():
+    sisipkan(trie, kata)
+print("Banyak kata berbeda:", trie[0].banyak)
+
+q = int(input())
+for _ in range(q):
+    s = input()
+    print(f"{s}: {hitung_awalan(trie, s)}")
+```
+
+```txt title="Contoh input"
+6
+kata katak kita buku bus kata
+5
+k
+ka
+ki
+bu
+x
+```
+
+```txt title="Contoh output"
+Banyak kata berbeda: 5
+k: 3
+ka: 2
+ki: 1
+bu: 2
+x: 0
+```
+
+Kata `kata` muncul dua kali di input, tetapi hanya dihitung sekali. Sekarang menghitung kata berawalan `s` cukup O(L), berapa pun banyak kata di bawahnya. Harganya, setiap node butuh satu `int` tambahan.
+
+## Trie dibandingkan struktur lain
+
+Di tabel berikut, `L` adalah panjang kata atau awalan, dan `n` adalah banyak kata yang tersimpan.
+
+| Pertanyaan | Trie | `set` C++ (terurut) | Hash table: `unordered_set`, `set` Python |
+| --- | --- | --- | --- |
+| Apakah kata `w` ada? | O(L) | O(L log n) | Rata-rata O(L) |
+| Adakah kata berawalan `s`? | O(L) | Bisa dengan pencarian biner, tetapi rumit | Periksa semua kata, O(n · L) |
+| Semua kata berawalan `s`, urut abjad | O(L + ukuran subtree) | Pencarian biner, lalu ambil selama awalannya cocok | Periksa semua kata, lalu urutkan |
+| Memori | Besar: satu node per awalan berbeda | Satu string per kata | Satu string per kata, ditambah loker kosong |
+
+Kenapa ada `L` di kolom hash table, padahal di materi [Map & Set](/docs/cpp/map-dan-set) disebut rata-rata O(1)? Di sana, menghitung hash dan membandingkan dua kunci dianggap satu langkah. Untuk string, keduanya harus membaca semua huruf, jadi sebenarnya sebanding dengan panjangnya. Hal yang sama berlaku untuk `set`: setiap perbandingan dua string bisa membaca sampai `L` huruf, dan ada sekitar `log n` perbandingan.
+
+Untuk sekadar mengecek "kata ini ada atau tidak", hash table biasanya sudah cukup dan lebih hemat memori. Trie unggul saat pertanyaannya tentang **awalan**: autocomplete, menghitung kata berawalan tertentu, pemeriksa ejaan yang menyarankan kata, atau permainan kata yang menyusun kata huruf demi huruf.
+
+### Harga memori
+
+Trie menghemat huruf hanya jika banyak kata berbagi awalan. Pada contoh lima kata, 20 huruf menjadi 13 node huruf. Namun satu node jauh lebih besar dari satu huruf. Di C++, satu `Node` berisi sebuah `map`, dan map kosong pun sudah memakan puluhan byte. Setiap pasangan huruf dan indeks di dalam map juga disimpan terpisah dengan biaya tambahannya sendiri. Jika kata-katanya jarang berbagi awalan, hampir setiap huruf menjadi node sendiri, dan trie bisa memakan memori berkali-kali lipat dibanding menyimpan kata yang sama di `set`.
+
+<Callout type="info" title="Variasi: array 26 anak">
+  Jika hurufnya pasti `a` sampai `z`, `map` bisa diganti array berukuran 26: `anak[c - 'a']` berisi indeks anak untuk huruf `c`, atau -1 jika tidak ada. Mencari anak menjadi satu akses array, lebih cepat dari map. Harganya, setiap node selalu menyimpan 26 tempat, walaupun kebanyakan node hanya punya satu atau dua anak. Trik `c - 'a'` berasal dari sifat karakter sebagai angka di materi [String](/docs/cpp/string#karakter-adalah-angka).
+</Callout>
+
+## Kesalahan yang sering terjadi
+
+### Lupa memeriksa tanda akhir kata
+
+```cpp
+bool cari(const vector<Node>& trie, const string& kata) {
+    return telusuri(trie, kata) != -1;           // ✗ ini awalan, bukan cari
+}
+```
+
+Dengan fungsi ini, `cari("kat")` dan `cari("k")` menjawab ada, padahal yang tersimpan hanya `kata`, `katak`, dan `kita`. Kesalahan sebaliknya juga sering terjadi: lupa menulis `akhirKata = true` di akhir `sisipkan`. Akibatnya semua jalur ada, tetapi tidak satu kata pun bisa ditemukan oleh `cari`. Tanda akhir kata juga tidak bisa diganti dengan "node ini daun", karena `kata` bukan daun.
+
+### Huruf kapital dan karakter lain
+
+Bagi komputer, `'K'` dan `'k'` adalah dua karakter berbeda. Jika `kata` disisipkan, lalu pengguna mencari `Kata`, jalurnya putus di huruf pertama dan jawabannya tidak ada. Lebih buruk lagi, dengan variasi array 26 anak, `'K' - 'a'` bernilai -22. Program membaca di luar batas array, dan itu termasuk [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior).
+
+Samakan bentuk setiap kata **sebelum** disisipkan maupun dicari, misalnya ubah ke huruf kecil dengan `tolower` (Python: `.lower()`). Jika input bisa berisi angka, spasi, atau tanda baca, putuskan apakah karakter itu ikut disimpan atau dibuang. Versi `map` menerima karakter apa pun, sedangkan versi array 26 hanya aman untuk `a` sampai `z`.
+
+### String kosong
+
+`sisipkan(trie, "")` tidak menjalankan perulangan sama sekali, lalu menandai **root** sebagai akhir kata. Sejak itu `cari(trie, "")` menjawab ada. Selain itu, `awalan(trie, "")` selalu menjawab ada, bahkan untuk trie kosong, karena setiap string diawali string kosong. Jika string kosong tidak masuk akal di programmu, tolak sebelum disisipkan. `cin >> kata` tidak pernah menghasilkan string kosong, tetapi `getline` dan `input()` bisa, misalnya saat membaca baris kosong.
+
+### Menyimpan reference ke elemen vector (C++)
+
+Kode berikut terlihat lebih ringkas, tetapi salah:
+
+```cpp
+Node& node = trie[p];                    // reference ke elemen vector
+if (node.anak.count(c) == 0) {
+    int baru = trie.size();
+    trie.push_back(Node());              // vector bisa pindah ke tempat yang lebih besar
+    node.anak[c] = baru;                 // ✗ node bisa menunjuk ke tempat lama
+}
+```
+
+Jika vector sudah penuh, `push_back` memindahkan semua elemennya ke tempat baru yang lebih besar, seperti dijelaskan di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>. Reference `node` masih menunjuk ke tempat lama yang sudah dibebaskan, jadi menulis lewat `node` adalah _undefined behavior_. Program bisa terlihat benar saat dicoba dengan sedikit kata, lalu rusak saat kata bertambah. Selalu tulis ulang `trie[p]` setelah `push_back`, seperti di `sisipkan`. Indeks tidak bermasalah, karena indeks 3 tetap berarti elemen ketiga di mana pun vector itu berada. Python juga tidak punya masalah ini, karena list hanya menyimpan rujukan ke objek `Node`, dan objeknya sendiri tidak ikut berpindah.
+
+## Rangkuman
+
+- **Trie** menyimpan kumpulan kata sebagai tree huruf. Root mewakili string kosong, setiap edge berisi satu huruf, dan jalur dari root ke sebuah node mengeja satu awalan. Awalan yang sama hanya disimpan sekali.
+- Node yang jalurnya mengeja kata yang disimpan diberi tanda **akhir kata**. Tanda ini wajib, karena akhir kata belum tentu daun (`kata` punya anak menuju `katak`).
+- Trie bisa disimpan di `vector<Node>` dengan root di indeks 0. Setiap node berisi `map<char, int> anak` yang memetakan huruf ke indeks anaknya (Python: `dict`). Map C++ terurut, sedangkan di Python pakai `sorted()` saat butuh urutan abjad.
+- **Menyisipkan** menelusuri huruf demi huruf dan membuat node baru jika jalannya belum ada, lalu menandai akhir kata. **Mencari** kata butuh jalurnya ada **dan** bertanda akhir kata. **Mengecek awalan** cukup jalurnya ada. Ketiganya O(L), tidak bergantung pada banyak kata.
+- Semua kata berawalan `s` didapat dengan turun ke node `s`, lalu menelusuri subtree-nya secara rekursif. Hasilnya otomatis urut abjad.
+- Penghitung `banyak` di setiap node membuat banyak kata berawalan `s` bisa dijawab dalam O(L). Jangan menghitung kata yang sama dua kali.
+- Trie unggul untuk pertanyaan tentang awalan, tetapi memakan banyak memori. Untuk sekadar mengecek keberadaan kata, `set` atau hash table biasanya cukup.
+- Samakan huruf kapital sebelum menyisipkan dan mencari, putuskan cara menangani string kosong, dan di C++ jangan menyimpan reference ke elemen vector melewati `push_back`.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, setiap kata hanya berisi huruf kecil `a` sampai `z` dengan panjang 1 sampai 20, dan daftar kata diberikan sebagai `n` di baris pertama lalu `n` kata dipisah spasi di baris kedua (`1 ≤ n ≤ 100`). Deretan kata dicetak dipisah satu spasi.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Membaca trie">
+  Kata `bola`, `bolu`, `bom`, `buka`, dan `bukan` disisipkan berurutan ke trie kosong. Jawab tanpa menulis program.
+
+  1. Gambar trie-nya. Berapa banyak node, termasuk root?
+  2. Node mana saja yang bertanda akhir kata? Mana di antaranya yang bukan daun?
+  3. Apa jawaban `cari("bo")`, `awalan("bo")`, `cari("buka")`, dan `awalan("bukit")`?
+  4. Berapa node baru yang dibuat jika kemudian `bo` disisipkan? Bagaimana jika `bolak` yang disisipkan?
+  5. Tuliskan semua kata dalam urutan yang dihasilkan `kumpulkan` jika dimulai dari root.
+
+  <Pembahasan>
+    ```txt
+          (root)
+            |
+            b
+          /   \
+         o     u
+        / \    |
+       l   m*  k
+      / \      |
+     a*  u*    a*
+               |
+               n*
+    ```
+
+    | No. | Jawaban |
+    | --- | --- |
+    | 1 | 11 node: root, `b`, `bo`, `bu`, `bol`, `bom`, `buk`, `bola`, `bolu`, `buka`, `bukan` |
+    | 2 | `bola`, `bolu`, `bom`, `buka`, `bukan`. Yang bukan daun hanya `buka`, karena masih punya anak `n` |
+    | 3 | `cari("bo")` tidak ada, `awalan("bo")` ada, `cari("buka")` ada, `awalan("bukit")` tidak ada (node `buk` hanya punya anak `a`) |
+    | 4 | `bo` tidak membuat node baru, hanya menandai node `bo`. `bolak` membuat 1 node baru, yaitu anak `k` dari node `bola` |
+    | 5 | `bola bolu bom buka bukan` |
+
+    Untuk nomor 5, ingat bahwa node `bo` punya anak `l` dan `m`. Semua kata di bawah `l` (`bola`, `bolu`) keluar sebelum `bom`, walaupun `bom` lebih pendek. Itu tetap urutan abjad, karena `l` lebih dulu dari `m`.
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Kamus kecil">
+  Baca daftar kata, lalu `q` di baris berikutnya, lalu `q` baris berisi satu kata yang dicari. Untuk setiap kata yang dicari, cetak `ada` jika kata itu ada di daftar, dan `tidak ada` jika tidak.
+
+  ```txt title="Contoh input"
+  5
+  kata katak kita buku bus
+  4
+  kita
+  kat
+  bukit
+  bus
+  ```
+
+  ```txt title="Contoh output"
+  ada
+  tidak ada
+  tidak ada
+  ada
+  ```
+
+  <Pembahasan>
+    Cukup `sisipkan` dan `cari` dari materi. `kat` ditolak karena node `kat` ada tetapi tidak bertanda akhir kata, sedangkan `bukit` ditolak karena jalurnya putus di huruf `i`.
+
+    ```cpp tab="C++" input="5\nkata katak kita buku bus\n4\nkita\nkat\nbukit\nbus"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& kata) {
+        int p = 0;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+        }
+        trie[p].akhirKata = true;
+    }
+
+    int telusuri(const vector<Node>& trie, const string& s) {
+        int p = 0;
+        for (char c : s) {
+            auto it = trie[p].anak.find(c);
+            if (it == trie[p].anak.end()) {
+                return -1;
+            }
+            p = it->second;
+        }
+        return p;
+    }
+
+    bool cari(const vector<Node>& trie, const string& kata) {
+        int p = telusuri(trie, kata);
+        return p != -1 && trie[p].akhirKata;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            sisipkan(trie, kata);
+        }
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            string kata;
+            cin >> kata;
+            if (cari(trie, kata)) {
+                cout << "ada" << endl;
+            } else {
+                cout << "tidak ada" << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+
+
+    def sisipkan(trie, kata):
+        p = 0
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+        trie[p].akhir_kata = True
+
+
+    def telusuri(trie, s):
+        p = 0
+        for c in s:
+            if c not in trie[p].anak:
+                return -1
+            p = trie[p].anak[c]
+        return p
+
+
+    def cari(trie, kata):
+        p = telusuri(trie, kata)
+        return p != -1 and trie[p].akhir_kata
+
+
+    n = int(input())
+    trie = [Node()]
+    for kata in input().split():
+        sisipkan(trie, kata)
+
+    q = int(input())
+    for _ in range(q):
+        kata = input()
+        if cari(trie, kata):
+            print("ada")
+        else:
+            print("tidak ada")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Banyak node dan banyak kata">
+  Baca daftar kata (kata boleh kembar), sisipkan semuanya ke trie, lalu cetak dua bilangan dalam satu baris: banyak node trie termasuk root, dan banyak kata berbeda yang tersimpan.
+
+  ```txt title="Contoh input"
+  5
+  kata katak kita buku bus
+  ```
+
+  ```txt title="Contoh output"
+  14 5
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  ab abc ab a
+  ```
+
+  ```txt title="Contoh output 2"
+  4 3
+  ```
+
+  <Petunjuk>
+    Banyak node adalah ukuran vector. Banyak kata berbeda adalah banyak node yang bertanda akhir kata.
+  </Petunjuk>
+
+  <Pembahasan>
+    Setiap kata berbeda berakhir di node yang berbeda, dan kata kembar berakhir di node yang sama. Jadi menghitung node bertanda akhir kata otomatis mengabaikan kata kembar. Pada contoh kedua, trie-nya hanya berisi root, `a`, `ab`, dan `abc`, dan ketiga node selain root bertanda akhir kata.
+
+    ```cpp tab="C++" input="5\nkata katak kita buku bus"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& kata) {
+        int p = 0;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+        }
+        trie[p].akhirKata = true;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            sisipkan(trie, kata);
+        }
+
+        int banyakKata = 0;
+        for (const Node& node : trie) {
+            if (node.akhirKata) {
+                banyakKata++;
+            }
+        }
+        cout << trie.size() << " " << banyakKata << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+
+
+    def sisipkan(trie, kata):
+        p = 0
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+        trie[p].akhir_kata = True
+
+
+    n = int(input())
+    trie = [Node()]
+    for kata in input().split():
+        sisipkan(trie, kata)
+
+    banyak_kata = 0
+    for node in trie:
+        if node.akhir_kata:
+            banyak_kata += 1
+    print(len(trie), banyak_kata)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Awalan bersama terpanjang">
+  Baca daftar kata, lalu cetak awalan terpanjang yang dimiliki **semua** kata. Jika tidak ada huruf yang sama di awal semua kata, cetak `-`.
+
+  ```txt title="Contoh input"
+  4
+  program programmer progres proyek
+  ```
+
+  ```txt title="Contoh output"
+  pro
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `2` lalu `makanan makan` | `makan` |
+  | `5` lalu `kata katak kita buku bus` | `-` |
+
+  <Petunjuk>
+    Sisipkan semua kata, lalu berjalan dari root. Selama node sekarang punya **tepat satu** anak, semua kata masih berjalan bersama, jadi huruf anak itu termasuk awalan bersama. Pikirkan juga: apa artinya jika node sekarang bertanda akhir kata?
+  </Petunjuk>
+
+  <Pembahasan>
+    Begitu sebuah node punya dua anak atau lebih, kata-kata mulai berpisah di huruf berikutnya, jadi perulangan berhenti. Pada contoh pertama, node `pro` punya anak `g` dan `y`.
+
+    Pemeriksaan tanda akhir kata dibutuhkan untuk kasus seperti `makanan makan`. Di trie-nya, setiap node dari root sampai `makana` hanya punya satu anak, karena `makan` tidak membuat cabang baru. Tanpa pemeriksaan itu, perulangan akan terus turun dan mencetak `makanan`, padahal `makanan` bukan awalan dari `makan`. Node `makan` bertanda akhir kata, artinya ada kata yang berhenti di sini, jadi awalan bersama tidak bisa lebih panjang lagi.
+
+    Pada contoh trie materi, root sudah punya dua anak (`b` dan `k`), jadi jawabannya `-`.
+
+    ```cpp tab="C++" input="4\nprogram programmer progres proyek"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& kata) {
+        int p = 0;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+        }
+        trie[p].akhirKata = true;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            sisipkan(trie, kata);
+        }
+
+        string hasil = "";
+        int p = 0;
+        while (trie[p].anak.size() == 1 && !trie[p].akhirKata) {
+            auto it = trie[p].anak.begin();      // satu-satunya anak
+            hasil += it->first;                  // hurufnya
+            p = it->second;                      // indeksnya
+        }
+
+        if (hasil.empty()) {
+            cout << "-" << endl;
+        } else {
+            cout << hasil << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+
+
+    def sisipkan(trie, kata):
+        p = 0
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+        trie[p].akhir_kata = True
+
+
+    n = int(input())
+    trie = [Node()]
+    for kata in input().split():
+        sisipkan(trie, kata)
+
+    hasil = ""
+    p = 0
+    while len(trie[p].anak) == 1 and not trie[p].akhir_kata:
+        for c in trie[p].anak:                   # satu-satunya anak
+            hasil += c
+            p = trie[p].anak[c]
+
+    if hasil == "":
+        print("-")
+    else:
+        print(hasil)
+    ```
+
+    `anak.begin()` menunjuk pasangan pertama di map, sama seperti `find` menunjuk pasangan yang ditemukan. Karena map ini hanya berisi satu pasangan, itulah satu-satunya anak. Di Python, perulangan `for` atas dict berisi satu kunci berjalan tepat satu kali.
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Tiga saran pertama">
+  Baca daftar kata, lalu `q`, lalu `q` baris berisi sebuah awalan. Untuk setiap awalan, cetak paling banyak **tiga** kata berawalan itu yang paling awal menurut abjad. Jika tidak ada, cetak `-`.
+
+  ```txt title="Contoh input"
+  8
+  makan makanan main mainan malam mata matahari minum
+  5
+  ma
+  mak
+  mi
+  mo
+  matahari
+  ```
+
+  ```txt title="Contoh output"
+  main mainan makan
+  makan makanan
+  minum
+  -
+  matahari
+  ```
+
+  <Petunjuk>
+    Ubah `kumpulkan` agar langsung kembali begitu hasilnya sudah berisi tiga kata. Karena urutan kunjungannya sudah urut abjad, tiga kata pertama yang ditemukan pasti tiga kata terkecil.
+  </Petunjuk>
+
+  <Pembahasan>
+    Pemeriksaan `hasil.size() == 3` diletakkan paling awal. Begitu kata ketiga dicatat, semua panggilan berikutnya langsung kembali, jadi sisa subtree tidak pernah ditelusuri. Untuk kamus besar, ini penting: awalan `m` bisa dimiliki puluhan ribu kata, padahal yang ditampilkan hanya tiga. Jangan mengumpulkan semua kata lalu mengambil tiga yang pertama.
+
+    Awalan `ma` dimiliki tujuh kata. Urutan abjadnya `main mainan makan makanan malam mata matahari`, dan tiga yang pertama dicetak. Awalan `matahari` sekaligus sebuah kata utuh, jadi kata itu sendiri ikut dihitung.
+
+    ```cpp tab="C++" input="8\nmakan makanan main mainan malam mata matahari minum\n5\nma\nmak\nmi\nmo\nmatahari"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& kata) {
+        int p = 0;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+        }
+        trie[p].akhirKata = true;
+    }
+
+    int telusuri(const vector<Node>& trie, const string& s) {
+        int p = 0;
+        for (char c : s) {
+            auto it = trie[p].anak.find(c);
+            if (it == trie[p].anak.end()) {
+                return -1;
+            }
+            p = it->second;
+        }
+        return p;
+    }
+
+    void kumpulkan(const vector<Node>& trie, int p, string sekarang, vector<string>& hasil) {
+        if (hasil.size() == 3) {                 // sudah cukup, berhenti
+            return;
+        }
+        if (trie[p].akhirKata) {
+            hasil.push_back(sekarang);
+        }
+        for (auto& [c, berikut] : trie[p].anak) {
+            kumpulkan(trie, berikut, sekarang + c, hasil);
+        }
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            sisipkan(trie, kata);
+        }
+
+        int q;
+        cin >> q;
+        for (int i = 0; i < q; i++) {
+            string s;
+            cin >> s;
+            vector<string> hasil;
+            int p = telusuri(trie, s);
+            if (p != -1) {
+                kumpulkan(trie, p, s, hasil);
+            }
+
+            if (hasil.empty()) {
+                cout << "-" << endl;
+                continue;
+            }
+            for (int j = 0; j < (int)hasil.size(); j++) {
+                if (j > 0) {
+                    cout << " ";
+                }
+                cout << hasil[j];
+            }
+            cout << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+
+
+    def sisipkan(trie, kata):
+        p = 0
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+        trie[p].akhir_kata = True
+
+
+    def telusuri(trie, s):
+        p = 0
+        for c in s:
+            if c not in trie[p].anak:
+                return -1
+            p = trie[p].anak[c]
+        return p
+
+
+    def kumpulkan(trie, p, sekarang, hasil):
+        if len(hasil) == 3:                      # sudah cukup, berhenti
+            return
+        if trie[p].akhir_kata:
+            hasil.append(sekarang)
+        for c in sorted(trie[p].anak):
+            kumpulkan(trie, trie[p].anak[c], sekarang + c, hasil)
+
+
+    n = int(input())
+    trie = [Node()]
+    for kata in input().split():
+        sisipkan(trie, kata)
+
+    q = int(input())
+    for _ in range(q):
+        s = input()
+        hasil = []
+        p = telusuri(trie, s)
+        if p != -1:
+            kumpulkan(trie, p, s, hasil)
+
+        if len(hasil) == 0:
+            print("-")
+        else:
+            print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Tebak output">
+  Tanpa menjalankannya, tentukan output program berikut. Lalu jelaskan dengan kalimatmu sendiri: apa yang dihitung oleh `f(trie, p)`?
+
+  ```cpp tab="C++"
+  #include <iostream>
+  #include <map>
+  #include <string>
+  #include <vector>
+  using namespace std;
+
+  struct Node {
+      map<char, int> anak;
+      bool akhirKata = false;
+  };
+
+  void sisipkan(vector<Node>& trie, const string& kata) {
+      int p = 0;
+      for (char c : kata) {
+          if (trie[p].anak.count(c) == 0) {
+              int baru = trie.size();
+              trie.push_back(Node());
+              trie[p].anak[c] = baru;
+          }
+          p = trie[p].anak[c];
+      }
+      trie[p].akhirKata = true;
+  }
+
+  int telusuri(const vector<Node>& trie, const string& s) {
+      int p = 0;
+      for (char c : s) {
+          auto it = trie[p].anak.find(c);
+          if (it == trie[p].anak.end()) {
+              return -1;
+          }
+          p = it->second;
+      }
+      return p;
+  }
+
+  int f(const vector<Node>& trie, int p) {
+      int hasil = 0;
+      if (trie[p].akhirKata) {
+          hasil = 1;
+      }
+      for (auto& [c, berikut] : trie[p].anak) {
+          hasil += f(trie, berikut);
+      }
+      return hasil;
+  }
+
+  int main() {
+      vector<Node> trie(1);
+      sisipkan(trie, "kata");
+      sisipkan(trie, "Kata");
+      sisipkan(trie, "kita");
+      sisipkan(trie, "");
+
+      cout << trie.size() << endl;
+      cout << f(trie, 0) << endl;
+      cout << f(trie, telusuri(trie, "k")) << endl;
+      cout << telusuri(trie, "KATA") << endl;
+      cout << telusuri(trie, "") << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Node:
+      def __init__(self):
+          self.anak = {}
+          self.akhir_kata = False
+
+
+  def sisipkan(trie, kata):
+      p = 0
+      for c in kata:
+          if c not in trie[p].anak:
+              baru = len(trie)
+              trie.append(Node())
+              trie[p].anak[c] = baru
+          p = trie[p].anak[c]
+      trie[p].akhir_kata = True
+
+
+  def telusuri(trie, s):
+      p = 0
+      for c in s:
+          if c not in trie[p].anak:
+              return -1
+          p = trie[p].anak[c]
+      return p
+
+
+  def f(trie, p):
+      hasil = 0
+      if trie[p].akhir_kata:
+          hasil = 1
+      for c in trie[p].anak:
+          hasil += f(trie, trie[p].anak[c])
+      return hasil
+
+
+  trie = [Node()]
+  sisipkan(trie, "kata")
+  sisipkan(trie, "Kata")
+  sisipkan(trie, "kita")
+  sisipkan(trie, "")
+
+  print(len(trie))
+  print(f(trie, 0))
+  print(f(trie, telusuri(trie, "k")))
+  print(telusuri(trie, "KATA"))
+  print(telusuri(trie, ""))
+  ```
+
+  <Petunjuk>
+    Gambar trie-nya lebih dulu. Ingat bahwa `'K'` dan `'k'` adalah dua karakter yang berbeda, dan perhatikan apa yang terjadi saat string kosong disisipkan.
+  </Petunjuk>
+
+  <Pembahasan>
+    ```txt
+    12
+    4
+    2
+    -1
+    0
+    ```
+
+    ```txt
+          (root)*
+         /      \
+        K        k
+        |       / \
+        a      a   i
+        |      |   |
+        t      t   t
+        |      |   |
+        a*     a*  a*
+    ```
+
+    - `Kata` diawali huruf kapital, jadi ia membuat cabang sendiri mulai dari root dan tidak berbagi apa pun dengan `kata`. Nodenya: root, 4 node untuk `kata`, 3 node baru untuk `kita` (`k` sudah ada), dan 4 node untuk `Kata`. Totalnya 12. String kosong tidak menambah node.
+    - `f(trie, p)` menghitung banyak node bertanda akhir kata di subtree `p`, yaitu **banyak kata yang berawalan** awalan milik node `p`. Dari root hasilnya 4: `kata`, `Kata`, `kita`, dan string kosong, karena `sisipkan(trie, "")` menandai root sebagai akhir kata. Dari node `k` hasilnya 2: `kata` dan `kita`. `Kata` tidak termasuk.
+    - `telusuri(trie, "KATA")` putus di huruf kedua, karena node `K` hanya punya anak `a` kecil. Hasilnya -1.
+    - `telusuri(trie, "")` tidak menjalankan perulangan sama sekali, jadi langsung mengembalikan 0, yaitu root.
+
+    `f` memberi jawaban yang sama dengan penghitung `banyak` di materi, tetapi harus menelusuri seluruh subtree setiap kali dipanggil.
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Awalan unik terpendek">
+  Baca daftar kata yang semuanya berbeda. Untuk setiap kata, sesuai urutan input, cetak kata itu, titik dua, lalu awalan **terpendek** dari kata itu yang tidak dimiliki kata lain mana pun. Jika tidak ada awalan seperti itu, karena kata itu sendiri merupakan awalan kata lain, cetak kata itu utuh.
+
+  ```txt title="Contoh input"
+  5
+  kata katak kita buku bus
+  ```
+
+  ```txt title="Contoh output"
+  kata: kata
+  katak: katak
+  kita: ki
+  buku: buk
+  bus: bus
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  sapi kucing kuda kelinci
+  ```
+
+  ```txt title="Contoh output 2"
+  sapi: s
+  kucing: kuc
+  kuda: kud
+  kelinci: ke
+  ```
+
+  <Petunjuk>
+    Pakai penghitung `banyak` dari materi. Sebuah awalan hanya dimiliki satu kata tepat ketika nilai `banyak` di node-nya 1.
+  </Petunjuk>
+
+  <Pembahasan>
+    Sisipkan semua kata lebih dulu, karena awalan unik baru bisa ditentukan setelah semua kata diketahui. Lalu untuk setiap kata, telusuri lagi jalurnya dari root sambil menambah satu huruf demi satu huruf, dan berhenti di node pertama yang bernilai `banyak` 1.
+
+    Pada `kata`, semua node di jalurnya bernilai minimal 2 (`k` 3, `ka` 2, `kat` 2, `kata` 2), karena `katak` juga lewat. Perulangan selesai tanpa menemukan node bernilai 1, dan hasilnya kata utuh. Pada `katak`, node bernilai 1 baru muncul di huruf terakhir, jadi hasilnya juga kata utuh, walaupun alasannya berbeda.
+
+    ```cpp tab="C++" input="5\nkata katak kita buku bus"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+        int banyak = 0;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& kata) {
+        int p = 0;
+        trie[p].banyak++;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+            trie[p].banyak++;
+        }
+        trie[p].akhirKata = true;
+    }
+
+    string awalanUnik(vector<Node>& trie, const string& kata) {
+        string hasil = "";
+        int p = 0;
+        for (char c : kata) {
+            hasil += c;
+            p = trie[p].anak[c];                 // pasti ada, kata sudah disisipkan
+            if (trie[p].banyak == 1) {           // hanya kata ini yang lewat sini
+                return hasil;
+            }
+        }
+        return kata;                             // tidak ada awalan yang unik
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<string> daftar(n);
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            cin >> daftar[i];
+            sisipkan(trie, daftar[i]);
+        }
+
+        for (const string& kata : daftar) {
+            cout << kata << ": " << awalanUnik(trie, kata) << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+            self.banyak = 0
+
+
+    def sisipkan(trie, kata):
+        p = 0
+        trie[p].banyak += 1
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+            trie[p].banyak += 1
+        trie[p].akhir_kata = True
+
+
+    def awalan_unik(trie, kata):
+        hasil = ""
+        p = 0
+        for c in kata:
+            hasil += c
+            p = trie[p].anak[c]                  # pasti ada, kata sudah disisipkan
+            if trie[p].banyak == 1:              # hanya kata ini yang lewat sini
+                return hasil
+        return kata                              # tidak ada awalan yang unik
+
+
+    n = int(input())
+    daftar = input().split()
+    trie = [Node()]
+    for kata in daftar:
+        sisipkan(trie, kata)
+
+    for kata in daftar:
+        print(f"{kata}: {awalan_unik(trie, kata)}")
+    ```
+
+    Karena soal menjamin semua kata berbeda, `sisipkan` di sini tidak perlu memeriksa kata kembar. Fungsi `awalanUnik` menerima trie tanpa `const` agar boleh membaca anak dengan `[]`. Itu aman karena setiap huruf kata yang sudah disisipkan pasti punya jalan.
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Daftar nomor telepon">
+  Baris pertama berisi `n` (`1 ≤ n ≤ 100`), dan baris kedua berisi `n` nomor telepon berupa deretan digit sepanjang 1 sampai 10. Nomor boleh kembar. Daftar ini disebut **konsisten** jika tidak ada nomor yang menjadi awalan nomor lain, karena saat menekan nomor yang lebih pendek, telepon langsung tersambung sebelum nomor yang lebih panjang selesai ditekan. Dua nomor yang sama juga dianggap tidak konsisten. Cetak `YA` jika daftarnya konsisten, dan `TIDAK` jika tidak.
+
+  ```txt title="Contoh input"
+  3
+  911 97625999 91125426
+  ```
+
+  ```txt title="Contoh output"
+  TIDAK
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `5` lalu `113 12340 123440 12345 98346` | `YA` |
+  | `2` lalu `12345 123` | `TIDAK` |
+  | `2` lalu `0812 0812` | `TIDAK` |
+
+  <Petunjuk>
+    Trie tidak hanya untuk huruf. `map<char, int>` menerima karakter `'0'` sampai `'9'` sama baiknya. Sisipkan semua nomor dengan penghitung `banyak`, **termasuk** nomor yang kembar. Lalu periksa node di ujung setiap nomor: berapa nomor yang lewat di sana?
+  </Petunjuk>
+
+  <Pembahasan>
+    Nilai `banyak` di node ujung nomor `x` adalah banyak nomor yang diawali `x`, termasuk `x` sendiri. Jika nilainya lebih dari 1, ada nomor lain yang diawali `x`: entah nomor yang lebih panjang, entah salinan `x` itu sendiri. Kali ini `sisipkan` sengaja **tidak** menolak kata kembar, agar nomor kembar ikut terhitung dua kali. Tanda akhir kata juga tidak dibutuhkan, jadi tidak disimpan.
+
+    Nomor dibaca sebagai string, bukan bilangan. Selain karena trie bekerja per karakter, angka 0 di depan `0812` akan hilang jika dibaca sebagai `int`.
+
+    Kesalahan yang sering terjadi adalah hanya memeriksa saat menyisipkan, misalnya "jika jalur nomor baru melewati node akhir nomor lain, berarti tidak konsisten". Cara itu benar untuk `911` lalu `91125426`, tetapi gagal untuk urutan sebaliknya, `12345` lalu `123`: saat `123` disisipkan, jalurnya tidak melewati akhir nomor mana pun. Memeriksa setelah semua nomor disisipkan menangani kedua urutan sekaligus.
+
+    ```cpp tab="C++" input="3\n911 97625999 91125426"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        int banyak = 0;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& nomor) {
+        int p = 0;
+        for (char c : nomor) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+            trie[p].banyak++;                    // nomor kembar ikut dihitung
+        }
+    }
+
+    int telusuri(const vector<Node>& trie, const string& s) {
+        int p = 0;
+        for (char c : s) {
+            auto it = trie[p].anak.find(c);
+            if (it == trie[p].anak.end()) {
+                return -1;
+            }
+            p = it->second;
+        }
+        return p;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<string> daftar(n);
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            cin >> daftar[i];
+            sisipkan(trie, daftar[i]);
+        }
+
+        bool konsisten = true;
+        for (const string& nomor : daftar) {
+            int p = telusuri(trie, nomor);       // pasti ditemukan
+            if (trie[p].banyak > 1) {            // ada nomor lain yang diawali nomor ini
+                konsisten = false;
+            }
+        }
+
+        if (konsisten) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.banyak = 0
+
+
+    def sisipkan(trie, nomor):
+        p = 0
+        for c in nomor:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+            trie[p].banyak += 1                  # nomor kembar ikut dihitung
+
+
+    def telusuri(trie, s):
+        p = 0
+        for c in s:
+            if c not in trie[p].anak:
+                return -1
+            p = trie[p].anak[c]
+        return p
+
+
+    n = int(input())
+    daftar = input().split()
+    trie = [Node()]
+    for nomor in daftar:
+        sisipkan(trie, nomor)
+
+    konsisten = True
+    for nomor in daftar:
+        p = telusuri(trie, nomor)                # pasti ditemukan
+        if trie[p].banyak > 1:                   # ada nomor lain yang diawali nomor ini
+            konsisten = False
+
+    if konsisten:
+        print("YA")
+    else:
+        print("TIDAK")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Dibangun huruf demi huruf">
+  Sebuah kata disebut **bisa dibangun** jika setiap awalannya juga ada di daftar. Contohnya `kata` bisa dibangun jika `k`, `ka`, dan `kat` juga ada di daftar. Kata satu huruf selalu bisa dibangun. Baca daftar kata, lalu cetak kata terpanjang yang bisa dibangun. Jika ada beberapa yang sama panjang, cetak yang paling awal menurut abjad. Jika tidak ada sama sekali, cetak `-`.
+
+  ```txt title="Contoh input"
+  7
+  k ka kat kata katak kita ki
+  ```
+
+  ```txt title="Contoh output"
+  katak
+  ```
+
+  | Input | Output |
+  | --- | --- |
+  | `7` lalu `m ma mak maka makan makam mata` | `makam` |
+  | `2` lalu `kata kita` | `-` |
+
+  Pada contoh pertama, `kita` tidak bisa dibangun karena `kit` tidak ada di daftar. Pada contoh kedua, `makan` dan `makam` sama-sama bisa dibangun dan sama panjang, dan `makam` lebih dulu menurut abjad.
+
+  <Petunjuk>
+    Sebuah kata bisa dibangun tepat ketika **setiap** node di jalurnya, kecuali root, bertanda akhir kata. Tulis fungsi rekursif `terpanjang(p, sekarang)` yang mengembalikan kata terbaik di subtree `p`, tetapi hanya turun ke anak yang bertanda akhir kata. Kunjungi anak sesuai urutan abjad, lalu pikirkan kapan jawaban terbaik perlu diganti agar kata yang lebih awal menurut abjad menang saat panjangnya sama.
+  </Petunjuk>
+
+  <Pembahasan>
+    Penelusuran hanya masuk ke node bertanda akhir kata, jadi setiap node yang dikunjungi mewakili kata yang bisa dibangun. Cabang yang terputus, seperti `kit` yang tidak bertanda, tidak pernah dimasuki, sehingga `kita` di bawahnya tidak pernah terlihat.
+
+    Fungsi `terpanjang` mengikuti pola "selesaikan setiap anak, lalu gabungkan" dari materi [Tree](/docs/cpp/tree). Jawaban awalnya adalah kata milik node itu sendiri, lalu dibandingkan dengan jawaban setiap anak. Anak dikunjungi sesuai urutan abjad, dan semua kata di subtree anak yang lebih dulu pasti lebih awal menurut abjad daripada kata-kata di subtree anak sesudahnya. Karena itu jawaban hanya diganti jika calon baru **lebih panjang**. Jika syaratnya ditulis `>=`, contoh kedua justru menghasilkan `makan`.
+
+    Pada root, `sekarang` adalah string kosong. Jika tidak ada satu pun anak root yang bertanda akhir kata, string kosong itulah yang dikembalikan, dan program mencetak `-`.
+
+    ```cpp tab="C++" input="7\nk ka kat kata katak kita ki"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+    };
+
+    void sisipkan(vector<Node>& trie, const string& kata) {
+        int p = 0;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+        }
+        trie[p].akhirKata = true;
+    }
+
+    // kata terpanjang yang bisa dibangun di subtree p; sekarang = kata milik node p
+    string terpanjang(const vector<Node>& trie, int p, string sekarang) {
+        string terbaik = sekarang;
+        for (auto& [c, berikut] : trie[p].anak) {
+            if (trie[berikut].akhirKata) {               // hanya lewat node yang berupa kata
+                string calon = terpanjang(trie, berikut, sekarang + c);
+                if (calon.length() > terbaik.length()) { // hanya jika lebih panjang
+                    terbaik = calon;
+                }
+            }
+        }
+        return terbaik;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<Node> trie(1);
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            sisipkan(trie, kata);
+        }
+
+        string terbaik = terpanjang(trie, 0, "");
+
+        if (terbaik.empty()) {
+            cout << "-" << endl;
+        } else {
+            cout << terbaik << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+
+
+    def sisipkan(trie, kata):
+        p = 0
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+        trie[p].akhir_kata = True
+
+
+    # kata terpanjang yang bisa dibangun di subtree p; sekarang = kata milik node p
+    def terpanjang(trie, p, sekarang):
+        terbaik = sekarang
+        for c in sorted(trie[p].anak):
+            berikut = trie[p].anak[c]
+            if trie[berikut].akhir_kata:                 # hanya lewat node yang berupa kata
+                calon = terpanjang(trie, berikut, sekarang + c)
+                if len(calon) > len(terbaik):            # hanya jika lebih panjang
+                    terbaik = calon
+        return terbaik
+
+
+    n = int(input())
+    trie = [Node()]
+    for kata in input().split():
+        sisipkan(trie, kata)
+
+    terbaik = terpanjang(trie, 0, "")
+
+    if terbaik == "":
+        print("-")
+    else:
+        print(terbaik)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Kamus yang bisa dihapus">
+  Sebuah kamus awalnya kosong. Baris pertama berisi `q` (`1 ≤ q ≤ 100`), lalu `q` baris perintah:
+
+  - `tambah w`: tambahkan kata `w`. Jika `w` sudah ada, abaikan.
+  - `hapus w`: hapus kata `w`. Jika `w` tidak ada, abaikan.
+  - `cari w`: cetak `ada` atau `tidak ada`.
+  - `hitung s`: cetak banyak kata di kamus yang berawalan `s`.
+
+  ```txt title="Contoh input"
+  11
+  tambah kata
+  tambah katak
+  tambah kita
+  tambah kata
+  hitung ka
+  hapus kata
+  cari kata
+  cari katak
+  hapus katak
+  hitung ka
+  hitung k
+  ```
+
+  ```txt title="Contoh output"
+  2
+  tidak ada
+  ada
+  0
+  1
+  ```
+
+  <Petunjuk>
+    Pakai penghitung `banyak`. Menghapus kata adalah kebalikan dari menyisipkan: kurangi `banyak` di setiap node di jalurnya, lalu hapus tanda akhir katanya. Node-nya sendiri tidak perlu dibuang dari vector.
+  </Petunjuk>
+
+  <Pembahasan>
+    Membuang node dari tengah vector akan menggeser indeks node-node sesudahnya, dan semua `anak` yang menyimpan indeks itu menjadi salah. Jadi node dibiarkan tetap ada, dan yang diubah hanya penghitung serta tanda akhir kata. Node yang `banyak`-nya 0 tidak dilewati kata mana pun, sehingga tidak memengaruhi `cari` maupun `hitung`.
+
+    Setelah `kata` dihapus, node `kata` masih ada karena `katak` lewat di sana. `cari kata` menjawab tidak ada karena tanda akhir katanya sudah dihapus, sedangkan `cari katak` tetap ada. Setelah `katak` juga dihapus, jalur `k`, `a`, `t`, `a`, `k` masih ada di vector, tetapi `banyak` di node `ka` sudah 0, jadi `hitung ka` menjawab 0.
+
+    Inilah sebabnya `awalan` dari materi tidak bisa dipakai lagi setelah ada penghapusan. Jalur `ka` masih ada, padahal tidak ada kata berawalan `ka`. Setelah ada penghapusan, awalan `s` dimiliki sebuah kata tepat ketika `hitung s` lebih dari 0.
+
+    ```cpp tab="C++" input="11\ntambah kata\ntambah katak\ntambah kita\ntambah kata\nhitung ka\nhapus kata\ncari kata\ncari katak\nhapus katak\nhitung ka\nhitung k"
+    #include <iostream>
+    #include <map>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Node {
+        map<char, int> anak;
+        bool akhirKata = false;
+        int banyak = 0;
+    };
+
+    int telusuri(const vector<Node>& trie, const string& s) {
+        int p = 0;
+        for (char c : s) {
+            auto it = trie[p].anak.find(c);
+            if (it == trie[p].anak.end()) {
+                return -1;
+            }
+            p = it->second;
+        }
+        return p;
+    }
+
+    bool cari(const vector<Node>& trie, const string& kata) {
+        int p = telusuri(trie, kata);
+        return p != -1 && trie[p].akhirKata;
+    }
+
+    void tambah(vector<Node>& trie, const string& kata) {
+        if (cari(trie, kata)) {
+            return;                              // sudah ada
+        }
+        int p = 0;
+        trie[p].banyak++;
+        for (char c : kata) {
+            if (trie[p].anak.count(c) == 0) {
+                int baru = trie.size();
+                trie.push_back(Node());
+                trie[p].anak[c] = baru;
+            }
+            p = trie[p].anak[c];
+            trie[p].banyak++;
+        }
+        trie[p].akhirKata = true;
+    }
+
+    void hapus(vector<Node>& trie, const string& kata) {
+        if (!cari(trie, kata)) {
+            return;                              // tidak ada yang dihapus
+        }
+        int p = 0;
+        trie[p].banyak--;
+        for (char c : kata) {
+            p = trie[p].anak[c];                 // pasti ada, karena kata ada di kamus
+            trie[p].banyak--;
+        }
+        trie[p].akhirKata = false;
+    }
+
+    int hitung(const vector<Node>& trie, const string& s) {
+        int p = telusuri(trie, s);
+        if (p == -1) {
+            return 0;
+        }
+        return trie[p].banyak;
+    }
+
+    int main() {
+        int q;
+        cin >> q;
+        vector<Node> trie(1);
+        for (int i = 0; i < q; i++) {
+            string perintah, w;
+            cin >> perintah >> w;
+            if (perintah == "tambah") {
+                tambah(trie, w);
+            } else if (perintah == "hapus") {
+                hapus(trie, w);
+            } else if (perintah == "cari") {
+                if (cari(trie, w)) {
+                    cout << "ada" << endl;
+                } else {
+                    cout << "tidak ada" << endl;
+                }
+            } else {
+                cout << hitung(trie, w) << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Node:
+        def __init__(self):
+            self.anak = {}
+            self.akhir_kata = False
+            self.banyak = 0
+
+
+    def telusuri(trie, s):
+        p = 0
+        for c in s:
+            if c not in trie[p].anak:
+                return -1
+            p = trie[p].anak[c]
+        return p
+
+
+    def cari(trie, kata):
+        p = telusuri(trie, kata)
+        return p != -1 and trie[p].akhir_kata
+
+
+    def tambah(trie, kata):
+        if cari(trie, kata):
+            return                               # sudah ada
+        p = 0
+        trie[p].banyak += 1
+        for c in kata:
+            if c not in trie[p].anak:
+                baru = len(trie)
+                trie.append(Node())
+                trie[p].anak[c] = baru
+            p = trie[p].anak[c]
+            trie[p].banyak += 1
+        trie[p].akhir_kata = True
+
+
+    def hapus(trie, kata):
+        if not cari(trie, kata):
+            return                               # tidak ada yang dihapus
+        p = 0
+        trie[p].banyak -= 1
+        for c in kata:
+            p = trie[p].anak[c]                  # pasti ada, karena kata ada di kamus
+            trie[p].banyak -= 1
+        trie[p].akhir_kata = False
+
+
+    def hitung(trie, s):
+        p = telusuri(trie, s)
+        if p == -1:
+            return 0
+        return trie[p].banyak
+
+
+    q = int(input())
+    trie = [Node()]
+    for _ in range(q):
+        perintah, w = input().split()
+        if perintah == "tambah":
+            tambah(trie, w)
+        elif perintah == "hapus":
+            hapus(trie, w)
+        elif perintah == "cari":
+            if cari(trie, w):
+                print("ada")
+            else:
+                print("tidak ada")
+        else:
+            print(hitung(trie, w))
+    ```
+
+    Pemeriksaan `cari` di awal `tambah` dan `hapus` sama pentingnya. Tanpa pemeriksaan di `hapus`, menghapus `kat` (yang hanya awalan) akan mengurangi penghitung di jalur `kat`, sehingga `hitung ka` menjadi salah walaupun tidak ada kata yang benar-benar terhapus.
+  </Pembahasan>
+</Soal>

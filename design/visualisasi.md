@@ -260,6 +260,25 @@ Komponen tampilan tidak diuji dengan unit test. Tampilan diperiksa lewat uji bro
 
 ## Catatan Lanjutan (Further Notes)
 
+### Perluasan cakupan (2026-11-19, setelah prototipe Stack)
+
+Pemilik proyek meminta semua struktur data berikut punya materi **dan** visualisasi: linked list, queue, stack, hash table, binary tree, binary search tree, graph, priority queue, heap, dan trie. Karena itu:
+
+- **Materi baru:** Hash Table (modul Struktur Data, setelah Map & Set), Heap & Priority Queue dan Trie (modul Tree & Graph, setelah Binary Search Tree), serta halaman pendalaman Variasi Linked List.
+- **Visualisasi yang ditambahkan:**
+  - Queue
+  - Linked List (4 jenis)
+  - Hash Table (chaining, fungsi hash mainan dari Map & Set)
+  - Traversal Binary Tree
+  - BST
+  - Heap/Priority Queue (min-heap, tampilan pohon dan array)
+  - Trie
+  - DFS dan BFS
+- **Data contoh bersama** ditetapkan sebelum pengerjaan, supaya materi dan visualisasi yang dikerjakan paralel tetap cocok:
+  - hash table: `budi citra andi dina dodi`, cari `dina` dan `eko`, hapus `andi`
+  - heap: `push 35 20 50 10 40 5 30`, lalu `pop pop`
+  - trie: `kata katak kita buku bus`; `cari kita`, `cari kat`, `awalan kat`, `cari bukit`
+
 ### Urutan materi setelah prototipe (Q19)
 
 1. **Struktur data dasar:**

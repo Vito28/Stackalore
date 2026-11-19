@@ -435,6 +435,10 @@ Kondisi `prev->next != nullptr && prev->next->data != x` aman karena [short-circ
 
 Urutan langkah di C++ juga penting: sambungkan dulu `prev->next = target->next`, **baru** `delete target`. Jika dibalik, `target->next` dibaca dari node yang sudah dihapus.
 
+Jalankan operasi-operasi tadi langkah demi langkah di bawah ini, lalu perhatikan bagaimana `head`, `p`, dan panah `next` berubah. Lewat **Ubah data**, kamu juga bisa mencoba list kosong, nilai yang tidak ada, atau menghapus `head`.
+
+<VisualisasiLinkedList jenis="singly" />
+
 ## Kesalahan yang sering terjadi
 
 Linked list adalah tempat pertama banyak orang bertemu kesalahan memori. Kenali empat yang paling umum.
@@ -549,6 +553,10 @@ Tabel berikut membandingkan keduanya. Notasi O di setiap sel menggambarkan banya
 <Callout type="info" title="Dalam praktik, vector sering tetap menang">
   Prosesor membaca memori yang berdampingan jauh lebih cepat daripada memori yang tersebar. Karena itu `vector` sering lebih cepat daripada linked list, bahkan untuk menyisipkan di tengah pada data yang tidak terlalu besar. Pakai `vector` sebagai pilihan awal. Linked list tetap penting dipelajari karena menjadi dasar banyak struktur data lain, misalnya [tree](/docs/cpp/tree) yang setiap node-nya punya dua pointer, dan melatih cara berpikir tentang alamat.
 </Callout>
+
+<DeepDive href="/docs/cpp/pendalaman/variasi-linked-list" kind="konsep" title="Variasi linked list: doubly dan circular">
+  Node yang juga menunjuk ke belakang (`prev`), list yang ujungnya kembali ke awal, cara menambah, mencari, dan menghapus di masing-masing jenis, lengkap dengan visualisasi keempat jenisnya.
+</DeepDive>
 
 ## Rangkuman
 

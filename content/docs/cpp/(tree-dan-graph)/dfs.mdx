@@ -153,6 +153,10 @@ Setiap pemanggilan yang belum selesai menunggu di **call stack**. Tabel berikut 
 
 Saat sebuah simpul dikunjungi, isi call stack sama dengan jalur dari simpul awal ke simpul itu, misalnya 1 → 2 → 4 → 3. "Mundur" berarti pemanggilan teratas selesai dan dikeluarkan dari call stack.
 
+Ikuti jejak yang sama langkah demi langkah di bawah ini. Perhatikan call stack yang bertambah saat DFS masuk lebih dalam dan berkurang saat DFS mundur. Lewat **Ubah graph**, kamu juga bisa menyusun graph sendiri, misalnya mengubah urutan sisi lalu melihat urutan kunjungannya ikut berubah.
+
+<VisualisasiDFS />
+
 <DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call stack">
   Bagaimana setiap pemanggilan fungsi disimpan di call stack, apa yang terjadi saat rekursi terlalu dalam, dan cara mengganti rekursi dengan perulangan dan stack sendiri.
 </DeepDive>
@@ -298,6 +302,10 @@ Urutannya **berbeda** dari versi rekursif (`1 2 4 3 5`). Jejaknya:
 | 2 | sudah dikunjungi, lewati | kosong |
 
 Penyebabnya sifat **LIFO**: simpul 1 mem-push 2 lalu 3, sehingga 3 yang keluar lebih dulu. Versi rekursif justru langsung masuk ke tetangga **pertama**. Keduanya tetap DFS yang sah, karena sama-sama masuk sedalam mungkin sebelum mundur. Hanya urutan memilih tetangganya yang terbalik.
+
+Jalankan versi stack langkah demi langkah di bawah ini, lalu pilih **Rekursif** untuk membandingkan urutannya pada graph yang sama.
+
+<VisualisasiDFS mode="stack" />
 
 Jika ingin urutan yang sama persis dengan versi rekursif, push tetangga dari yang **terakhir** ke yang pertama:
 

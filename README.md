@@ -2,7 +2,7 @@
 
 Dokumentasi belajar pemrograman dan computer science dalam bahasa Indonesia.
 
-Seri pertama, **C++**, membahas dasar pemrograman dari nol sampai siap _vibe coding_: algoritma, input & output, tipe data, operator (termasuk bitwise), percabangan, perulangan, fungsi, struktur data (array, string, matriks, struct, stack, queue, linked list, map & set), rekursi, algoritma pengurutan dan pencarian, divide & conquer, tree dan binary search tree, graph beserta DFS dan BFS, serta cara membaca error. Setiap contoh kode C++ disertai padanan Python, dan setiap materi ditutup dengan 10 soal latihan beserta pembahasannya. Seri Kriptografi, Machine Learning, dan Deep Learning segera hadir.
+Seri pertama, **C++**, membahas dasar pemrograman dari nol sampai siap _vibe coding_: algoritma, input & output, tipe data, operator (termasuk bitwise), percabangan, perulangan, fungsi, struktur data (array, string, matriks, struct, stack, queue, linked list, map & set, hash table), rekursi, algoritma pengurutan dan pencarian, divide & conquer, tree, binary search tree, heap & priority queue, trie, graph beserta DFS dan BFS, serta cara membaca error. Setiap contoh kode C++ disertai padanan Python, dan setiap materi ditutup dengan 10 soal latihan beserta pembahasannya. Seri Kriptografi, Machine Learning, dan Deep Learning segera hadir.
 
 ## Menjalankan secara lokal
 
@@ -100,6 +100,15 @@ Konsep yang punya proses berubah dari langkah ke langkah (operasi stack, pencari
 | Komponen MDX | Isi | Props |
 | --- | --- | --- |
 | `<VisualisasiStack />` | Operasi push, pop, top, dan size | `operasi="push(3) push(7) top pop size"` (bawaan: urutan di materi Stack), `judul` |
+| `<VisualisasiQueue />` | Enqueue, dequeue, front, back, size | `operasi`, `judul` (bawaan: trace di materi Queue) |
+| `<VisualisasiLinkedList />` | Tambah di depan/belakang, cari, hapus, telusuri pada 4 jenis linked list | `jenis="singly"` mengunci jenis, `jenis="semua"` menampilkan pilihan Singly, Doubly, Circular singly, Circular doubly |
+| `<VisualisasiHashTable />` | Fungsi hash mainan (jumlah ASCII mod 10) dengan chaining | `operasi="tambah(budi,21) cari(dina) hapus(andi)"`, `judul` |
+| `<VisualisasiTraversal />` | Preorder, inorder, postorder, level-order | `mode`, `judul` (bawaan: pohon di materi Tree) |
+| `<VisualisasiBST />` | Sisip, cari, hapus di BST | `awal="45 23 71"` (pohon awal), `operasi="sisip(11) cari(36) hapus(45)"`, `judul` |
+| `<VisualisasiHeap />` | Min-heap sebagai priority queue, tampilan pohon dan array | `operasi="push(35) push(20) pop"`, `judul` |
+| `<VisualisasiTrie />` | Sisip kata, cari kata, cek awalan | `operasi="sisip(kata) cari(kita) awalan(kat)"`, `judul` |
+| `<VisualisasiDFS />` | DFS rekursif atau dengan stack sendiri | `simpul={6}`, `sisi="1-2 1-3 2-4"`, `mulai={1}`, `mode="rekursif"` atau `"stack"`, `judul` |
+| `<VisualisasiBFS />` | BFS dengan antrean, `dist`, dan rute terpendek | `simpul`, `sisi`, `mulai`, `tujuan` (menampilkan `induk` dan rute), `judul` |
 
 Setiap visualisasi terdiri dari tiga bagian:
 

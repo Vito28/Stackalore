@@ -17,7 +17,7 @@ import { BufferStepper } from '@/components/mdx/cpp/buffer-stepper';
 import { MemoryBoxes } from '@/components/mdx/cpp/memory-boxes';
 import { TruthTable } from '@/components/mdx/cpp/truth-table';
 import { RunnableCodeBlock } from '@/components/playground/runnable-code-block';
-import { VisualisasiStack } from '@/components/visualisasi/stack-visualizer';
+import { visualisasiComponents } from '@/components/visualisasi/registry';
 
 const languageTabs = new Set(['C++', 'Python']);
 
@@ -61,7 +61,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Soal,
     Term,
     TruthTable,
-    VisualisasiStack,
+    ...visualisasiComponents,
     ...components,
   } satisfies MDXComponents;
 }

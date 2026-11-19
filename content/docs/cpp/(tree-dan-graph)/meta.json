@@ -1,5 +1,13 @@
 {
   "title": "Tree & Graph",
   "icon": "Network",
-  "pages": ["tree", "binary-search-tree", "graph", "dfs", "bfs"]
+  "pages": [
+    "tree",
+    "binary-search-tree",
+    "heap-dan-priority-queue",
+    "trie",
+    "graph",
+    "dfs",
+    "bfs"
+  ]
 }
