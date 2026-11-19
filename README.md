@@ -21,6 +21,7 @@ Lalu buka http://localhost:3000.
 | `npm run build` | Build produksi |
 | `npm run lint` | Pemeriksaan ESLint |
 | `npm run types:check` | Pemeriksaan tipe TypeScript dan frontmatter MDX |
+| `npm test` | Uji logika visualisasi (test runner bawaan Node, tanpa dependency tambahan) |
 | `npm run check:contoh` | Mengompilasi dan menjalankan semua contoh kode yang bisa dijalankan (butuh `g++` dan `python3`). Tambahkan nama berkas untuk memeriksa sebagian, misalnya `npm run check:contoh -- perulangan` |
 
 Fitur **Tanya AI** membutuhkan `OPENROUTER_API_KEY` di berkas `.env.local`. Model bisa diganti lewat `OPENROUTER_MODEL`.
@@ -48,6 +49,7 @@ src/
 │   ├── ai/                   Fitur Tanya AI
 │   ├── docs/                 Bagian tampilan halaman docs (daftar materi, sumber, riwayat baca)
 │   ├── playground/           Playground: editor CodeMirror, tombol Jalankan di blok kode, pengatur worker
+│   ├── visualisasi/          Visualisasi langkah demi langkah: pengendali umum dan tampilan per struktur data
 │   ├── mdx/                  Komponen yang bisa dipakai di MDX semua subjek
 │   │   └── cpp/              Komponen khusus satu subjek, dinamai sesuai slug subjek
 │   ├── site/                 Header, footer, logo, tombol tema
@@ -57,6 +59,7 @@ src/
     ├── subjects.ts           Daftar subjek untuk beranda (nama, deskripsi, status)
     ├── references.ts         Daftar sumber rujukan beserta lisensinya
     ├── mdx/remark-runnable.ts  Menandai contoh kode yang bisa dijalankan di Playground
+    ├── visualisasi/          Logika langkah setiap visualisasi (TypeScript murni) beserta ujinya
     └── docs-tree.ts          Penomoran materi dan navigasi sebelumnya/berikutnya
 
 public/playground/            Web Worker Playground: compiler C++ (YoWASP Clang) dan Python (Pyodide)
@@ -89,6 +92,26 @@ Pembaca bisa menjalankan kode C++ dan Python langsung di browser, lewat halaman 
 - C++ dikompilasi oleh [YoWASP Clang](https://yowasp.org/) (C++20, tanpa exception) di Web Worker, lalu programnya dijalankan di worker terpisah yang dihentikan setelah 5 detik. Output dibatasi 64 KB.
 - Python dijalankan oleh [Pyodide](https://pyodide.org/).
 - Compiler (sekitar 23 MB) dan Pyodide (sekitar 6 MB) diunduh dari jsDelivr saat pembaca pertama kali menekan Jalankan, setelah meminta persetujuan, lalu tersimpan di cache browser. Versinya dikunci di `public/playground/*.worker.js`; jika diganti, uji ulang di laptop dan HP.
+
+## Visualisasi
+
+Konsep yang punya proses berubah dari langkah ke langkah (operasi stack, pencarian, pengurutan, penelusuran graph) bisa diberi visualisasi interaktif. Rancangan lengkapnya ada di [`design/visualisasi.md`](design/visualisasi.md). Saat ini tersedia:
+
+| Komponen MDX | Isi | Props |
+| --- | --- | --- |
+| `<VisualisasiStack />` | Operasi push, pop, top, dan size | `operasi="push(3) push(7) top pop size"` (bawaan: urutan di materi Stack), `judul` |
+
+Setiap visualisasi terdiri dari tiga bagian:
+
+1. **Logika langkah** di `src/lib/visualisasi/`: fungsi murni yang mengubah data masukan menjadi daftar langkah. Setiap langkah berisi keadaan lengkap, sorotan, kalimat penjelasan, dan baris pseudocode. Logika ini diuji dengan `npm test`, dan hasil akhirnya dibandingkan dengan implementasi biasa.
+2. **Pengendali umum** `Visualizer`: tombol Putar/Jeda/Sebelumnya/Berikutnya/Reset, kecepatan, pintasan keyboard (`←`, `→`, `Spasi`, `Home`), penjelasan, pseudocode, keterangan warna, dan daftar semua langkah dalam bentuk teks.
+3. **Tampilan** per struktur data, misalnya `StackView`.
+
+Pedoman:
+
+- Tambahkan visualisasi hanya untuk konsep yang punya proses. Taruh tepat setelah penjelasan atau tabel trace-nya, tanpa menghapus isi yang sudah ada.
+- Data awal harus sama dengan contoh di materi.
+- Warna selalu bermakna sama: biru = sedang diproses, kuning = penanda khusus (`top`, `mid`, pivot), hijau = selesai/ditemukan, abu-abu = dibuang, merah = error.
 
 ## Menulis materi
 

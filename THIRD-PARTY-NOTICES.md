@@ -43,6 +43,7 @@ Paket yang tercantum di `package.json` tidak disimpan di repositori ini. Paket t
 | Zod | MIT |
 | Lucide (`lucide-react`) | ISC |
 | CodeMirror (`@codemirror/*`, `@lezer/highlight`) | MIT |
+| Motion (`motion`) | MIT |
 | Vercel AI SDK (`ai`) | Apache-2.0 |
 
 ## Compiler dan runtime di Playground

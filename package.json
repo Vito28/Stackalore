@@ -10,7 +10,8 @@
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
     "lint": "eslint",
-    "check:contoh": "node scripts/check-examples.mjs"
+    "check:contoh": "node scripts/check-examples.mjs",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.23",

@@ -8,3 +8,4 @@ Spesifikasi UI/UX awal yang dipakai saat merancang tampilan Stacklore. Berkas di
 | `docs-hub.md` | Rancangan halaman `/docs` (pemilihan subjek) |
 | `cpp/welcome.md` | Rancangan halaman sambutan seri C++ |
 | `cpp/learning-path.md` | Rancangan halaman alur belajar seri C++ |
+| `visualisasi.md` | Spesifikasi visualisasi interaktif algoritma & struktur data (prototipe Stack lebih dulu) |
