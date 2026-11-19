@@ -50,7 +50,7 @@ Contoh pertama yang sederhana: mencari nilai terbesar di sebuah vector. Di sepan
 
 Indeks tengahnya dihitung dengan `kiri + (kanan - kiri) / 2`, rumus aman dari [Algoritma Pencarian](/docs/cpp/algoritma-pencarian). Hasilnya sama dengan `(kiri + kanan) / 2`, tetapi tidak bisa _overflow_.
 
-```cpp tab="C++"
+```cpp tab="C++" input="8\n3 8 2 5 9 1 7 4"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -133,7 +133,7 @@ Di [Algoritma Pencarian](/docs/cpp/algoritma-pencarian) kamu menulis binary sear
 - **Selesaikan:** cari di **satu** bagian saja. Bagian lainnya pasti tidak berisi jawaban, jadi dibuang.
 - **Gabungkan:** tidak ada yang perlu digabung. Jawaban dari bagian itu langsung menjadi jawaban akhir.
 
-```cpp tab="C++"
+```cpp tab="C++" input="8\n3 8 15 21 30 42 57 64\n57"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -283,7 +283,7 @@ def gabung(a, kiri, tengah, kanan):
 
 Dengan `gabung` di tangan, merge sort sendiri sangat pendek:
 
-```cpp tab="C++"
+```cpp tab="C++" run="none"
 void mergeSort(vector<int>& a, int kiri, int kanan) {
     if (kiri >= kanan) {                 // kasus dasar: 0 atau 1 elemen
         return;
@@ -435,7 +435,7 @@ Pivot `5` kini di indeks 3, posisi akhirnya. Di kirinya `3 1 2` (semua lebih kec
 
 ### Algoritma lengkap
 
-```cpp tab="C++"
+```cpp tab="C++" run="none"
 #include <iostream>
 #include <utility>       // swap
 #include <vector>
@@ -529,7 +529,7 @@ b ganjil:  a^b = a^(b/2) × a^(b/2) × a        (b/2 dibulatkan ke bawah)
 
 Contohnya, 3^13 = 3^6 × 3^6 × 3, dan 3^6 = 3^3 × 3^3. Kuncinya, `a^(b/2)` cukup dihitung **sekali**, lalu hasilnya dipakai dua kali.
 
-```cpp tab="C++"
+```cpp tab="C++" input="3 13"
 #include <iostream>
 using namespace std;
 
@@ -719,7 +719,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Polanya sama persis dengan `maksimum`. Hanya langkah gabungnya yang berbeda: kedua hasil dijumlahkan, bukan dipilih yang terbesar. Kasus dasarnya adalah rentang satu elemen, yang jumlahnya adalah elemen itu sendiri.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n4 -2 7 1 3"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -827,7 +827,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Perbaiki binary search rekursif">
   Program berikut mencari `x` di dalam data yang sudah urut naik, lalu menampilkan indeksnya atau `-1`. Untuk banyak input hasilnya benar, tetapi untuk contoh di bawah versi Python berhenti dengan `RecursionError`, dan versi C++ crash atau tidak pernah selesai. Temukan kesalahannya dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" check="skip" input="6\n2 5 8 12 16 23\n23"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -895,7 +895,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jejaknya: `[0, 5]` → `[2, 5]` → `[3, 5]` → `[4, 5]` → `[4, 5]` → ... Saat rentangnya `[4, 5]`, `tengah` = 4 dan `a[4]` = 16 lebih kecil dari 23, sehingga panggilan berikutnya menerima `[tengah, kanan]` = `[4, 5]` lagi. Rentangnya tidak mengecil. `a[tengah]` sudah terbukti bukan `x`, jadi tidak perlu diperiksa lagi: bagian kanan harus dimulai dari `tengah + 1`. Bagian kiri sudah benar memakai `tengah - 1`. Kesalahan ini tersembunyi untuk banyak input, misalnya mencari `16` atau `2`, karena nilainya ketemu sebelum rentangnya tinggal dua elemen.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n2 5 8 12 16 23\n23"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -981,7 +981,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bagian kiri selalu berisi peserta yang datang lebih awal di input. Jadi saat skornya sama, ambil dari bagian **kiri** dulu: syaratnya `kiri.skor >= kanan.skor`. Jika ditulis `>`, Eka bisa muncul sebelum Budi. Merge sort cocok di sini karena stabil. Quick sort dengan partisi Lomuto tidak stabil, dan `sort` C++ juga tidak menjamin kestabilan. Pustaka C++ menyediakan `stable_sort` untuk keperluan ini, dan `sorted()` di Python selalu stabil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\nAni 85\nBudi 92\nCitra 85\nDodi 70\nEka 92\nFajar 85"
     #include <iostream>
     #include <string>
     #include <vector>
@@ -1110,7 +1110,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah diambil sisa baginya, setiap angka lebih kecil dari m ≤ 10⁹, sehingga hasil kali dua angka paling besar sekitar 10¹⁸ dan masih muat di `long long`. Tanpa `a % m` di awal, `a` bisa sebesar 10¹⁸ dan `setengah * a` langsung meluap, seperti pada contoh kedua. Kasus dasarnya mengembalikan `1 % m`, bukan `1`, karena sisa bagi apa pun dengan 1 adalah 0 (contoh ketiga).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2 10 1000"
     #include <iostream>
     using namespace std;
 
@@ -1262,7 +1262,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jika `a[tengah] < a[tengah + 1]`, jalur masih naik, jadi `tengah` bukan puncak dan puncaknya di `[tengah + 1, kanan]`. Jika tidak, jalur sudah turun mulai `tengah`, jadi puncaknya di `[kiri, tengah]`. Perhatikan bahwa `tengah` sendiri **tetap ikut** di bagian kiri karena bisa jadi itulah puncaknya. Kedua bagian selalu lebih kecil dari `[kiri, kanan]`, karena `tengah` dibulatkan ke bawah sehingga `tengah < kanan`. Fakta yang sama menjamin `a[tengah + 1]` tidak pernah keluar dari rentang.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n2 5 9 14 11 6 3"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1343,7 +1343,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Untuk n = 100.000, banyak inversi bisa mencapai sekitar 5 × 10⁹, jadi pakai `long long`. Fungsi `hitung` mengurutkan rentangnya sekaligus mengembalikan banyak inversi di dalamnya. Totalnya tetap O(n log n), karena hanya ada satu penjumlahan tambahan setiap kali elemen kanan diambil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n3 1 4 1 5"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1472,7 +1472,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Setiap tingkat rekursi menelusuri seluruh rentang sekali, jadi totalnya O(n log n). Jumlahnya bisa mencapai 10⁵ × 10⁹ = 10¹⁴, jadi pakai `long long`. `max(x, y)` dari `<algorithm>` mengembalikan yang lebih besar dari dua nilai.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n-2 5 -3 4 -6 2 1"
     #include <algorithm>
     #include <iostream>
     #include <vector>
@@ -1574,7 +1574,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Cara ini disebut **quickselect**. Seperti binary search, hanya ada satu submasalah, sehingga rekursinya bisa ditulis sebagai perulangan yang mempersempit `[kiri, kanan]`. Jika pivot rata-rata membagi rentang menjadi dua, pekerjaannya kira-kira n + n/2 + n/4 + ... ≈ 2n, yaitu O(n) rata-rata. Bandingkan dengan mengurutkan dulu, yang butuh O(n log n). Memakai elemen tengah sebagai pivot membuat data urut naik maupun urut turun justru menjadi kasus yang baik. Kasus terburuknya tetap O(n²), tetapi butuh data yang disusun khusus.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7 3\n15 4 23 8 42 16 1"
     #include <iostream>
     #include <utility>
     #include <vector>

@@ -72,6 +72,9 @@ Nilai yang dikirim saat memanggil (`5`) disebut **argumen**. Variabel penerimany
 Tidak semua fungsi menghasilkan nilai. Fungsi yang hanya **melakukan sesuatu**, misalnya mencetak ke layar, memakai tipe `void` di C++. Di Python, fungsi tanpa `return` otomatis mengembalikan `None`.
 
 ```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
 void garis(int panjang) {
     for (int i = 0; i < panjang; i++) {
         cout << "-";
@@ -104,6 +107,9 @@ garis(10)        # ----------
 `return` tidak harus berada di baris terakhir. Begitu `return` dijalankan, fungsi **langsung berhenti**. Sifat ini membuat kode pengecekan lebih ringkas:
 
 ```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
 bool isPrima(int n) {
     if (n < 2) {
         return false;            // 0 dan 1 bukan prima, selesai di sini
@@ -158,6 +164,9 @@ error: 'kuadrat' was not declared in this scope
 Ada dua solusi: tulis fungsinya di atas `main`, atau tulis **deklarasi** (_prototype_) di atas dan definisinya di bawah:
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 int kuadrat(int x);          // deklarasi: "fungsi ini ada"
 
 int main() {
@@ -176,7 +185,11 @@ Python tidak butuh deklarasi, tetapi baris `def` tetap harus **sudah dijalankan*
 
 Variabel yang dibuat di dalam sebuah fungsi, termasuk parameternya, adalah **variabel lokal**. Variabel lokal hanya hidup selama fungsi itu berjalan dan tidak terlihat dari fungsi lain.
 
-```cpp tab="C++"
+```cpp tab="C++" check="skip"
+#include <iostream>
+#include <string>
+using namespace std;
+
 void sapa() {
     string nama = "Budi";        // lokal milik sapa()
     cout << "Halo, " << nama << endl;
@@ -206,6 +219,9 @@ Dua fungsi boleh memakai nama variabel yang sama, karena keduanya tetap variabel
 Secara bawaan, parameter C++ menerima **salinan** nilai argumen (_pass by value_). Mengubah parameter tidak mengubah variabel asli milik pemanggil:
 
 ```cpp tab="C++"
+#include <iostream>
+using namespace std;
+
 void tambahSatu(int x) {
     x = x + 1;                   // yang berubah hanya salinannya
 }
@@ -265,7 +281,7 @@ garis(5, "=")     # =====
 
 Program huruf mutu dari materi [Percabangan](/docs/cpp/percabangan#banyak-pilihan-else-if) kini dibungkus menjadi fungsi, lalu dipanggil untuk setiap mahasiswa:
 
-```cpp tab="C++"
+```cpp tab="C++" input="3\n90\n72\n45"
 #include <iostream>
 using namespace std;
 
@@ -344,7 +360,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Hasil sebuah fungsi bisa langsung menjadi argumen fungsi lain. `maks(x, y)` menghasilkan yang terbesar dari dua bilangan pertama, lalu hasil itu dibandingkan dengan `z`: `maks(maks(x, y), z)`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 9 2"
     #include <iostream>
     using namespace std;
 
@@ -452,7 +468,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Begitu faktorial menjadi fungsi, rumusnya bisa ditulis hampir sama dengan di matematika. Perhatikan juga `0! = 1`: untuk `n = 0`, perulangan tidak berjalan sama sekali dan `hasil` tetap 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 2"
     #include <iostream>
     using namespace std;
 
@@ -517,7 +533,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Fungsi `kpk` cukup memanggil `fpb`. Bagi dulu baru kalikan (`a / fpb(a, b) * b`) supaya angka di tengah perhitungan tidak terlalu besar, dan simpan hasilnya di `long long`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="12 18"
     #include <iostream>
     using namespace std;
 
@@ -648,7 +664,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Perbaiki fungsi pangkat">
   Program berikut seharusnya membaca basis dan eksponen (eksponen ≥ 0), lalu menampilkan hasil pemangkatannya. Misalnya input `2 10` harus menghasilkan `1024`. Ternyata programnya tidak bekerja. Temukan **dua** kesalahannya dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="2 10" check="skip"
   #include <iostream>
   using namespace std;
 
@@ -694,7 +710,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
     1. **Tidak ada `return`.** Fungsi menghitung `hasil`, tetapi tidak pernah mengirimkannya. Python lalu mengembalikan `None`. C++ hanya memberi peringatan `no return statement in function returning non-void`, lalu saat dijalankan hasilnya tidak bisa ditebak: bisa angka acak, bisa juga program langsung berhenti (_crash_). Ini termasuk [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior).
     2. **Akumulator perkalian dimulai dari 0.** Berapa pun dikalikan dengan 0 hasilnya 0. Seperti faktorial, akumulator perkalian harus dimulai dari 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2 10"
     #include <iostream>
     using namespace std;
 
@@ -748,7 +764,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Memisahkan kedua perulangan ke tempat berbeda membuat masing-masing mudah dibaca. Untuk menghindari spasi berlebih, cetak bilangan pertama lebih dulu, lalu setiap bilangan berikutnya didahului satu spasi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="9875"
     #include <iostream>
     using namespace std;
 
@@ -820,7 +836,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap fungsi mengerjakan satu tugas, dan fungsi yang lebih besar memakai fungsi yang lebih kecil. `jumlahHari` dipakai dua kali: untuk memeriksa validitas dan untuk menjumlah hari. Urutan pemeriksaan di `tanggalValid` penting: bulan harus dicek lebih dulu, karena `jumlahHari` hanya masuk akal untuk bulan 1 sampai 12.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="1 3 2024"
     #include <iostream>
     using namespace std;
 
@@ -920,7 +936,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Ada dua jebakan. Pertama, banyak digit harus dihitung **sebelum** perulangan pemecah digit, karena setelahnya bilangan sudah habis menjadi 0. Kedua, untuk bagian "tidak ada", pakai variabel `bool` yang mencatat apakah sudah ada bilangan yang ditampilkan. Variabel yang sama juga menentukan perlu tidaknya spasi sebelum bilangan berikutnya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="100 1000"
     #include <iostream>
     using namespace std;
 
@@ -1060,7 +1076,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Penarikan dan transfer hanya berbeda di biaya admin, jadi keduanya cukup ditangani satu fungsi dengan parameter bawaan. Kesalahan yang paling sering adalah memanggil `kurangi(saldo, jumlah);` tanpa `saldo = ...`. Programnya berjalan tanpa error, tetapi saldo di `main` tidak pernah berubah. Perhatikan juga transfer 115000: saldo 120000 cukup untuk 115000 + 2500, jadi transfernya berhasil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="100000\n1 50000\n2 30000\n3 120000\n3 115000\n2 5000\n0 0"
     #include <iostream>
     using namespace std;
 

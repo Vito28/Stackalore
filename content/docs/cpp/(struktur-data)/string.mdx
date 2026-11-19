@@ -111,7 +111,7 @@ Perbandingan bersifat **case-sensitive**: `"Ya"` tidak sama dengan `"ya"`. Uruta
 
 Karena string adalah deretan karakter, ia bisa diolah dengan perulangan. Contoh: menghitung huruf vokal dalam satu kalimat.
 
-```cpp tab="C++"
+```cpp tab="C++" input="Belajar Pemrograman Itu Seru"
 #include <iostream>
 #include <string>
 #include <cctype>
@@ -256,7 +256,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bandingkan karakter pertama dengan yang terakhir, kedua dengan kedua dari belakang, dan seterusnya sampai tengah. Pasangan dari `kata[i]` adalah `kata[n - 1 - i]`. Begitu ada satu pasangan yang berbeda, jawabannya sudah pasti, jadi perulangan bisa dihentikan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="katak"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -305,7 +305,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Karena karakter adalah angka, huruf kapital adalah karakter dari `'A'` sampai `'Z'`, huruf kecil dari `'a'` sampai `'z'`, dan digit dari `'0'` sampai `'9'`. Cukup satu perulangan dengan tiga _counter_.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Halo Dunia 2024!"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -432,7 +432,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `% 26` membuat pergeseran berputar: `x` (urutan 23) + 3 = 26, dan 26 % 26 = 0, yaitu `a`. Ini juga menangani `k` yang lebih dari 26, seperti contoh kedua: menggeser 27 posisi sama dengan menggeser 1 posisi. Menaruh aturan pergeseran di fungsi `geser` membuat perulangan di `main` tetap pendek.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Halo Dunia, xyz!\n3"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -499,7 +499,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Urutan kondisi `i == 0 || s[i - 1] == ' '` penting. Berkat [_short-circuit_](/docs/cpp/operator-perbandingan-dan-logika), `s[i - 1]` tidak pernah diperiksa saat `i` bernilai 0, sehingga tidak ada akses ke indeks -1. Di Python, `s[-1]` tidak error tetapi mengambil karakter **terakhir**, jadi tanpa `i == 0` hasilnya bisa diam-diam salah.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="belajar PEMROGRAMAN itu seru"
     #include <iostream>
     #include <string>
     #include <cctype>
@@ -540,7 +540,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Perbaiki penghitung kata">
   Program berikut seharusnya menghitung banyak kata dalam satu baris. Kata dipisahkan oleh satu spasi atau lebih, dan baris boleh diawali atau diakhiri spasi. Program ini benar untuk `saya suka kopi` (hasilnya `3`), tetapi salah untuk input lain. Temukan penyebabnya dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="  saya   suka kopi " check="no-compare"
   #include <iostream>
   #include <string>
   using namespace std;
@@ -587,7 +587,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Yang muncul tepat sekali untuk setiap kata adalah **huruf pertamanya**: karakter bukan spasi yang berada di indeks 0 atau didahului spasi. Hitung karakter seperti itu.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="  saya   suka kopi "
     #include <iostream>
     #include <string>
     using namespace std;
@@ -639,7 +639,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Contoh ketiga menjebak cara `'0' + jumlah`. Cara itu hanya benar untuk hitungan 0 sampai 9, sedangkan `to_string(12)` menghasilkan `"12"`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="aaabccdddd"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -702,7 +702,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jika kedua kata anagram, setiap penambahan dari kata pertama "dibatalkan" oleh pengurangan dari kata kedua, sehingga semua kotak kembali 0. Contoh kedua menunjukkan kenapa memeriksa "hurufnya sama" saja tidak cukup: `aab` dan `abb` sama-sama memakai huruf `a` dan `b`, tetapi banyaknya berbeda. Memeriksa panjang lebih dulu adalah jalan pintas: kata dengan panjang berbeda pasti bukan anagram.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="kasur rusak"
     #include <iostream>
     #include <string>
     #include <vector>
@@ -779,7 +779,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Memecah baris menjadi kata adalah pekerjaan yang sering dibutuhkan, jadi layak dijadikan fungsi `pisahKata`. Setelah kata-katanya ada di vector, tinggal ditampilkan dari indeks terakhir. Kesalahan yang paling sering adalah lupa menyimpan kata terakhir setelah perulangan selesai, sehingga `C++` hilang dari hasil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="saya suka belajar C++"
     #include <iostream>
     #include <string>
     #include <vector>
@@ -870,7 +870,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Fungsi `kedalamanMaks` mengembalikan -1 untuk menandai "tidak valid", karena kedalaman yang sah tidak mungkin negatif.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="(a + b) * (c - (d / e))"
     #include <iostream>
     #include <string>
     using namespace std;

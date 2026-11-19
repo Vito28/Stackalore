@@ -84,7 +84,7 @@ Perhatikan langkah 3. Simpul diberi tanda (jaraknya diisi) **saat masuk** queue,
 
 Program berikut menjalankan BFS dari simpul 1, mencetak urutan simpul saat keluar dari queue, lalu jarak setiap simpul.
 
-```cpp tab="C++"
+```cpp tab="C++" input="8 9\n1 2\n1 4\n2 3\n2 5\n3 6\n5 6\n4 7\n7 8\n6 8"
 #include <iostream>
 #include <queue>
 #include <vector>
@@ -219,7 +219,7 @@ Nilai 0 berarti "tidak punya induk". Simpul awal selalu bernilai 0, begitu juga 
 
 Program berikut membaca graph, lalu `s` dan `t` di baris terakhir, dan mencetak jarak serta rutenya.
 
-```cpp tab="C++"
+```cpp tab="C++" input="8 9\n1 2\n1 4\n2 3\n2 5\n3 6\n5 6\n4 7\n7 8\n6 8\n1 8"
 #include <iostream>
 #include <queue>
 #include <vector>
@@ -350,7 +350,7 @@ Ada dua perubahan dibanding BFS pada graph:
 - **Simpulnya berupa pasangan (baris, kolom).** Di C++ pasangan ini disimpan sebagai [struct](/docs/cpp/struct) `Sel`, jadi queue-nya `queue<Sel>`. Di Python dipakai **tuple**, yaitu beberapa nilai yang dibungkus menjadi satu dengan tanda kurung, misalnya `(2, 5)`. Isinya bisa dibongkar lagi ke beberapa variabel: `baris, kolom = q.popleft()`.
 - **`dist` menjadi dua dimensi**, satu nilai untuk setiap sel, dan semuanya diisi `-1`.
 
-```cpp tab="C++"
+```cpp tab="C++" input="5 7\nS..#...\n.#.#.#.\n.#...#.\n.####..\n...#..E"
 #include <iostream>
 #include <queue>
 #include <string>
@@ -773,7 +773,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jalankan BFS dari stasiun 1, lalu cetak `dist[n]`. Karena `dist` diisi `-1` sejak awal, kasus tidak terjangkau tertangani dengan sendirinya. Untuk `n = 1`, jawabannya 0. Pada contoh 1, rute terpendeknya 1 → 3 → 5 → 6.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 7\n1 2\n1 3\n2 4\n3 4\n4 5\n3 5\n5 6"
     #include <iostream>
     #include <queue>
     #include <vector>
@@ -837,7 +837,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Perbaiki dua BFS">
   Program berikut seharusnya menampilkan jarak terpendek dari simpul 1 ke setiap simpul dalam satu baris, dengan `-1` untuk simpul yang tidak terjangkau. Untuk input di bawah, jawaban yang benar adalah `0 1 1 2 2`. Ternyata versi C++ mencetak `2 1 1 2 2`, dan versi Python mencetak `0 1 1 2 3`. Temukan kesalahan masing-masing dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="5 5\n1 2\n1 3\n3 4\n4 5\n2 5" check="no-compare"
   #include <iostream>
   #include <queue>
   #include <vector>
@@ -925,7 +925,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     **Python:** `q.pop()` mengambil dari **belakang**, sehingga queue berubah menjadi stack. Simpul 3 diproses sebelum simpul 2, lalu rantai 3 → 4 → 5 memberi `dist[5] = 3` sebelum simpul 2 sempat menemukan 5 lewat rute yang lebih pendek. Ganti dengan `popleft()`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 5\n1 2\n1 3\n3 4\n4 5\n2 5"
     #include <iostream>
     #include <queue>
     #include <vector>
@@ -1043,7 +1043,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pada contoh 1 ada tiga rute dengan 3 perjalanan: 1-2-4-5, 1-3-4-5, dan 1-3-6-5. Simpul 2 keluar dari queue sebelum simpul 3, jadi simpul 4 ditemukan dari 2. Simpul 4 masuk queue sebelum simpul 6, jadi simpul 5 ditemukan dari 4. Hasilnya `1 2 4 5`. Jika dua sisi pertama input ditukar, jawabannya menjadi `1 3 4 5`. Itulah sebabnya soal menyebut urutan tetangga.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 7\n1 2\n1 3\n2 4\n3 4\n4 5\n3 6\n6 5\n1 5"
     #include <iostream>
     #include <queue>
     #include <vector>
@@ -1178,7 +1178,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pada contoh 1, satu-satunya sel tepi yang bukan dinding ada di ujung kanan baris keempat. Rutenya ke kanan tiga langkah, turun dua langkah, lalu ke kanan satu langkah, total 6. Jalur ke bawah dari `S` buntu. Begitu sel tepi pertama keluar dari queue, perulangan bisa dihentikan dengan `break`. Jika `S` sendiri di tepi, ia keluar paling awal dengan jarak 0. Kesalahan umum adalah memeriksa tepi pada tetangga yang baru ditemukan lalu lupa memeriksa `S` sendiri.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 6\n######\n#S...#\n#.##.#\n#.#...\n######"
     #include <iostream>
     #include <queue>
     #include <string>
@@ -1322,7 +1322,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pada contoh 1, orang 4 bisa dicapai lewat 2 maupun 3, tetapi jaraknya tetap 2 dan ia hanya dihitung sekali. Orang 8 berjarak 3, jadi tidak termasuk. Pada contoh 2, orang 3 dan 4 tidak terjangkau dari 1, sehingga `dist`-nya `-1` dan tidak pernah terhitung. Kesalahan umum adalah mencatat orang saat ia keluar dari queue. Urutannya mengikuti urutan BFS, bukan urutan nomor.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8 8\n1 2\n1 3\n2 4\n3 4\n4 5\n5 6\n3 7\n7 8\n1 2"
     #include <iostream>
     #include <queue>
     #include <vector>
@@ -1437,7 +1437,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap kotak adalah simpul, dan setiap gerakan L yang masih di dalam papan adalah sisi. Contoh 2 menarik: kotak (2, 2) bersebelahan miring dengan (1, 1), tetapi kuda butuh 4 gerakan untuk sampai ke sana. Pada papan 3 × 3, semua gerakan dari kotak tengah keluar papan, sehingga kotak tengah tidak pernah bisa dicapai dan jawabannya `-1`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8 1 1 8 8"
     #include <iostream>
     #include <queue>
     #include <vector>
@@ -1558,7 +1558,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Lahan yang berisi rumput tetapi tidak punya titik api sama sekali juga tertangani: tidak ada yang masuk queue, semua rumput tetap `-1`, dan jawabannya `-1`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 6\nF....#\n.##...\n....#.\n#...F."
     #include <iostream>
     #include <queue>
     #include <string>
@@ -1710,7 +1710,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Pada contoh 1, timnya Merah, Biru, Merah, Biru, dan setiap rival berbeda tim. Pada contoh 2, peserta 4, 5, dan 6 saling bersaing. Jika 4 Merah, maka 5 Biru, 6 Merah, padahal 6 bersaing dengan 4. Perhatikan bahwa ketiganya tidak terhubung dengan peserta 1. Program yang hanya menjalankan BFS dari peserta 1 akan menjawab `YA`. Karena itu BFS dijalankan dari setiap peserta yang belum punya tim.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 4\n1 2\n2 3\n3 4\n4 1"
     #include <iostream>
     #include <queue>
     #include <vector>
@@ -1838,7 +1838,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     BFS ditulis sebagai fungsi agar bisa dipanggil dua kali.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7 6\n1 2\n2 3\n2 4\n4 5\n5 6\n1 7"
     #include <iostream>
     #include <queue>
     #include <vector>

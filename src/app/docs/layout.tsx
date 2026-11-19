@@ -1,5 +1,5 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, SquareTerminal } from 'lucide-react';
 import { AISearch, AISearchPanel, AISearchTrigger } from '@/components/ai/search';
 import { ReadingHistoryTracker } from '@/components/docs/reading-history';
 import { LogoMark } from '@/components/site/logo';
@@ -20,6 +20,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
         ),
         url: '/',
       }}
+      links={[{ text: 'Playground', url: '/playground', icon: <SquareTerminal /> }]}
       githubUrl={repoUrl}
       themeSwitch={{ component: <ThemeToggle /> }}
     >

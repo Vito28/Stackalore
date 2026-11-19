@@ -1,7 +1,9 @@
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
+import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { z } from 'zod';
 import { licenses, referenceKeys, references } from './src/lib/references';
+import { parseRunMeta, remarkRunnable } from './src/lib/mdx/remark-runnable';
 
 /**
  * `sumber` lists the external sources a page relies on. Each entry points to a
@@ -41,8 +43,17 @@ export const docs = defineDocs({
   },
 });
 
+const defaultParseMetaString = rehypeCodeDefaultOptions.parseMetaString;
+
 export default defineConfig({
   mdxOptions: {
-    // MDX options
+    // Runs before Fumadocs' own plugins so it sees code blocks before they are grouped into tabs.
+    remarkPlugins: (plugins) => [remarkRunnable, ...plugins],
+    rehypeCodeOptions: {
+      ...rehypeCodeDefaultOptions,
+      parseMetaString(meta, node, tree) {
+        return { ...defaultParseMetaString?.(meta, node, tree), ...parseRunMeta(meta) };
+      },
+    },
   },
 });

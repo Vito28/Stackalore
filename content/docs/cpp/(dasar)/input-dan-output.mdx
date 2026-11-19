@@ -235,7 +235,7 @@ Aturan penamaan, tipe data lainnya, dan apa yang terjadi di memori dibahas lengk
 
 Di C++, input dibaca dengan `cin` (dibaca _see-in_, singkatan dari _character input_). `cin` berasal dari pustaka `<iostream>`, sama seperti `cout`. Di Python, input dibaca dengan fungsi `input()`.
 
-```cpp tab="C++"
+```cpp tab="C++" input="19"
 #include <iostream>
 using namespace std;
 
@@ -359,7 +359,7 @@ Program **tidak menunggu** saat meminta `b`! Penyebabnya: `cin >> a` hanya menga
 
 `cin >>` juga bisa membaca teks ke variabel `string`. Namun karena `>>` berhenti di whitespace, **hanya satu kata** yang terbaca:
 
-```cpp tab="C++"
+```cpp tab="C++" input="Budi Santoso" check="no-compare"
 #include <iostream>
 #include <string>
 using namespace std;
@@ -420,7 +420,7 @@ Cara memulihkan `cin` dari mode gagal dibahas di [Buffer: saat input gagal](/doc
 
 Mari wujudkan flowchart luas persegi panjang dari materi [Algoritma & Flowchart](/docs/cpp/algoritma-dan-flowchart) menjadi program interaktif. Perhatikan juga bahwa variabel boleh langsung diisi saat dibuat, seperti `double luas = panjang * lebar;`.
 
-```cpp tab="C++"
+```cpp tab="C++" input="7.5\n4" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -542,7 +542,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Simpan nama di variabel `string`, lalu tampilkan di antara dua potong teks. Perhatikan tanda `!` yang menempel pada nama. Di Python, `print("Halo,", nama, "!")` akan menghasilkan `Halo, Budi !` karena `print()` menambah spasi, jadi lebih mudah memakai f-string.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Budi"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -614,7 +614,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap `\` di output ditulis `\\`. Jika ditulis `"C:\Users\"`, kodenya bahkan tidak bisa dijalankan: `\U` dianggap awal escape sequence yang tidak lengkap, dan `\"` di akhir dianggap tanda kutip yang ikut ditampilkan, bukan penutup teks.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="budi"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -637,7 +637,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={5} level="menengah" judul="Perbaiki program umur">
   Program berikut seharusnya membaca umur, lalu menampilkan umur tahun depan. Versi C++ punya **tiga** kesalahan dan versi Python punya **dua**. Temukan semuanya, lalu perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="19" check="skip"
   #include <iostream>
   using namespace std;
 
@@ -668,7 +668,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Kesalahan Python: (1) `Print` dengan huruf besar tidak dikenal (`NameError`), dan (2) `input()` menghasilkan teks, sehingga `umur + 1` gagal dengan `TypeError`. Ubah dulu dengan `int()`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="19"
     #include <iostream>
     using namespace std;
 
@@ -706,7 +706,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Siapkan dua variabel `string` dan satu `int`, lalu baca dengan urutan nama, umur, kota. Perhatikan titik di akhir setiap kalimat. Di Python, `umur` boleh tetap berupa teks karena hanya ditampilkan, tidak dihitung.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Budi 19 Medan"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -773,7 +773,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={8} level="sulit" judul="Isi variabel yang tak terduga">
   Soal ini khusus C++. Program berikut membaca dua `int` dan satu `double`:
 
-  ```cpp
+  ```cpp input="12 7.25 4"
   #include <iostream>
   using namespace std;
 
@@ -830,7 +830,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jebakan utamanya ada di baris pembatas. Jika ditulis `"/====\"`, garis miring terbalik di akhir justru mengubah tanda kutip penutup menjadi `\"`, sehingga teksnya tidak pernah ditutup. Jika ditulis `"\===/"`, `\=` bukan escape sequence yang dikenal: C++ memberi peringatan dan membuang `\`-nya, sedangkan Python (versi 3.12 ke atas) juga memberi peringatan. Tulis `\\` di kedua tempat. Perhatikan juga dua spasi setelah `Total` agar titik duanya sejajar.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Pensil 3 2000"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -884,7 +884,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kuncinya membedakan dua jenis `\n`. Tulisan `\n` yang harus **tampil** di output ditulis `\\n`, sedangkan pindah baris sungguhan ditulis `\n`. Setiap tanda kutip yang harus tampil ditulis `\"`. Jadi akhir baris pertama di C++ menjadi `"\\n\";\n"`: tampilkan `\n`, tampilkan `"`, tampilkan `;`, lalu pindah baris.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Halo"
     #include <iostream>
     #include <string>
     using namespace std;

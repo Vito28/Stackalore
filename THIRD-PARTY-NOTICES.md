@@ -4,7 +4,7 @@ Stacklore memakai karya pihak ketiga berikut. Setiap karya tetap berada di bawah
 
 ## Fumadocs
 
-Kerangka awal proyek ini dibuat dengan [Create Fumadocs](https://github.com/fuma-nama/fumadocs). Beberapa berkas masih berasal dari template tersebut, terutama `src/lib/source.ts`, `src/components/markdown.tsx`, `src/components/ai/search.tsx`, `proxy.ts`, serta route di `src/app/api/`, `src/app/llms*`, dan `src/app/og/`.
+Kerangka awal proyek ini dibuat dengan [Create Fumadocs](https://github.com/fuma-nama/fumadocs). Beberapa berkas masih berasal dari template tersebut, terutama `src/lib/source.ts`, `src/components/ai/markdown.tsx`, `src/components/ai/search.tsx`, `proxy.ts`, serta route di `src/app/api/`, `src/app/llms*`, dan `src/app/og/`.
 
 ```text
 MIT License
@@ -42,7 +42,20 @@ Paket yang tercantum di `package.json` tidak disimpan di repositori ini. Paket t
 | Tailwind CSS | MIT |
 | Zod | MIT |
 | Lucide (`lucide-react`) | ISC |
+| CodeMirror (`@codemirror/*`, `@lezer/highlight`) | MIT |
 | Vercel AI SDK (`ai`) | Apache-2.0 |
+
+## Compiler dan runtime di Playground
+
+Fitur Playground menjalankan kode di browser pembaca. Compiler dan runtime berikut tidak disimpan di repositori maupun di server Stacklore; browser mengunduhnya dari [jsDelivr](https://www.jsdelivr.com/) saat pembaca pertama kali menekan **Jalankan**. Versinya dikunci di `public/playground/*.worker.js`.
+
+| Karya | Isi | Lisensi |
+| --- | --- | --- |
+| [YoWASP Clang](https://yowasp.org/) (`@yowasp/clang`) | Paket WebAssembly berisi toolchain di bawah ini | ISC |
+| [LLVM, Clang, LLD, libc++](https://llvm.org/) | Compiler dan pustaka standar C++ | Apache-2.0 WITH LLVM-exception |
+| [wasi-libc](https://github.com/WebAssembly/wasi-libc) | Pustaka C untuk WebAssembly | Apache-2.0 WITH LLVM-exception, MIT, dan lisensi permisif lain (lihat repositorinya) |
+| [Pyodide](https://pyodide.org/) (`pyodide`) | Python untuk WebAssembly | MPL-2.0 |
+| [CPython](https://www.python.org/) | Interpreter dan pustaka standar Python, bagian dari Pyodide | PSF License |
 
 ## Font
 

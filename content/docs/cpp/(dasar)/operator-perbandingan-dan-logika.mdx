@@ -188,7 +188,7 @@ Sebuah tahun adalah **tahun kabisat** jika:
 
 Aturan ini langsung bisa diterjemahkan dengan operator modulus, perbandingan, dan logika:
 
-```cpp tab="C++"
+```cpp tab="C++" input="2024" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -239,7 +239,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={1} level="mudah" judul="Tebak nilai kebenaran">
   Tanpa menjalankan program, tentukan output program berikut untuk C++ dan untuk Python.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" check="no-compare"
   #include <iostream>
   using namespace std;
 
@@ -290,7 +290,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Nilai berada di luar rentang jika lebih kecil dari 40 **atau** lebih besar dari 60. Kesalahan umum adalah memakai `&&`: `nilai < 40 && nilai > 60` selalu `false`, karena tidak ada bilangan yang sekaligus lebih kecil dari 40 dan lebih besar dari 60. Cara lain yang juga benar adalah membalik kondisi "di dalam rentang": `!(nilai >= 40 && nilai <= 60)`, atau di Python `not (40 <= nilai <= 60)`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="35" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -318,7 +318,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Selalu bernilai true">
   Program C++ berikut seharusnya menampilkan `true` jika input bernilai 10 dan `false` jika tidak. Anehnya, program ini **selalu** menampilkan `true`, berapa pun inputnya. Temukan kesalahannya, lalu perbaiki.
 
-  ```cpp
+  ```cpp input="7" check="no-compare"
   #include <iostream>
   using namespace std;
 
@@ -343,7 +343,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `x = 10` adalah **penugasan**: `x` diisi 10 sehingga input tadi hilang, lalu nilai 10 itu diubah menjadi `bool`. Semua angka selain 0 dianggap `true`, jadi hasilnya selalu `true`. Seandainya tertulis `(x = 0)`, hasilnya justru selalu `false`. Python menolak kesalahan ini sejak awal: `sepuluh = (x = 10)` langsung menghasilkan `SyntaxError`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="10" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -387,7 +387,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     "Salah satu" adalah `tiga || lima`, "tidak keduanya" adalah `!(tiga && lima)`, dan "tetapi" berarti keduanya harus benar, jadi digabung dengan `&&`. Ada cara yang lebih singkat: `tiga != lima`, karena dua nilai `bool` berbeda tepat ketika salah satunya `true` dan yang lain `false`. Pola "salah satu, tetapi tidak keduanya" ini disebut **XOR** (_exclusive or_).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="9" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -435,7 +435,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Aturannya berbentuk `(A && B) || C`. Karena `&&` dikerjakan lebih dulu daripada `||`, kurungnya sebenarnya tidak wajib, tetapi membuat maksudnya jelas. Kurung di tempat yang salah, misalnya `ipk >= 3.25 && (penghasilan <= 5 || prestasi == 1)`, membuat mahasiswa berprestasi dengan IPK 2.80 ditolak. Di Python, ketiga nilai dibaca sebagai `float` agar IPK bisa berupa pecahan, dan perbandingan seperti `prestasi == 1` tetap bekerja.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3.50 4 0" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -464,7 +464,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Jebakan prioritas NOT">
   Program C++ berikut seharusnya menampilkan `true` jika input **bukan** 5. Ternyata hasilnya selalu `false`. Anehnya, versi Python di bawahnya benar. Jelaskan perbedaannya, lalu perbaiki versi C++.
 
-  ```cpp title="C++ (salah)"
+  ```cpp title="C++ (salah)" input="3" check="no-compare"
   #include <iostream>
   using namespace std;
 
@@ -502,7 +502,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Di C++, `!` dikerjakan **sebelum** `==`, sehingga `!x == 5` dibaca `(!x) == 5`. Nilai `!x` hanya bisa `false` (0) atau `true` (1), dan keduanya tidak pernah sama dengan 5, jadi hasilnya selalu `false`. Di Python, `not` dikerjakan **setelah** perbandingan, sehingga `not x == 5` dibaca `not (x == 5)`. Perbaiki versi C++ dengan `x != 5` atau `!(x == 5)`, dan biasakan membaca peringatan compiler, karena `g++` sebenarnya memberi peringatan (_warning_) untuk baris yang salah tadi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -544,7 +544,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Hitung dulu `kabisat` dengan rumus yang sudah kamu kenal. Tanggal sah jika berada di rentang 1 sampai 28, **atau** tanggalnya 29 **dan** tahunnya kabisat. Jangan lupa batas bawah: tanpa `tanggal >= 1`, tanggal `0` atau negatif ikut dianggap sah. Di Python, rentangnya bisa ditulis berantai sebagai `1 <= tanggal <= 28`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2024 29" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -592,7 +592,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kondisi tidak bentrok adalah `selesai1 <= mulai2 || selesai2 <= mulai1`. Dengan hukum De Morgan, kebalikannya menjadi `selesai1 > mulai2 && selesai2 > mulai1`, yang bisa ditulis rapi sebagai `mulai2 < selesai1 && mulai1 < selesai2`. Menulis `!(selesai1 <= mulai2 || selesai2 <= mulai1)` apa adanya juga benar. Kesalahan umum adalah hanya mengecek apakah `mulai2` berada di dalam rapat 1, yang gagal untuk input `12 13 8 17`, yaitu ketika rapat 2 justru menutupi seluruh rapat 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="9 11 10 12" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -638,7 +638,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Ada tiga kemungkinan sisi miring, jadi ada tiga persamaan yang digabung dengan `||`. Jebakannya ada di kasus tepi: `0 0 0` memenuhi `0 + 0 == 0` dan `0 5 5` memenuhi `0 + 25 == 25`, padahal panjang sisi harus positif. Karena itu, tambahkan syarat `a > 0 && b > 0 && c > 0` yang juga menolak sisi negatif seperti `-3 4 5`. Batas 10.000 menjamin `a * a + b * b` paling besar 200 juta, sehingga masih muat di `int` tanpa [overflow](/docs/cpp/variabel-dan-tipe-data).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3 4 5" check="no-compare"
     #include <iostream>
     using namespace std;
 

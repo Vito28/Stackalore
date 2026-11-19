@@ -120,7 +120,7 @@ Operator yang sering diremehkan ini ternyata sangat berguna:
 
 Contoh penerapannya: mengubah total detik menjadi jam, menit, dan detik.
 
-```cpp tab="C++"
+```cpp tab="C++" input="3725"
 #include <iostream>
 using namespace std;
 
@@ -277,7 +277,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `n % 2` menghasilkan kebalikan dari yang diminta: `0` untuk genap dan `1` untuk ganjil. Membaliknya cukup dengan `1 - n % 2`. Cara lain yang juga benar adalah `(n + 1) % 2`. Syarat `n ≥ 0` penting di C++, karena `-3 % 2` bernilai `-1` sehingga `1 - n % 2` menjadi `2`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8"
     #include <iostream>
     using namespace std;
 
@@ -308,7 +308,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pembagian bulat dengan 50000 menghitung berapa lembar yang muat, dan `%` dengan pembagi yang sama menghitung sisanya. Pasangan `/` dan `%` seperti ini akan sangat sering kamu pakai.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="175000"
     #include <iostream>
     using namespace std;
 
@@ -393,7 +393,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bilangan baru disusun dengan `satuan * 100 + puluhan * 10 + ratusan`. Untuk `120`, hasilnya `0 * 100 + 2 * 10 + 1 = 21`, sehingga angka nol di depan hilang dengan sendirinya. Pada `n / 10 % 10`, operator `/` dan `%` punya prioritas sama sehingga dikerjakan dari kiri: `(n / 10) % 10`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="472"
     #include <iostream>
     using namespace std;
 
@@ -438,7 +438,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah digeser, Senin bernomor 0 dan Minggu bernomor 6, sehingga `(h - 1 + n) % 7` pasti berada di rentang yang benar. Tambah 1 untuk kembali ke penomoran semula. Kesalahan umum adalah menulis `(h + n) % 7`: untuk input `4 3` hasilnya `0`, padahal tidak ada hari bernomor 0. Trik "geser ke 0, hitung, geser balik" ini berlaku untuk apa pun yang berputar, seperti jam dan bulan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 3"
     #include <iostream>
     using namespace std;
 
@@ -466,7 +466,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Persentase selalu nol">
   Program berikut seharusnya membaca banyak jawaban benar dan banyak soal, lalu menampilkan persentase jawaban benar (dibulatkan ke bawah). Namun untuk hampir semua input hasilnya `0`. Jelaskan penyebabnya, lalu perbaiki **tanpa** memakai `double` atau `float`.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="7 8" check="no-compare"
   #include <iostream>
   using namespace std;
 
@@ -502,7 +502,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `/` dan `*` punya prioritas sama, jadi `benar / total` dikerjakan lebih dulu. Selama `benar` lebih kecil dari `total`, pembagian bulat itu menghasilkan `0`, dan `0 * 100` tetap `0`. Tukar urutannya: kalikan 100 dulu, baru bagi. Aturan praktisnya, kerjakan pembagian bulat **paling akhir** agar bagian yang dibuang sekecil mungkin.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7 8"
     #include <iostream>
     using namespace std;
 
@@ -543,7 +543,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pembulatan ke atas dengan pembagian bulat ditulis `(n + k - 1) / k`. Tambahan `k - 1` mendorong `n` ke kelipatan berikutnya jika ada sisa, tetapi tidak cukup jika `n` sudah kelipatan `k`. Kursi kosong adalah total kursi (`bus * k`, kelipatan `k` terkecil yang tidak kurang dari `n`) dikurangi `n`. Trik serupa untuk pembulatan ke kelipatan **terdekat** adalah `(n + k / 2) / k * k` (di Python `(n + k // 2) // k * k`).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="40 12"
     #include <iostream>
     using namespace std;
 
@@ -605,7 +605,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jumlahkan waktu mulai (dalam menit) dengan durasi. Hasil bagi dengan 1440 adalah banyaknya tengah malam yang dilewati, sedangkan sisanya dipecah lagi menjadi jam dan menit dengan `/ 60` dan `% 60`. Agar selalu dua digit, setiap angka dicetak sebagai digit puluhan lalu digit satuan, sehingga `8` tampil sebagai `08`. Cara yang lebih praktis, yaitu `setw` dan `setfill` dari [`<iomanip>`](/docs/cpp/pustaka/iomanip) atau `f"{jam:02d}"` di Python, bisa kamu pelajari nanti.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="23 45 135"
     #include <iostream>
     using namespace std;
 
@@ -663,7 +663,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Di C++, `(h - 1 - n) % 7` bisa negatif (antara -6 dan 6), jadi tambahkan 7 lalu ambil `% 7` sekali lagi. Langkah ini memindahkan nilai negatif ke rentang 0 sampai 6 tanpa merusak nilai yang sudah positif. Python tidak membutuhkannya karena `%` di Python tidak pernah negatif jika pembaginya positif. Hati-hati dengan versi pendek `(h - 1 - n + 7) % 7 + 1`: versi itu hanya aman jika `n` paling besar 7, dan untuk input `3 10` hasilnya `0`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="1 1"
     #include <iostream>
     using namespace std;
 

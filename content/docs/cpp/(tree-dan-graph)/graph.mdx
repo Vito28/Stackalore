@@ -235,7 +235,7 @@ Hampir semua soal graph memakai format input yang sama. Format ini juga dipakai 
 
 Program berikut membaca graph contoh, lalu menampilkan derajat dan daftar tetangga setiap simpul.
 
-```cpp tab="C++"
+```cpp tab="C++" input="6 6\n1 2\n1 3\n2 4\n2 5\n3 4\n4 5"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -305,7 +305,7 @@ Tiga hal yang perlu diperhatikan:
 
 Untuk graph berarah, baris `u v` berarti panah dari `u` ke `v`, jadi hanya `adj[u]` yang ditambah. Derajat keluar adalah panjang `adj[u]`. Derajat masuk perlu dihitung sendiri dengan sebuah array penghitung.
 
-```cpp tab="C++"
+```cpp tab="C++" input="5 4\n1 2\n2 4\n3 4\n4 5"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -366,7 +366,7 @@ Untuk graph prasyarat mata kuliah di atas:
 
 Pada graph berbobot, setiap isi adjacency list harus menyimpan dua hal: simpul tujuan dan bobotnya. Di C++ kita membungkusnya dengan struct `Edge`. Di Python cukup memakai tuple `(ke, bobot)`.
 
-```cpp tab="C++"
+```cpp tab="C++" input="4 4\n1 2 7\n1 3 4\n2 3 2\n3 4 10"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -458,7 +458,7 @@ Grid tidak perlu diubah menjadi adjacency list. Tetangga sel `(i, j)` bisa dihit
 
 Program berikut membaca grid dengan format baris pertama `r c` (banyak baris dan kolom) lalu `r` baris karakter. Untuk setiap sel terbuka, program menampilkan derajatnya, yaitu banyak tetangga yang juga terbuka.
 
-```cpp tab="C++"
+```cpp tab="C++" input="3 4\n..#.\n.#..\n...."
 #include <iostream>
 #include <string>
 #include <vector>
@@ -618,7 +618,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap sisi `u v` menambah derajat **kedua** ujungnya. Soal ini bahkan tidak perlu menyimpan daftar tetangga, cukup array penghitung berukuran `n + 1`. Periksa hasilmu: jumlah semua derajat pada contoh pertama adalah 3 + 1 + 1 + 2 + 1 = 8, tepat dua kali banyak sisi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 4\n1 2\n1 3\n1 4\n4 5"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -663,7 +663,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={2} level="mudah" judul="Tebak isi adjacency list">
   Tanpa menjalankannya, tebak output program berikut untuk input di bawahnya. Kedua versi menghasilkan output yang sama.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="4 4\n2 3\n1 2\n4 2\n3 1"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -732,7 +732,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Tetangga yang hilang">
   Program berikut membaca graph, lalu sebuah nomor simpul `k` di baris terakhir, dan seharusnya menampilkan semua tetangga `k` sesuai urutan input. Untuk contoh input, program menampilkan `3 5`, padahal jawaban yang benar `1 3 4 5`. Temukan kesalahannya dan perbaiki. Simpul `k` dijamin punya paling sedikit satu tetangga.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="5 4\n1 2\n2 3\n4 2\n2 5\n2" check="no-compare"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -785,7 +785,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Sisi hanya ditambahkan dari `u` ke `v`. Sisi `1 2` dan `4 2` menempatkan simpul 2 di posisi `v`, sehingga 1 dan 4 tidak pernah masuk ke `adj[2]`. Graph-nya tak berarah, jadi setiap sisi harus ditambahkan ke kedua ujungnya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 4\n1 2\n2 3\n4 2\n2 5\n2"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -867,7 +867,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Sisi `4 2 8` ditulis dengan kota 2 di posisi kedua, tetapi tetap muncul di daftar kota 2 karena setiap jalan ditambahkan dua arah dengan bobot yang sama. Kota yang tidak punya jalan, seperti kota 3 pada contoh 2, cukup menampilkan `Total 0`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 5\n1 2 12\n2 3 5\n4 2 8\n3 4 20\n5 1 3\n2"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -956,7 +956,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pada contoh pertama, daftar tetangga simpul 5 adalah `2 4 6 3` sesuai urutan input, sehingga perlu diurutkan menjadi `2 3 4 6`. Pada contoh kedua semua orang punya tepat satu teman, dan karena perbandingannya memakai `>`, simpul 1 tetap menjadi jawaban.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 6\n1 2\n3 2\n2 5\n4 5\n5 6\n3 5"
     #include <algorithm>
     #include <iostream>
     #include <vector>
@@ -1052,7 +1052,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap baris `u v` menambah derajat keluar `u` dan derajat masuk `v`. Menelusuri simpul dari 1 sampai `n` otomatis menghasilkan urutan dari kecil ke besar. Perhatikan mata kuliah 3 pada contoh 2: ia tidak terhubung ke mana pun, jadi muncul di kedua baris. Karena prasyaratnya tidak melingkar, selalu ada paling sedikit satu mata kuliah di setiap baris.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 5\n1 2\n2 4\n3 4\n4 5\n1 6"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1139,7 +1139,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Membaca matriks dengan indeks 0 sementara simpul bernomor dari 1 tidak masalah, asalkan konversinya dilakukan di **satu tempat** saja, yaitu saat mencetak. Banyak sisi dihitung dari sel di atas diagonal (`j > i`), sehingga setiap sisi terhitung tepat sekali. Cara lain: jumlah semua angka 1 adalah jumlah semua derajat, yaitu `2m`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\n0 1 1 0\n1 0 1 1\n1 1 0 0\n0 1 0 0"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1242,7 +1242,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Kasus `n = 1` juga perlu diperhatikan: tidak ada "orang lain", jadi syarat dikenal oleh `n − 1 = 0` orang langsung terpenuhi, dan orang 1 adalah selebriti. Paling banyak ada satu selebriti. Jika A dan B sama-sama selebriti, A harus mengenal B (karena B dikenal semua orang), padahal A tidak mengenal siapa pun.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 5\n1 3\n2 3\n4 3\n1 2\n4 1"
     #include <iostream>
     #include <set>
     #include <vector>
@@ -1338,7 +1338,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Menelusuri simpul dari 1 sampai `n` saat mencetak membuat hasilnya terurut tanpa perlu `sort`. Total kerjanya paling banyak sebanding dengan `n + m`, karena setiap daftar tetangga dibaca paling banyak sekali.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7 7\n1 2\n1 3\n2 4\n3 4\n3 5\n5 6\n2 3\n1"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1454,7 +1454,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Algoritmanya: untuk setiap sisi `u`–`v` dengan `u < v`, telusuri tetangga `w` dari `v` dengan `w > v`, lalu periksa `mat[u][w]`. Memeriksa `w` di adjacency list `u` juga bisa, tetapi butuh perulangan tambahan. Matriks memberi jawabannya dalam satu langkah, dan dengan `n` ≤ 100 ukurannya kecil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 7\n1 2\n2 3\n1 3\n3 4\n4 5\n3 5\n2 4"
     #include <iostream>
     #include <vector>
     using namespace std;

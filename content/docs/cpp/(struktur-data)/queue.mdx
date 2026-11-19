@@ -149,7 +149,7 @@ Saat dicoba dengan `g++`, `q.front()` pada queue kosong justru menampilkan `0` t
 
 Program berikut menjalankan perintah `DATANG nama` (orang masuk antrean) dan `LAYANI` (petugas melayani orang paling depan).
 
-```cpp tab="C++"
+```cpp tab="C++" input="7\nDATANG Ani\nDATANG Budi\nLAYANI\nDATANG Citra\nLAYANI\nLAYANI\nLAYANI"
 #include <iostream>
 #include <queue>
 #include <string>
@@ -342,7 +342,7 @@ Antrean di IGD rumah sakit tidak FIFO. Pasien yang paling gawat ditangani lebih 
 - **C++** menyediakan `priority_queue` di pustaka `<queue>`. Operasinya `push`, `pop`, `top` (bukan `front`), `empty`, dan `size`. Secara bawaan, yang keluar lebih dulu adalah elemen **terbesar**.
 - **Python** menyediakan modul `heapq`, berisi fungsi-fungsi yang bekerja pada list biasa. Secara bawaan, yang keluar lebih dulu adalah elemen **terkecil**.
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 #include <queue>
 #include <vector>
@@ -499,7 +499,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap pelayanan adalah `front` lalu `pop`. Baris `Berikutnya` hanya boleh dicetak jika antrean belum kosong. Tanpa pemeriksaan itu, contoh 2 akan memanggil `front()` pada queue kosong.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 2\nAni Budi Citra Dodi Eka"
     #include <iostream>
     #include <queue>
     #include <string>
@@ -551,7 +551,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Perbaiki urutan layanan">
   Program berikut membaca `n` nama lalu melayani semuanya sesuai urutan kedatangan, satu nama per baris. Untuk input di bawah, seharusnya tercetak `Ani`, `Budi`, `Citra`. Ternyata versi C++ mencetak `Citra` tiga kali, dan versi Python mencetak `Citra`, `Budi`, `Ani`. Temukan kesalahan masing-masing dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="3\nAni Budi Citra" check="no-compare"
   #include <iostream>
   #include <queue>
   #include <string>
@@ -598,7 +598,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     **Python:** `pop()` pada deque membuang dari **kanan** (belakang), sehingga antrean berubah menjadi stack dan urutannya terbalik. Untuk antrean, pakai `popleft()`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\nAni Budi Citra"
     #include <iostream>
     #include <queue>
     #include <string>
@@ -665,7 +665,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Karena waktu selalu naik, permintaan yang sudah terlalu lama pasti berkumpul di **depan** queue, dan sekali terlalu lama, ia tidak akan pernah dihitung lagi. Pada `t = 62`, waktu `1` lebih kecil dari 62 − 60 = 2, jadi dikeluarkan. Perulangan `while` tidak perlu memeriksa queue kosong, karena `t` sendiri baru saja masuk dan tidak mungkin lebih kecil dari `t − 60`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n1 30 61 62 100 125"
     #include <iostream>
     #include <queue>
     using namespace std;
@@ -733,7 +733,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Budi datang pada waktu 2, tetapi loket baru bebas pada waktu 5, jadi ia menunggu 3. Citra menunggu 8 − 4 = 4. Dodi datang pada waktu 20 saat loket sudah menganggur sejak waktu 14, jadi ia langsung dilayani tanpa menunggu. Totalnya 0 + 3 + 4 + 0 = 7. Kesalahan umum adalah selalu memulai dari `waktuLoket`, sehingga Dodi dianggap mulai pada waktu 14 sebelum ia datang.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\nAni 0 5\nBudi 2 3\nCitra 4 6\nDodi 20 2"
     #include <iostream>
     #include <queue>
     #include <string>
@@ -825,7 +825,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah disaring, `Kasur ini rusak` menjadi `kasurinirusak`. Deque cocok karena kita perlu mengambil dari **kedua** ujung. Perulangan berhenti saat tersisa satu huruf (huruf tengah) atau nol huruf, karena keduanya pasti tidak merusak palindrom.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="Kasur ini rusak"
     #include <iostream>
     #include <deque>
     #include <string>
@@ -916,7 +916,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bilangan yang sama tetap dihitung sendiri-sendiri, jadi `75` muncul dua kali pada contoh 1. Kesalahan umum di Python adalah lupa membalik tanda saat mencetak, sehingga yang keluar `-90 -75 -75`. Python juga punya jalan pintas `heapq.nlargest(k, data)`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7 3\n40 10 75 30 75 90 5"
     #include <iostream>
     #include <queue>
     using namespace std;
@@ -1010,7 +1010,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Kesalahan umum: selalu menambah jam sebesar `kuantum` walaupun sisa programnya lebih kecil, sehingga Editor tercatat selesai pada waktu 10, bukan 9.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3 2\nBrowser 5\nMusik 2\nEditor 3"
     #include <iostream>
     #include <queue>
     #include <string>
@@ -1112,7 +1112,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jika `a[i]` lebih besar atau sama dengan elemen lama di belakang deque, elemen lama itu tidak akan pernah menjadi maksimum lagi: `a[i]` lebih baru (bertahan lebih lama di jendela) dan setidaknya sama besar. Karena itu elemen lama aman dibuang. Setiap indeks masuk sekali dan keluar paling banyak sekali, jadi total kerjanya sebanding dengan `n`. Indeks disimpan, bukan nilai, agar kita tahu kapan sebuah elemen sudah keluar dari jendela (`indeks <= i - k`).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8 3\n4 2 12 3 8 1 7 5"
     #include <iostream>
     #include <deque>
     #include <vector>
@@ -1210,7 +1210,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Totalnya 5 + 9 + 15 = 29. Urutan lain, misalnya (4 + 3), lalu (2 + 6), lalu (7 + 8), menghasilkan 7 + 8 + 15 = 30. Di C++ pakai `greater` agar terkecil keluar dulu, sedangkan di Python bawaan `heapq` sudah sesuai. Ukuran berkas bisa sampai 10<sup>9</sup>, jadi gunakan `long long`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\n4 3 2 6"
     #include <iostream>
     #include <queue>
     #include <vector>

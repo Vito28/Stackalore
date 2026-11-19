@@ -16,6 +16,7 @@ import { Pipeline } from '@/components/mdx/pipeline';
 import { BufferStepper } from '@/components/mdx/cpp/buffer-stepper';
 import { MemoryBoxes } from '@/components/mdx/cpp/memory-boxes';
 import { TruthTable } from '@/components/mdx/cpp/truth-table';
+import { RunnableCodeBlock } from '@/components/playground/runnable-code-block';
 
 const languageTabs = new Set(['C++', 'Python']);
 
@@ -29,9 +30,17 @@ function LanguageCodeTabs(props: ComponentProps<typeof CodeBlockTabs>) {
   return <CodeBlockTabs {...(synced ? { groupId: 'stacklore-bahasa', persist: true } : {})} {...props} />;
 }
 
+/** Code blocks marked by `remarkRunnable` get a "Jalankan" button; others stay static. */
+function CodeBlockPre(props: ComponentProps<'pre'> & { 'data-run'?: 'cpp' | 'python'; 'data-input'?: string }) {
+  if (props['data-run']) return <RunnableCodeBlock {...props} data-run={props['data-run']} />;
+  const DefaultPre = defaultMdxComponents.pre;
+  return <DefaultPre {...props} />;
+}
+
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    pre: CodeBlockPre,
     CodeBlockTabs: LanguageCodeTabs,
     Accordion,
     Accordions,

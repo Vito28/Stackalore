@@ -298,7 +298,7 @@ Cara ini benar, tetapi lambat untuk list panjang karena setiap penambahan menelu
 
 Solusinya, simpan satu pointer lagi, `tail`, yang selalu menunjuk ke node terakhir. Menambah di belakang kini cukup dua langkah: sambungkan node baru ke `tail`, lalu geser `tail` ke node baru. Program berikut membaca `n` bilangan, menyusunnya menjadi list sesuai urutan input, mencetaknya, lalu membebaskan memori. Bagian atas program (`#include`, `struct Node`, `cetak`, dan `hapusSemua`) sama dengan kode di atas.
 
-```cpp tab="C++"
+```cpp tab="C++" run="none"
 int main() {
     int n;
     cin >> n;
@@ -578,7 +578,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kedua fungsi memakai pola penelusuran yang sama, hanya isi perulangannya yang berbeda. Untuk list kosong, perulangan tidak berjalan sama sekali sehingga keduanya mengembalikan `0`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 8 15 16 0"
     #include <iostream>
     using namespace std;
 
@@ -824,7 +824,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Perulangan berhenti saat salah satu list habis. Jika saat itu list lainnya belum habis, panjangnya berbeda. Itulah arti `return p == nullptr && q == nullptr;` di akhir fungsi. Kesalahan yang sering terjadi adalah langsung mengembalikan `true` setelah perulangan, sehingga `1 2` dianggap sama dengan `1 2 3`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\n1 2 3\n3\n1 2 3"
     #include <iostream>
     using namespace std;
 
@@ -954,7 +954,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bagian pertama membuang `x` di depan sampai head bukan `x` (atau list habis). Bagian kedua memeriksa node sesudah `prev`: jika harus dihapus, node itu dilompati dan `prev` tetap di tempat. Jika tidak, barulah `prev` maju. Pada contoh `5 1 5 5 2 5 3`, menggeser `prev` setelah menghapus akan melewatkan `5` yang kedua dari pasangan `5 5`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n5 1 5 5 2 5 3\n5"
     #include <iostream>
     using namespace std;
 
@@ -1115,7 +1115,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Menyisipkan di antara `p` dan `p->next` membutuhkan dua langkah dengan urutan tertentu: node baru dibuat dengan `next` menunjuk ke `p->next`, baru kemudian `p->next` diarahkan ke node baru. Jika dibalik, alamat sisa list hilang. Karena setiap penyisipan menjaga urutan, list sudah terurut saat semua bilangan selesai dibaca.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n5 2 9 1 5 7"
     #include <iostream>
     using namespace std;
 
@@ -1244,7 +1244,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Dengan puncak di head, setiap perintah hanya menyentuh node terdepan, jadi tidak perlu menelusuri list sama sekali. Di akhir program, node yang masih tersisa di stack harus dibebaskan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\nPUSH 4\nPUSH 9\nTOP\nPOP\nPOP\nPOP\nTOP"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -1338,7 +1338,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
     | 2 | 2 | 3 | 2 → 1 |
     | 3 | 3 | `nullptr` | 3 → 2 → 1 |
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n1 2 3 4 5"
     #include <iostream>
     using namespace std;
 
@@ -1471,7 +1471,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Karena `cepat` bergerak dua kali lebih jauh, saat `cepat` mencapai ujung, `lambat` baru menempuh separuh jalan. Kondisi perulangan `cepat != nullptr && cepat->next != nullptr` memastikan `cepat->next->next` aman dibaca. Untuk 4 node, `lambat` berpindah 1 → 2 → 3 sementara `cepat` berpindah 1 → 3 → `nullptr`, sehingga hasilnya node ketiga (30), yaitu node tengah yang kedua.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n1 2 3 4 5"
     #include <iostream>
     using namespace std;
 
@@ -1578,7 +1578,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Idenya mirip menggabungkan dua tumpukan kartu yang sudah terurut: bandingkan kartu teratas, ambil yang lebih kecil, ulangi. Node pertama yang diambil menjadi `head`, dan node berikutnya disambungkan lewat `tail`. Karena tidak ada node baru, cukup satu `hapusSemua` pada list hasil untuk membebaskan semua node dari A dan B. Fungsi ini juga benar jika salah satu list kosong: perulangannya tidak berjalan dan hasilnya langsung list yang lain.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\n1 4 6 9\n3\n2 4 10"
     #include <iostream>
     using namespace std;
 

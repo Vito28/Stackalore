@@ -175,7 +175,7 @@ Perhatikan urutannya. `std::map` **selalu terurut berdasarkan kunci**, apa pun u
 
 Salah satu kegunaan map yang paling sering: menghitung berapa kali setiap hal muncul. Program berikut membaca `n` kata, lalu menampilkan setiap kata beserta jumlah kemunculannya, urut abjad.
 
-```cpp tab="C++"
+```cpp tab="C++" input="7\nkopi teh kopi susu teh kopi air"
 #include <iostream>
 #include <map>
 #include <string>
@@ -330,7 +330,7 @@ Seperti map, `set` di C++ terurut, sedangkan `unordered_set` memakai hash table 
 
 Program berikut membaca `n` bilangan, lalu menampilkan banyak nilai yang berbeda beserta daftarnya secara terurut.
 
-```cpp tab="C++"
+```cpp tab="C++" input="8\n5 3 8 3 1 5 5 8"
 #include <iostream>
 #include <set>
 using namespace std;
@@ -439,7 +439,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Masukkan semua bilangan ke sebuah set. Duplikat otomatis diabaikan, jadi ukuran set adalah jawabannya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n3 1 3 2 1 3"
     #include <iostream>
     #include <set>
     using namespace std;
@@ -532,7 +532,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Simpan nama sebagai kunci dan nomor sebagai nilai. Nomor disimpan sebagai `string`, bukan `int`, agar angka 0 di depannya tidak hilang. Untuk pencarian, pakai `find` (Python: `get` dengan nilai cadangan) agar nama yang tidak ada tidak ikut ditambahkan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\nandi 0812111\nbudi 0813222\ncitra 0857333\n3\nbudi\ndodi\nandi"
     #include <iostream>
     #include <map>
     #include <string>
@@ -598,7 +598,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Putaran kedua harus menelusuri kata, bukan map. Map C++ terurut abjad, jadi menelusuri map akan menemukan huruf tunggal yang **terkecil**, bukan yang **pertama muncul**. Pada `kakaktua`, huruf tunggalnya `t` dan `u`, dan yang muncul lebih dulu adalah `t`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="kakaktua"
     #include <iostream>
     #include <map>
     #include <string>
@@ -665,7 +665,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Karena `4` muncul dua kali di kedua daftar, menampilkan langsung saat ditemukan akan mencetak `4` dua kali. Menampung hasil di set mencegah hal itu sekaligus mengurutkannya. Di C++, variabel `pertama` dipakai agar spasi hanya dicetak di antara angka.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n4 1 7 4 9\n4\n9 4 4 2"
     #include <iostream>
     #include <set>
     using namespace std;
@@ -738,7 +738,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Karena kunci ditelusuri dari yang terkecil, kandidat yang pertama kali mencapai frekuensi terbanyak adalah nilai terkecil. Memakai `>=` akan membuat kandidat tergeser ke nilai yang lebih besar. Di Python, dict menyimpan urutan masuk (`4, 1, 2, 3` pada contoh pertama), jadi kuncinya perlu diurutkan dulu dengan `sorted`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n4 1 4 2 1 3 2"
     #include <iostream>
     #include <map>
     using namespace std;
@@ -789,7 +789,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={7} level="menengah" judul="Peserta bertambah sendiri">
   Program C++ berikut menyimpan skor peserta, lalu menjawab beberapa pertanyaan skor. Di akhir, program menampilkan banyak peserta yang terdaftar.
 
-  ```cpp
+  ```cpp input="3\nani 80\nbeni 0\ncici 95\n3\nbeni\ndedi\ncici"
   #include <iostream>
   #include <map>
   #include <string>
@@ -849,7 +849,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kesalahan pertama: `skor[nama]` untuk `"dedi"` **menambahkan** dedi dengan skor 0, sehingga jumlah peserta menjadi 4. Kesalahan kedua: program memakai skor 0 sebagai tanda "tidak terdaftar", padahal beni memang terdaftar dengan skor 0. Keduanya selesai dengan satu perbaikan: cek keberadaan kunci dengan `count` (Python: `in`), bukan dengan membandingkan nilainya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\nani 80\nbeni 0\ncici 95\n3\nbeni\ndedi\ncici"
     #include <iostream>
     #include <map>
     #include <string>
@@ -928,7 +928,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Perulangan bersarang memeriksa sekitar n²/2 pasangan, yaitu sekitar 20 miliar untuk n = 200.000. Dengan map, setiap bilangan hanya diperiksa sekali. Ada dua hal yang perlu teliti. Pertama, periksa pasangan **sebelum** memasukkan `a[j]` ke map, agar sebuah bilangan tidak dipasangkan dengan dirinya sendiri. Kedua, simpan hanya indeks **pertama** setiap nilai, agar `i` yang terpilih adalah yang terkecil. Pada contoh, saat `j = 3` (nilai 2), pasangan yang dibutuhkan adalah 8, yang sudah terlihat di indeks 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n3 8 5 2 8 1\n10"
     #include <iostream>
     #include <unordered_map>
     #include <vector>
@@ -1009,7 +1009,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kunci yang sama berarti kelompok yang sama, jadi setiap kata cukup ditambahkan ke vector milik kuncinya. Tantangannya ada pada urutan output. `map` C++ akan menelusuri kunci urut abjad (`abu`, `aipt`, `akrsu`, ...), bukan urutan kemunculan. Karena itu solusi C++ menyimpan vector `urutan` yang mencatat kunci baru saat pertama kali muncul. Di Python, dict sudah mengingat urutan masuk, sehingga cukup menelusuri `values()`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\nkasur\ntapi\nrusak\nabu\npita\nbau\nsukar\nroti"
     #include <algorithm>
     #include <iostream>
     #include <map>
@@ -1084,7 +1084,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Map `maju` mencatat "huruf di `a` diganti menjadi apa", dan map `mundur` mencatat "huruf di `b` berasal dari mana". Setiap pasangan huruf `(x, y)` harus cocok dengan catatan sebelumnya di **kedua** arah. Pada `abc xxy`, pasangan `(a, x)` lalu `(b, x)` lolos dari pengecekan `maju`, tetapi `mundur` sudah mencatat bahwa `x` berasal dari `a`, sehingga jawabannya `TIDAK`. Kesalahan yang sering terjadi adalah hanya memakai satu map.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="kakak tutut"
     #include <iostream>
     #include <map>
     #include <string>

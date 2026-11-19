@@ -88,7 +88,7 @@ Setiap nilai `n` kini hanya benar-benar dihitung **satu kali**. Panggilan beriku
 
 Di C++, catatannya bisa berupa `vector<long long>` dengan indeks `n`. Kita butuh penanda untuk "belum dihitung". Bilangan Fibonacci tidak pernah negatif, jadi `-1` aman dipakai sebagai penanda. Di Python, `dict` lebih praktis: kuncinya `n`, nilainya `fib(n)`, dan `n in memo` langsung menjawab apakah `n` sudah pernah dihitung.
 
-```cpp tab="C++"
+```cpp tab="C++" input="90"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -208,7 +208,7 @@ C++ tidak punya padanan bawaan untuk `@cache`. Di C++, catatannya selalu ditulis
 
 Memoisasi bekerja **dari atas ke bawah** (_top-down_): mulai dari `fib(n)`, turun lewat rekursi, dan mencatat hasil di sepanjang jalan. Arah sebaliknya juga bisa. Mulai dari kasus dasar, lalu isi tabel **dari bawah ke atas** (_bottom-up_) dengan perulangan biasa, sampai sel yang dicari:
 
-```cpp tab="C++"
+```cpp tab="C++" input="10"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -273,7 +273,7 @@ Cara berpikir rekursifnya: dari sel `(i, j)`, langkah pertama hanya ada dua kemu
 
 Tanpa memo, sel yang sama dihitung berkali-kali, karena bisa dicapai lewat banyak urutan langkah. Misalnya, sel `(1, 1)` bisa dicapai lewat "kanan, bawah" maupun "bawah, kanan". Untuk grid kosong 16 × 16, jawabannya 155.117.520 jalur, dan rekursi tanpa memo butuh 891.925.739 panggilan. Padahal grid itu hanya punya 256 sel. Dengan memo berupa tabel dua dimensi seukuran grid, setiap sel cukup dihitung sekali, dan banyak panggilannya turun menjadi 511.
 
-```cpp tab="C++"
+```cpp tab="C++" input="3 4\n....\n.#..\n...."
 #include <iostream>
 #include <string>
 #include <vector>

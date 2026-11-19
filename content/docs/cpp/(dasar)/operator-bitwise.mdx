@@ -56,7 +56,7 @@ Bit paling kanan disebut **bit ke-0**, di kirinya bit ke-1, dan seterusnya. Bit 
 
 Kamu juga bisa **menulis** angka langsung dalam biner dengan awalan `0b`. Cara ini berlaku di kedua bahasa.
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 #include <bitset>
 using namespace std;
@@ -267,7 +267,7 @@ Cara kerjanya mengikuti tabel per bit di atas:
 
 Sistem operasi seperti Linux menyimpan izin sebuah file sebagai bit: baca (`4`, `100`), tulis (`2`, `010`), dan jalankan (`1`, `001`). Satu angka sudah cukup untuk menyimpan ketiganya.
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -508,7 +508,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bilangan ganjil selalu punya bit ke-0 bernilai 1, jadi jawabannya cukup `n & 1`. Kalau memakai `n % 2` di C++, input `-3` menghasilkan `-1`, bukan `1`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7"
     #include <iostream>
     using namespace std;
 
@@ -575,7 +575,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Menggeser `1` ke kiri sejauh `k` posisi menghasilkan bilangan yang hanya punya bit ke-k, yaitu 2ᵏ. Batasnya 30 karena `1 << 31` sudah menyentuh bit tanda `int` di C++. Untuk `k` yang lebih besar, gunakan `1LL << k`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="10"
     #include <iostream>
     using namespace std;
 
@@ -612,7 +612,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `x >> k` memindahkan bit ke-k ke posisi 0, lalu `& 1` menyisakan bit itu saja. Kesalahan yang sering terjadi adalah menulis `x & (1 << k)`. Ekspresi ini memang 0 jika bitnya mati, tetapi jika bitnya menyala hasilnya 2ᵏ, bukan 1. Untuk input `10 1`, hasilnya `2`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="10 1"
     #include <iostream>
     using namespace std;
 
@@ -653,7 +653,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Ini penerapan langsung tabel bit mask. Simpan hasilnya di tiga variabel baru agar `x` asli tidak berubah. Jika kamu memakai `x |= mask` lalu `x &= ~mask`, operasi kedua akan bekerja pada `x` yang sudah diubah.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="10 1"
     #include <iostream>
     using namespace std;
 
@@ -687,7 +687,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Perbaiki dua kesalahan">
   Program C++ berikut seharusnya membaca `n` (0 ≤ n ≤ 30), lalu menampilkan 2ⁿ di baris pertama, dan di baris kedua `1` jika `n` genap atau `0` jika ganjil. Untuk input `4`, yang muncul justru `6` dan `0`. Temukan dua kesalahannya, lalu perbaiki.
 
-  ```cpp
+  ```cpp input="4" check="no-compare"
   #include <iostream>
   using namespace std;
 
@@ -718,7 +718,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kesalahan pertama: `^` adalah XOR, jadi `2 ^ 4` = `010 ^ 100` = `110` = 6. Pangkat dua ditulis `1 << n`. Kesalahan kedua: di C++, `==` dikerjakan sebelum `&`, sehingga `n & 1 == 0` dibaca `n & (1 == 0)` = `n & 0` = `0` untuk semua `n`. Tambahkan kurung: `(n & 1) == 0`. Di Python, `2 ^ n` sama salahnya, tetapi `n & 1 == 0` kebetulan benar karena perbandingan dikerjakan setelah `&`. Tetap biasakan memberi kurung.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -756,7 +756,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `n & (n - 1)` bernilai 0 jika `n` hanya punya satu bit 1. Masalahnya, `0 & -1` juga 0, padahal 0 bukan pangkat dua. Bilangan negatif juga bukan pangkat dua. Karena itu, tambahkan syarat `n > 0` di depan. Berkat _short-circuit_, `n - 1` tidak pernah dihitung untuk `n` yang tidak positif.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8" check="no-compare"
     #include <iostream>
     using namespace std;
 
@@ -796,7 +796,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `n & (n - 1)` sama dengan `n`, kecuali bit 1 paling kanannya sudah dimatikan. XOR menyisakan bit yang berbeda di antara dua bilangan, jadi `n ^ (n & (n - 1))` tinggal berisi bit itu saja. Contohnya `1100 ^ 1000` = `0100` = 4. Programmer berpengalaman sering menulis `n & -n` untuk hal yang sama. Alasannya ada pada cara bilangan negatif disimpan, yang dibahas di [Bilangan Biner & Komplemen Dua](/docs/cpp/pendalaman/bilangan-biner).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="12"
     #include <iostream>
     using namespace std;
 
@@ -835,7 +835,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `255 << 8` adalah mask berisi delapan bit 1 di posisi 8 sampai 15, dan `~(255 << 8)` adalah kebalikannya. AND dengan `~(255 << 8)` mengosongkan komponen hijau tanpa menyentuh merah dan biru, lalu OR memasukkan `h << 8`. Kesalahan yang umum adalah langsung menulis `w | (h << 8)`. Bit 1 milik hijau lama tidak pernah dimatikan, sehingga hasilnya campuran hijau lama dan baru. Pada contoh pertama, hasilnya tetap `16753920`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="16753920 0"
     #include <iostream>
     using namespace std;
 

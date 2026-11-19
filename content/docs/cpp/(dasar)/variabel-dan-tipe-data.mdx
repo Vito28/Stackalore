@@ -323,7 +323,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Konversi dari pecahan ke bilangan bulat **membuang** bagian pecahan, bukan membulatkan. Karena itu `7.9` menjadi `7`, dan `-2.7` menjadi `-2` (bukan `-3`). Di Python, ubah teks input dengan `float()` dulu, baru dengan `int()`. Langsung memakai `int(input())` akan gagal untuk teks `"7.9"`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7.9"
     #include <iostream>
     using namespace std;
 
@@ -401,7 +401,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jam bulat cukup `menit / 60` karena keduanya `int`. Untuk jam pecahan, ubah `menit` menjadi `double` dulu. Kesalahan yang sering terjadi adalah menulis `double jamPecahan = menit / 60;`, yang tetap menghasilkan `2` untuk input `150`. Di Python, `/` selalu menghasilkan pecahan, jadi jam bulat didapat dengan `int()`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="150"
     #include <iostream>
     using namespace std;
 
@@ -431,7 +431,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Perbaiki deklarasi">
   Soal ini khusus C++. Program berikut tidak bisa di-compile karena ada **empat** baris yang salah. Temukan dan perbaiki semuanya, sehingga program menampilkan `A 3 Medan 3.14159`.
 
-  ```cpp
+  ```cpp check="skip"
   #include <iostream>
   #include <string>
   using namespace std;
@@ -490,7 +490,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Total bayar adalah jumlah tiket dikali harga tiket, lalu ditambah biaya layanan satu kali. Dengan konstanta, jika harga tiket naik, cukup satu baris yang diubah. Di Python, konstanta ditulis dengan huruf kapital sebagai kesepakatan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="1"
     #include <iostream>
     using namespace std;
 
@@ -572,7 +572,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setahun ada 365 × 24 × 60 × 60 = 31.536.000 detik, masih muat di `int`. Masalahnya ada di perkalian dengan umur: untuk umur 70 hasilnya sekitar 2,2 miliar, sudah melewati batas `int`. Menulis `long long detik = umur * DETIK_PER_TAHUN;` dengan `umur` bertipe `int` **tidak** menolong, karena perkaliannya tetap dihitung sebagai `int` dan hasilnya `-2087447296`. Ubah salah satu operand ke `long long` sebelum dikalikan. Python tidak punya masalah ini karena `int` Python tidak punya batas.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="70"
     #include <iostream>
     using namespace std;
 
@@ -600,7 +600,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={10} level="sulit" judul="Putar tiga nilai">
   Lengkapi program berikut di bagian komentar. Setelah kodemu dijalankan, `a` harus berisi nilai lama `b`, `b` berisi nilai lama `c`, dan `c` berisi nilai lama `a`. Jangan mengubah baris input dan output, dan di C++ pakai paling banyak **satu** variabel tambahan.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="1 2 3"
   #include <iostream>
   using namespace std;
 
@@ -645,7 +645,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Python bisa melakukannya dalam satu baris, karena semua nilai di sebelah kanan `=` dibaca lebih dulu sebelum ada yang ditimpa.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="1 2 3"
     #include <iostream>
     using namespace std;
 

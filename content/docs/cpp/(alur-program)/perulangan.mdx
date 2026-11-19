@@ -284,7 +284,7 @@ Sebagian besar program yang mengolah banyak data memakai pola yang sama: siapkan
 
 Contoh: membaca nilai `n` mahasiswa, lalu menghitung rata-rata, jumlah yang lulus, dan nilai tertinggi.
 
-```cpp tab="C++"
+```cpp tab="C++" input="3\n80\n55\n92" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -415,7 +415,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Banyak putarannya sudah pasti, yaitu 10, jadi `for` paling cocok. Pencacah `i` sekaligus dipakai sebagai pengali.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7"
     #include <iostream>
     using namespace std;
 
@@ -442,7 +442,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={2} level="mudah" judul="Perbaiki program faktorial">
   Faktorial `n` ditulis `n!` dan berarti 1 × 2 × … × n, dengan 0! = 1. Program berikut seharusnya menghitung `n!`, tetapi untuk input apa pun output-nya selalu `0`.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="5"
   #include <iostream>
   using namespace std;
 
@@ -482,7 +482,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Soal tipe data: `13!` sudah melewati batas `int`. `long long` cukup sampai `20!`. Python tidak bermasalah karena `int`-nya tidak punya batas. Untuk `n = 0`, perulangan tidak berjalan sama sekali dan hasilnya tetap 1, sesuai definisi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5"
     #include <iostream>
     using namespace std;
 
@@ -581,7 +581,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Setelah putaran ke-4, `n` menjadi 0 dan perulangan berhenti.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="9472"
     #include <iostream>
     using namespace std;
 
@@ -650,7 +650,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Nilai pertama dibaca sebelum perulangan, dan nilai berikutnya dibaca di akhir setiap putaran, sehingga `-1` tidak pernah ikut dihitung. Rata-rata baru dihitung setelah perulangan selesai, dan hanya jika `banyak` lebih dari 0. Tanpa pengecekan ini, input `-1` saja akan menyebabkan pembagian dengan nol. Nilai awal `tertinggi = -1` aman karena semua nilai minimal 0.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="80\n55\n92\n-1"
     #include <iostream>
     #include <iomanip>
     using namespace std;
@@ -739,7 +739,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Badan perulangan membaca satu tebakan, menambah penghitung, lalu memberi petunjuk. Kondisi `tebakan != rahasia` baru diperiksa setelah tebakan pertama dibaca, persis seperti sifat `do-while`. Pesan `Benar!` ditulis setelah perulangan, karena hanya tebakan yang benar yang bisa membuat perulangan berhenti.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="37\n50\n25\n37"
     #include <iostream>
     using namespace std;
 
@@ -801,7 +801,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Di Python, perulangan dengan kondisi seperti `i * i <= n` lebih mudah ditulis dengan `while`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="13"
     #include <iostream>
     using namespace std;
 
@@ -860,7 +860,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Menariknya, belum ada yang bisa membuktikan bahwa proses ini **selalu** berakhir di 1 untuk setiap bilangan positif. Pertanyaan ini dikenal sebagai dugaan Collatz. Untuk semua bilangan di soal ini, prosesnya memang berhenti.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6"
     #include <iostream>
     using namespace std;
 
@@ -933,7 +933,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Jika `a < b`, putaran pertama hanya menukar keduanya, jadi urutan input tidak masalah. KPK dihitung sebagai `a / fpb * b`, yaitu dibagi dulu baru dikali, agar hasil sementaranya tidak terlalu besar. Hasil akhirnya tetap bisa melewati batas `int`, jadi C++ memakai `long long`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="12 18"
     #include <iostream>
     using namespace std;
 
@@ -989,7 +989,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Suku ke-90 sekitar 1,8 × 10¹⁸, jadi C++ membutuhkan `long long`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7"
     #include <iostream>
     using namespace std;
 

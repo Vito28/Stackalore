@@ -65,7 +65,7 @@ C++ dan Python memakai awalan yang sama:
 | Biner | `0b` | `0b101101` | 45 |
 | Heksadesimal | `0x` | `0x2D` | 45 |
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -218,7 +218,7 @@ Sejak C++20, standar C++ mewajibkan komplemen dua. Sebelum itu pun, hampir semua
 
 `bitset` menampilkan bit apa adanya. Di Python, `bin()` pada bilangan negatif hanya menempelkan tanda minus di depan, jadi untuk melihat 8 bit komplemen duanya, ambil 8 bit terbawah dengan `& 255`.
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 #include <bitset>
 using namespace std;

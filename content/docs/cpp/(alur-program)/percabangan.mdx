@@ -281,7 +281,7 @@ Dibaca: "jika `nilai >= 60`, pakai `"Lulus"`; jika tidak, pakai `"Tidak lulus"`"
 
 Program membaca ekspresi seperti `8 / 2`, lalu menghitung sesuai operatornya. Perhatikan pengecekan pembagian dengan nol di dalam `case '/'`.
 
-```cpp tab="C++"
+```cpp tab="C++" input="7 * 6" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -369,7 +369,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Ada tiga kemungkinan, jadi pakai `if`, `else if`, dan `else`. Kasus terakhir tidak perlu dicek lagi: jika `n` tidak positif dan tidak negatif, pasti nol.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="15"
     #include <iostream>
     using namespace std;
 
@@ -413,7 +413,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bilangan genap jika sisa baginya dengan 2 adalah 0, jadi periksa `n % 2 == 0`. Jangan memeriksa ganjil dengan `n % 2 == 1`: di C++, `-3 % 2` bernilai `-1`, sehingga -3 akan salah dianggap genap. Pemeriksaan `== 0` aman di kedua bahasa.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8"
     #include <iostream>
     #include <string>
     using namespace std;
@@ -440,7 +440,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Urutan kondisi suhu">
   Program berikut seharusnya menampilkan `Panas` untuk suhu 30 ke atas, `Sejuk` untuk 20 sampai 29, dan `Dingin` untuk suhu di bawah 20.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="35"
   #include <iostream>
   using namespace std;
 
@@ -477,7 +477,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Perbaikannya, periksa kondisi yang paling sempit lebih dulu:
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="35"
     #include <iostream>
     using namespace std;
 
@@ -530,7 +530,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Strukturnya sama dengan contoh kalkulator di atas, tetapi memakai `int`. Untuk dua `int`, `/` di C++ sudah berupa pembagian bulat, sedangkan Python perlu `//`. Soal ini membatasi bilangan tidak negatif karena pembagian bilangan negatif memberi hasil berbeda di C++ dan Python, seperti dibahas di [Operator Aritmatika](/docs/cpp/operator-aritmatika).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="17 / 5"
     #include <iostream>
     using namespace std;
 
@@ -621,7 +621,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jebakan utamanya ada di pembagian bilangan bulat: jika `tinggiCm` bertipe `int`, `tinggiCm / 100` untuk 175 menghasilkan 1, bukan 1.75, sehingga BMI-nya salah besar. Setelah BMI dihitung sebagai `double`, kategorinya ditentukan dengan `else if` dari batas terkecil. Kategori dipilih dari nilai BMI yang asli, bukan dari angka yang sudah dibulatkan. Contohnya, input `60 155` menghasilkan BMI sekitar 24,97, yang tampil sebagai `25.0`, tetapi kategorinya tetap Normal.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="70 175"
     #include <iostream>
     #include <iomanip>
     #include <string>
@@ -689,7 +689,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Validasi dikerjakan sebelum perhitungan, sehingga nilai yang salah tidak pernah ikut dihitung. Huruf mutu ditentukan dengan `else if` dari batas tertinggi, persis seperti contoh di materi. Perhatikan bahwa percabangan mutu berada **di dalam** cabang `else` validasi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="80 75 90"
     #include <iostream>
     #include <iomanip>
     using namespace std;
@@ -763,7 +763,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Di sini _fall-through_ justru dimanfaatkan. `case 1:` yang tidak berisi apa-apa langsung "jatuh" ke `case` berikutnya, sampai bertemu kode dan `break`. Hanya `case 2` yang butuh percabangan tambahan untuk tahun kabisat. Di Python, beberapa nilai dalam satu `case` digabung dengan tanda `|`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2 2024"
     #include <iostream>
     using namespace std;
 
@@ -835,7 +835,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Urutan pemeriksaannya adalah kuncinya: validitas, lalu sama sisi, lalu sama kaki, terakhir sembarang. Karena `else if` berhenti di kondisi pertama yang benar, kondisi sama kaki `a == b || b == c || a == c` tidak perlu lagi menyingkirkan kasus sama sisi. Perhatikan juga `1 2 3`: 1 + 2 tepat sama dengan 3, sehingga ketiga sisi hanya membentuk garis lurus. Karena itu syaratnya memakai `<=`, bukan `<`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 5 8"
     #include <iostream>
     using namespace std;
 
@@ -896,7 +896,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Python bisa menukar dua variabel dalam satu baris, `a, b = b, a`, sehingga tidak perlu variabel bantu.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7 2 5"
     #include <iostream>
     using namespace std;
 
@@ -947,7 +947,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   - Parkir 0 jam gratis. Tampilkan `Gratis`.
   - Parkir lebih dari 5 jam mendapat potongan Rp3.000. Tampilkan `Potongan parkir lama` sebelum biayanya.
 
-  ```cpp
+  ```cpp input="2 7" check="no-compare"
   #include <iostream>
   using namespace std;
 
@@ -1015,7 +1015,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Pelajarannya, satu kesalahan bisa menutupi kesalahan lain. Perbaiki satu per satu, lalu uji lagi dengan beberapa input.
 
-    ```cpp
+    ```cpp input="2 7"
     #include <iostream>
     using namespace std;
 

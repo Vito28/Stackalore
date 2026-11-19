@@ -17,6 +17,9 @@ sumber:
 Di materi [Fungsi](/docs/cpp/fungsi#parameter-menerima-salinan), kita melihat bahwa mengubah parameter tidak mengubah variabel milik pemanggil. Alasannya, secara bawaan C++ memakai **pass by value**: nilai argumen **disalin** ke kotak memori baru milik parameter.
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 void tambahSatu(int x) {
     x = x + 1;
 }
@@ -41,6 +44,9 @@ int main() {
 Tambahkan tanda `&` setelah tipe parameter. Parameter itu tidak lagi menjadi kotak baru, melainkan **nama lain** (_reference_) untuk variabel milik pemanggil:
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 void tambahSatu(int& x) {     // perhatikan tanda &
     x = x + 1;                // yang berubah adalah variabel aslinya
 }
