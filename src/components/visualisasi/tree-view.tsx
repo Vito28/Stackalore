@@ -53,7 +53,7 @@ interface TreeViewProps {
   ghost?: TreeViewGhost | null;
   /** Small fixed text under layout positions, e.g. array indexes of heap slots. */
   slotLabels?: Record<string, string>;
-  variant?: 'biasa' | 'kecil';
+  variant?: 'biasa' | 'kecil' | 'rapat';
   emptyText?: string;
 }
 
@@ -75,6 +75,16 @@ const variants = {
     padX: 30,
     padTop: 34,
     padBottom: 44,
+    text: 'text-xs',
+  },
+  // Wide trees with short labels (the fib(5) call tree fits a phone); no room for slot labels or ghosts.
+  rapat: {
+    className: '[--viz-node:26px] [--viz-row:46px] sm:[--viz-node:30px] sm:[--viz-row:52px]',
+    unitMin: 34,
+    unitMax: 62,
+    padX: 22,
+    padTop: 26,
+    padBottom: 26,
     text: 'text-xs',
   },
 } as const;
@@ -161,22 +171,28 @@ export function TreeView({
                     const b = pos(edge.to);
                     const role = edgeRole(edge.from, edge.to);
                     const strong = role === 'aktif' || role === 'selesai' || role === 'khusus';
+                    // The color lives on a plain <g>: motion keeps the `style` of an SVG
+                    // element from its first render, so a role change on the line itself
+                    // would never show. The line inherits stroke, width and dashes.
                     return (
-                      <motion.line
+                      <g
                         key={edge.id}
-                        initial={{ x1: a.x, y1: a.y, x2: a.x, y2: a.y, opacity: 0 }}
-                        animate={{ x1: a.x, y1: a.y, x2: b.x, y2: b.y, opacity: role === 'dibuang' ? 0.45 : 1 }}
-                        exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                        transition={lineTransition}
-                        vectorEffect="non-scaling-stroke"
-                        strokeLinecap="round"
-                        strokeDasharray={role === 'dibuang' ? '4 4' : undefined}
                         style={{
                           stroke: edgeColor(role),
                           strokeWidth: strong ? 2.75 : 1.75,
+                          strokeDasharray: role === 'dibuang' ? '4 4' : 'none',
                           transition: 'stroke 250ms ease, stroke-width 250ms ease',
                         }}
-                      />
+                      >
+                        <motion.line
+                          initial={{ x1: a.x, y1: a.y, x2: a.x, y2: a.y, opacity: 0 }}
+                          animate={{ x1: a.x, y1: a.y, x2: b.x, y2: b.y, opacity: role === 'dibuang' ? 0.45 : 1 }}
+                          exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                          transition={lineTransition}
+                          vectorEffect="non-scaling-stroke"
+                          strokeLinecap="round"
+                        />
+                      </g>
                     );
                   })}
                 </AnimatePresence>

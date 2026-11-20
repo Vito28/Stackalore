@@ -148,6 +148,10 @@ saat 1-5: memanggil, stack tumbuh     saat 5-9: kembali, stack menyusut
 
 Panggilan yang **terakhir** dimulai, `f(0)`, adalah yang **pertama** selesai. Itulah aturan LIFO yang kamu kenal dari materi Stack.
 
+Ikuti jejak `faktorial(4)` langkah demi langkah di bawah ini. Perhatikan bahwa setiap frame menyimpan `n` miliknya sendiri, dan perkalian baru dihitung saat stack mulai menyusut. Kamu juga bisa memilih `n` yang lain.
+
+<VisualisasiCallStack />
+
 <DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call Stack & Rekursi">
   Apa saja isi sebuah frame, kenapa ukuran call stack terbatas, apa yang terjadi saat penuh (_segmentation fault_ di C++, `RecursionError` di Python), dan cara mengubah rekursi menjadi perulangan dengan stack buatan sendiri.
 </DeepDive>
@@ -436,6 +440,10 @@ fib(1) fib(0)
 
 Pohon ini dikerjakan dari kiri: seluruh cabang `fib(4)` selesai lebih dulu, baru cabang `fib(3)` di kanan dimulai. Pada setiap saat, call stack hanya berisi satu jalur dari `fib(5)` ke panggilan yang sedang berjalan, jadi kedalamannya paling banyak 5 frame walaupun pohonnya punya 15 panggilan. Cara menelusuri "habiskan satu cabang dulu" ini akan kamu temui lagi di materi [Tree](/docs/cpp/tree) dan [DFS](/docs/cpp/dfs).
 
+Lihat pohon itu tumbuh satu panggilan demi satu panggilan. Panggilan yang masih menunggu hasil selalu membentuk satu jalur dari `fib(5)` ke panggilan yang sedang berjalan, dan itulah isi call stack-nya.
+
+<VisualisasiFibonacci />
+
 ### Kenapa lambat?
 
 Perhatikan pohon di atas: `fib(3)` dihitung **dua kali** dan `fib(2)` **tiga kali**, padahal hasilnya selalu sama. Semakin besar `n`, semakin banyak perhitungan ulang:
@@ -560,6 +568,10 @@ Pindahkan cakram 1 dari A ke C
 ```
 
 Tiga baris pertama memindahkan cakram 1 dan 2 ke B. Baris keempat memindahkan cakram terbesar. Tiga baris terakhir memindahkan cakram 1 dan 2 dari B ke C. Kita tidak pernah merencanakan langkah-langkah itu satu per satu. Rekursi yang mengurusnya.
+
+Jalankan program yang sama dengan 3 cakram di bawah ini. Selain setiap perpindahan cakram, visualisasi ini juga menunjukkan panggilan `hanoi` mana yang sedang bekerja dan peran setiap tiang (asal, tujuan, bantu) di panggilan itu. Perhatikan bagaimana peran tiang bertukar dari satu panggilan ke panggilan berikutnya.
+
+<VisualisasiHanoi />
 
 Berapa banyak langkahnya? Memindahkan `n` cakram butuh dua kali langkah untuk `n − 1` cakram, ditambah satu. Hasilnya `2ⁿ − 1` langkah:
 

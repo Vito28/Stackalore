@@ -1,6 +1,6 @@
 # Spesifikasi: Visualisasi Interaktif Algoritma & Struktur Data
 
-Status: rancangan disetujui (2026-11-19). **Prototipe Stack sudah dibuat dan menunggu persetujuan.** Materi lain menyusul per kelompok setelah prototipe disetujui.
+Status: rancangan disetujui (2026-11-19). Sudah dibuat: Stack, semua struktur data di *Perluasan cakupan*, dan kelompok **Rekursi** (2026-11-20). Berikutnya: searching dan sorting.
 
 Dokumen ini merangkum keputusan dari sesi tanya-jawab rancangan (Q1–Q24, 2026-11-19).
 
@@ -304,6 +304,14 @@ Pemilik proyek meminta semua struktur data berikut punya materi **dan** visualis
    - bilangan biner
 
 Setiap kelompok selesai dan diuji sebelum kelompok berikutnya dimulai.
+
+### Rekursi didahulukan (2026-11-20)
+
+Pemilik proyek meminta kelompok Rekursi dikerjakan sebelum searching dan sorting, dengan prinsip: **materi yang membingungkan harus punya visualisasi, dan visualisasinya tidak boleh ribet.** Karena itu ketiga visualisasi Rekursi hanya punya satu pilihan data, yaitu angka `n` (atau banyak cakram) lewat tombol angka di atas gambar, tanpa editor.
+
+- **Call stack `faktorial(n)`** (`VisualisasiCallStack`, n = 0 sampai 5, awal 4): frame turun dari atas saat dipanggil dan terangkat saat kembali. Setiap frame menampilkan `n` miliknya dan perkalian yang tertunda (`4 * faktorial(3)`), lalu hasilnya (`4 * 6 = 24`). Ada penanda tahap turun/naik dan tinggi call stack.
+- **Pohon panggilan `fib(n)`** (`VisualisasiFibonacci`, n = 1 sampai 6, awal 5): pohon tumbuh satu panggilan per langkah dengan urutan program (cabang kiri dulu). Kasus dasar dipanggil dan kembali dalam satu langkah. Jalur call stack disorot, dan hasil setiap panggilan tampil sebagai angka kecil. Langkah terakhir menandai nilai yang dihitung ulang (`fib(3)` 2 kali, `fib(2)` 3 kali) sebagai pengantar bagian "Kenapa lambat?".
+- **Menara Hanoi** (`VisualisasiHanoi`, 1 sampai 4 cakram, awal 3): selain 7 perpindahan, setiap panggilan dengan 2 cakram atau lebih punya langkah "cakram k tertutup, pindahkan dulu k − 1 cakram ke tiang bantu". Peran tiang (asal/tujuan/bantu) di panggilan yang sedang berjalan tertulis di bawah setiap tiang, dan call stack `hanoi(...)` tampil di bawahnya.
 
 ### Lain-lain
 
