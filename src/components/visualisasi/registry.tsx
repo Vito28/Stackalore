@@ -1,3 +1,4 @@
+import { algoritmaVisualizations } from './keluarga-algoritma';
 import { graphVisualizations } from './keluarga-graph';
 import { linearVisualizations } from './keluarga-linear';
 import { pohonVisualizations } from './keluarga-pohon';
@@ -11,4 +12,5 @@ export const visualisasiComponents = {
   ...pohonVisualizations,
   ...graphVisualizations,
   ...rekursiVisualizations,
+  ...algoritmaVisualizations,
 };

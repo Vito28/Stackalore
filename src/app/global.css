@@ -452,7 +452,9 @@ kbd,
 .viz-swatch[data-role='dibuang'] { background: var(--viz-dibuang); }
 .viz-swatch[data-role='error'] { background: var(--viz-error); }
 
+.viz-text-aktif { color: var(--viz-aktif); }
 .viz-text-khusus { color: var(--viz-khusus); }
+.viz-text-selesai { color: var(--viz-selesai); }
 .viz-text-error { color: var(--viz-error); }
 
 .viz-line[data-active='true'] {

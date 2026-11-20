@@ -104,6 +104,10 @@ Setelah satu putaran, `9` sudah berada di tempat akhirnya. Putaran kedua tidak p
 
 Putaran ketiga tidak menukar apa pun. Artinya setiap pasangan bersebelahan sudah urut, jadi **seluruh** data sudah urut. Tanpa pemeriksaan ini, program tetap menjalankan putaran keempat dan kelima yang sia-sia. Penanda "ada pertukaran atau tidak" ini disebut **berhenti lebih awal** (_early stop_).
 
+Ikuti jejak tadi langkah demi langkah di bawah. Setelah itu, pilih data **Sudah urut** dan lihat bubble sort berhenti setelah satu putaran saja.
+
+<VisualisasiPengurutan algoritma="bubble" />
+
 ```cpp tab="C++" input="6\n4 9 2 7 5 8"
 #include <iostream>
 #include <utility>
@@ -189,6 +193,10 @@ Di dalam vector, "meletakkan" berarti menukar elemen terkecil dengan elemen di p
 
 Setelah `i = 4`, tinggal satu elemen yang belum diperiksa, dan elemen itu pasti yang terbesar. Jadi perulangan luar cukup sampai `n - 2`.
 
+Perhatikan penanda `terkecil` berpindah setiap kali ditemukan nilai yang lebih kecil. Coba juga data **Sudah urut**: banyak perbandingannya tetap sama.
+
+<VisualisasiPengurutan algoritma="selection" />
+
 ```cpp tab="C++"
 void selectionSort(vector<int>& data) {
     int n = data.size();
@@ -236,6 +244,10 @@ Di dalam vector, bagian kiri sampai indeks `i - 1` adalah "kartu di tangan" yang
 | 4 | `5` | `9`, `7` | `2 4 5 7 9 8` |
 | 5 | `8` | `9` | `2 4 5 7 8 9` |
 
+Di visualisasi berikut, kunci diangkat ke atas barisan, lalu elemen yang lebih besar digeser ke kanan sampai celahnya berada di tempat yang tepat. Coba data **Hampir urut** dan lihat betapa sedikit pergeserannya.
+
+<VisualisasiPengurutan algoritma="insertion" />
+
 ```cpp tab="C++"
 void insertionSort(vector<int>& data) {
     int n = data.size();
@@ -282,6 +294,10 @@ Setiap sel berisi **banyak perbandingan / banyak perpindahan**. Beberapa hal yan
 - Pada kasus terburuk (data terbalik), ketiganya melakukan 499.500 perbandingan. Angka ini adalah (n − 1) + (n − 2) + ... + 1 = n(n − 1)/2, sekitar n²/2. Pertumbuhan seperti ini ditulis **O(n²)**: data 10 kali lebih banyak berarti kerja 100 kali lebih banyak. Untuk 100.000 bilangan, itu sekitar 5 miliar perbandingan.
 - Selection sort selalu melakukan n(n − 1)/2 perbandingan, apa pun datanya, tetapi perpindahannya paling sedikit.
 - Bubble sort dengan berhenti lebih awal dan insertion sort sangat cepat untuk data yang sudah atau hampir urut. Insertion sort biasanya yang terbaik di antara ketiganya.
+
+Buktikan sendiri dengan data kecil: pilih satu data, lalu ganti algoritmanya dan bandingkan angka perbandingan dan perpindahan di langkah terakhir.
+
+<VisualisasiPengurutan judul="Bandingkan ketiganya" />
 
 <DeepDive href="/docs/cpp/pendalaman/kompleksitas-waktu" kind="konsep" title="Kompleksitas waktu (Big-O)">
   Cara menghitung langkah sebuah algoritma, arti O(n²) dan O(n log n), dan perkiraan berapa lama program berjalan untuk data besar.

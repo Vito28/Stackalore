@@ -1,6 +1,6 @@
 # Spesifikasi: Visualisasi Interaktif Algoritma & Struktur Data
 
-Status: rancangan disetujui (2026-11-19). Sudah dibuat: Stack, semua struktur data di *Perluasan cakupan*, dan kelompok **Rekursi** (2026-11-20). Berikutnya: searching dan sorting.
+Status: rancangan disetujui (2026-11-19). Sudah dibuat: Stack, semua struktur data di *Perluasan cakupan*, kelompok **Rekursi** (2026-11-20), serta **searching dan sorting** (2026-11-20). Berikutnya: flood fill/labirin, lalu memoisasi.
 
 Dokumen ini merangkum keputusan dari sesi tanya-jawab rancangan (Q1–Q24, 2026-11-19).
 
@@ -312,6 +312,23 @@ Pemilik proyek meminta kelompok Rekursi dikerjakan sebelum searching dan sorting
 - **Call stack `faktorial(n)`** (`VisualisasiCallStack`, n = 0 sampai 5, awal 4): frame turun dari atas saat dipanggil dan terangkat saat kembali. Setiap frame menampilkan `n` miliknya dan perkalian yang tertunda (`4 * faktorial(3)`), lalu hasilnya (`4 * 6 = 24`). Ada penanda tahap turun/naik dan tinggi call stack.
 - **Pohon panggilan `fib(n)`** (`VisualisasiFibonacci`, n = 1 sampai 6, awal 5): pohon tumbuh satu panggilan per langkah dengan urutan program (cabang kiri dulu). Kasus dasar dipanggil dan kembali dalam satu langkah. Jalur call stack disorot, dan hasil setiap panggilan tampil sebagai angka kecil. Langkah terakhir menandai nilai yang dihitung ulang (`fib(3)` 2 kali, `fib(2)` 3 kali) sebagai pengantar bagian "Kenapa lambat?".
 - **Menara Hanoi** (`VisualisasiHanoi`, 1 sampai 4 cakram, awal 3): selain 7 perpindahan, setiap panggilan dengan 2 cakram atau lebih punya langkah "cakram k tertutup, pindahkan dulu k − 1 cakram ke tiang bantu". Peran tiang (asal/tujuan/bantu) di panggilan yang sedang berjalan tertulis di bawah setiap tiang, dan call stack `hanoi(...)` tampil di bawahnya.
+
+### Searching dan sorting (2026-11-20)
+
+Pemilik proyek meminta visualisasi yang jelas, animasinya lengkap, dan **tidak hanya satu kasus**. Karena itu setiap visualisasi di kelompok ini punya pemilih kasus berupa deretan tombol di atas gambar. Kasus pertama selalu contoh materi, ditambah kasus yang memperlihatkan sifat algoritmanya (sudah urut, terbalik, hampir urut, tidak ada, data tidak urut). Visualisasi pengurutan juga punya tombol **Acak**. Tetap tanpa editor teks, supaya tidak ribet.
+
+Fondasi bersama:
+
+- `ArrayView` (`array-view.tsx`): satu baris sel di atas grid, satu kolom per indeks. Mendukung penunjuk di bawah sel (`lo`, `mid`, `i`, `j`, ...), kolom tepi untuk penunjuk di -1 atau n, tanda kurung berlabel di atas sel, elemen yang diangkat di atas barisan (kunci insertion sort), bentuk batang yang tingginya sesuai nilai, dan rentang yang dipudarkan. Setiap elemen punya id tetap sehingga pertukaran dan pergeseran meluncur ke kolom barunya.
+- `ChoicePicker` (`choice-picker.tsx`): deretan tombol pilihan yang membungkus ke baris baru di HP, dengan tombol Acak opsional.
+
+Visualisasi:
+
+- **Pencarian** (`VisualisasiPencarian`): linear dan biner bisa ditukar. Kasus: cari 47, cari 20, cari 5 (paling depan, satu-satunya kasus di mana linear menang), cari 78, dan data tidak urut (`8 3 9 1 5`, cari 3) yang berakhir merah karena jawabannya terlewat. Pencarian biner punya dua langkah per putaran: memilih `mid`, lalu mencoret separuh data. Penghitung "elemen diperiksa" memperlihatkan bedanya.
+- **Batas bawah dan batas atas** (`VisualisasiBatasPencarian`): data `2 4 4 4 7 9`, x = 4, 5, 1, 10 sesuai tabel materi. Penunjuk `jawaban` hanya bergerak ke kiri, dan bisa berada di n.
+- **Pengurutan** (`VisualisasiPengurutan`): bubble, selection, insertion dalam bentuk batang. Di bagian setiap algoritma, algoritmanya dikunci; di bagian "Membandingkan ketiganya" pembaca bisa mengganti algoritma pada data yang sama. Kasus: contoh materi, sudah urut, terbalik, hampir urut, acak. Penghitung perbandingan dan pertukaran/pergeseran cocok dengan tabel perbandingan di materi.
+- **Merge sort** (`VisualisasiMergeSort`): grid bertingkat, satu baris per kedalaman rekursi. Elemen turun ke baris bawah saat dibagi dan naik satu per satu saat digabung.
+- **Quick sort** (`VisualisasiQuickSort`): partisi Lomuto di tempat, rentang panggilan yang sedang berjalan disorot, tanda kurung "< pivot", dan kedalaman rekursi. Dipasang dua kali: contoh materi, dan kasus data sudah urut di bagian kasus terburuk.
 
 ### Lain-lain
 

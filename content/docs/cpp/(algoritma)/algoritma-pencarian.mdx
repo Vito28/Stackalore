@@ -79,6 +79,10 @@ Mencari `20`, yang tidak ada di data:
 
 Perhatikan langkah 5. Nilai 20 seharusnya berada di antara 18 (indeks 2) dan 23 (indeks 3). Pencarian berhenti tepat di celah itu, dengan `lo` menunjuk ke posisi tempat 20 seharusnya disisipkan. Fakta ini akan berguna di bagian varian nanti.
 
+Coba jalankan kedua jejak itu langkah demi langkah di bawah ini. Pilih kasus lain untuk melihat nilai di ujung data, atau ganti ke pencarian linear dan bandingkan banyak elemen yang diperiksa. Kasus "data tidak urut" memperlihatkan apa yang terjadi jika syarat terurut dilanggar.
+
+<VisualisasiPencarian />
+
 ```cpp tab="C++" input="10\n5 12 18 23 31 40 47 56 64 78\n47"
 #include <iostream>
 #include <vector>
@@ -290,6 +294,10 @@ Hasilnya untuk data `2 4 4 4 7 9` (indeks 0 sampai 5):
 | 5 | 4 | 4 | 0 |
 | 1 | 0 | 0 | 0 |
 | 10 | 6 | 6 | 0 |
+
+Perhatikan cara `jawaban` bergerak di visualisasi berikut. Setiap kali `data[mid]` memenuhi syarat, `jawaban` pindah ke `mid`, lalu pencarian tetap lanjut ke kiri. Ganti nilai `x` dan jenis batasnya untuk mencocokkan setiap baris tabel di atas.
+
+<VisualisasiBatasPencarian />
 
 Dari dua fungsi ini, pertanyaan-pertanyaan tadi terjawab:
 

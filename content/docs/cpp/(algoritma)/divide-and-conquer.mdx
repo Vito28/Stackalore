@@ -359,6 +359,10 @@ menggabung:
                  [1 2 3 4 6 7 8 9]
 ```
 
+Visualisasi berikut menjalankan proses yang sama langkah demi langkah. Perhatikan elemen-elemen turun satu baris setiap kali rentangnya dibagi, lalu naik kembali satu per satu saat digabung, selalu yang terkecil dulu. Coba juga data yang sudah urut atau terbalik: banyak tingkatnya tetap sama.
+
+<VisualisasiMergeSort />
+
 ### Kenapa O(n log n)?
 
 Lihat pekerjaan menggabung di setiap **tingkat** pohon:
@@ -498,6 +502,10 @@ print(*a)
 
 Berbeda dengan merge sort, quick sort tidak butuh vector sementara. Semua pertukaran terjadi di dalam vector itu sendiri.
 
+Visualisasi berikut menjalankan quick sort lengkap pada contoh yang sama, dari partisi pertama sampai semua panggilan rekursinya. Perhatikan zona `< pivot` di kiri yang bertambah setiap kali `j` menemukan elemen yang lebih kecil dari pivot.
+
+<VisualisasiQuickSort />
+
 ### Cepat rata-rata, lambat di kasus terburuk
 
 Kecepatan quick sort bergantung pada pivot. Jika pivot kira-kira membagi rentang menjadi dua bagian yang sama besar, pohon rekursinya punya sekitar log₂ n tingkat, sama seperti merge sort, dan totalnya O(n log n). Pada data acak, hal ini terjadi rata-rata: untuk 1.000 data acak, quick sort di atas melakukan sekitar 11 ribu perbandingan `a[j] < pivot`.
@@ -513,6 +521,10 @@ Sekarang coba data yang **sudah urut**, misalnya `1 2 3 4 5 6 7 8`. Pivot paling
 ```
 
 Rentangnya hanya berkurang satu di setiap tingkat, jadi ada `n` tingkat dan totalnya 7 + 6 + ... + 1 = 28 perbandingan. Untuk 1.000 data urut, totalnya 999 + 998 + ... + 1 = 499.500 perbandingan, sekitar 45 kali lebih banyak daripada data acak. Inilah kasus terburuk quick sort: **O(n²)**, tidak lebih baik dari bubble sort.
+
+Coba sendiri dengan 7 data yang sudah urut. Pivot selalu tertinggal di ujung kanan, rentangnya hanya berkurang satu, dan kedalaman rekursinya terus bertambah sampai 7. Totalnya 6 + 5 + ... + 1 = 21 perbandingan, hampir dua kali lipat contoh materi yang hanya 11.
+
+<VisualisasiQuickSort kasus="urut" judul="Quick sort pada data yang sudah urut" />
 
 Masalahnya tidak hanya waktu. Kedalaman rekursinya juga menjadi `n`. Python sudah berhenti dengan `RecursionError` untuk 1.000 data urut, dan C++ bisa crash karena _stack overflow_ untuk data yang lebih besar (lihat [Call Stack](/docs/cpp/pendalaman/call-stack)).
 

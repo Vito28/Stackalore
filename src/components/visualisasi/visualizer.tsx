@@ -55,7 +55,7 @@ function Pseudocode({ lines, active, error }: { lines: PseudocodeLine[]; active:
           <li
             key={line.id}
             className="viz-line px-3 text-fd-muted-foreground transition-colors"
-            style={{ paddingLeft: `${0.75 + line.indent * 1.25}rem` }}
+            style={{ paddingLeft: `${0.75 + line.indent}rem` }}
             data-active={isActive}
             data-error={error}
             aria-current={isActive ? 'step' : undefined}
