@@ -642,6 +642,10 @@ print(ruangan)
 
 Ruangan kanan atas dan kanan bawah tersambung lewat "pintu" di baris ketiga, jadi keduanya dihitung sebagai satu ruangan. Ketiga ruangannya adalah kiri atas, kanan (atas dan bawah), dan kiri bawah.
 
+Di visualisasi berikut, perhatikan cat yang menyebar dari satu sel ke sel lain, lalu mundur saat buntu. Sel yang bertanda "masih di call stack" adalah panggilan `isi` yang belum selesai. Pilih **Pintu tertutup** untuk melihat ruangan kanan terpecah menjadi dua.
+
+<VisualisasiFloodFill />
+
 Fungsi `isi` boleh dipanggil dengan sel di luar denah, karena pemeriksaan batas adalah hal **pertama** yang dilakukannya. Urutan kedua `if` itu penting: `grid[i][j]` baru boleh dibaca setelah dipastikan `i` dan `j` berada di dalam batas.
 
 ### Mendeteksi siklus di graph tak berarah

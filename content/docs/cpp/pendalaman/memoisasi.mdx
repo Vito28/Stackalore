@@ -168,6 +168,10 @@ fib(5)
 +-- fib(3)          sudah tercatat, langsung kembali
 ```
 
+Jalankan sendiri di bawah. Pilih **Tanpa memo** untuk melihat 15 panggilan dan nilai yang dihitung ulang, lalu kembali ke **Dengan memo** dan perhatikan tabel `memo` terisi satu per satu. Coba juga `n = 6`: tanpa memo 25 panggilan, dengan memo hanya 11.
+
+<VisualisasiMemoisasi />
+
 <Callout type="warning" title="Memo tidak mengurangi kedalaman">
   Memoisasi mengurangi **banyak** panggilan, tetapi tidak mengurangi **kedalaman**-nya. `fib(n)` tetap turun lewat `fib(n − 1)`, `fib(n − 2)`, dan seterusnya sampai kasus dasar, jadi call stack tetap setinggi sekitar `n` frame. Di Python, `fib(1000)` dengan memo tetap gagal dengan `RecursionError`. Penjelasannya ada di [Call Stack & Rekursi](/docs/cpp/pendalaman/call-stack), dan solusinya adalah versi tabel di bawah.
 </Callout>

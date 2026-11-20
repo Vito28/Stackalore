@@ -1,6 +1,6 @@
 # Spesifikasi: Visualisasi Interaktif Algoritma & Struktur Data
 
-Status: rancangan disetujui (2026-11-19). Sudah dibuat: Stack, semua struktur data di *Perluasan cakupan*, kelompok **Rekursi** (2026-11-20), serta **searching dan sorting** (2026-11-20). Berikutnya: flood fill/labirin, lalu memoisasi.
+Status: rancangan disetujui (2026-11-19). Sudah dibuat: Stack, semua struktur data di *Perluasan cakupan*, kelompok **Rekursi** (2026-11-20), **searching dan sorting**, serta **flood fill, labirin BFS, dan memoisasi** (semuanya 2026-11-20). Berikutnya (opsional): representasi graph, lalu pointer/memori dan perulangan bersarang.
 
 Dokumen ini merangkum keputusan dari sesi tanya-jawab rancangan (Q1–Q24, 2026-11-19).
 
@@ -329,6 +329,14 @@ Visualisasi:
 - **Pengurutan** (`VisualisasiPengurutan`): bubble, selection, insertion dalam bentuk batang. Di bagian setiap algoritma, algoritmanya dikunci; di bagian "Membandingkan ketiganya" pembaca bisa mengganti algoritma pada data yang sama. Kasus: contoh materi, sudah urut, terbalik, hampir urut, acak. Penghitung perbandingan dan pertukaran/pergeseran cocok dengan tabel perbandingan di materi.
 - **Merge sort** (`VisualisasiMergeSort`): grid bertingkat, satu baris per kedalaman rekursi. Elemen turun ke baris bawah saat dibagi dan naik satu per satu saat digabung.
 - **Quick sort** (`VisualisasiQuickSort`): partisi Lomuto di tempat, rentang panggilan yang sedang berjalan disorot, tanda kurung "< pivot", dan kedalaman rekursi. Dipasang dua kali: contoh materi, dan kasus data sudah urut di bagian kasus terburuk.
+
+### Grid dan memoisasi (2026-11-20)
+
+Masih dengan aturan yang sama: beberapa kasus per visualisasi, tanpa editor.
+
+- **Flood fill** (`VisualisasiFloodFill`, halaman DFS): denah materi 5×9. Satu langkah per sel yang baru dicat, ditambah langkah "ruangan baru" saat `main` menemukan lantai yang belum dikunjungi. Sel di call stack disorot, dan setiap sel yang selesai menampilkan nomor ruangannya. Panggilan ke dinding, sel yang sudah dikunjungi, atau luar denah tidak diberi langkah sendiri supaya tidak terlalu panjang. Kasus: denah materi (3 ruangan), pintu tertutup, satu ruangan dengan tiang.
+- **BFS pada labirin** (`VisualisasiLabirin`, halaman BFS): labirin materi 5×7. Satu langkah per sel yang dikeluarkan dari queue; tetangga yang baru ditemukan langsung mendapat angka `dist`. Queue tampil di bawah grid. Langkah terakhir menyorot satu rute terpendek sebagai ilustrasi. Kasus: labirin materi (14), E tidak bisa dicapai (-1), tanpa dinding (riak berbentuk belah ketupat).
+- **Memoisasi** (`VisualisasiMemoisasi`, pendalaman Memoisasi): pohon panggilan `fib(n)` seperti di Rekursi, dengan tombol Tanpa memo / Dengan memo dan `n` 1 sampai 6. Panggilan yang dijawab dari memo digambar dengan lingkaran ganda dan tidak punya anak. Di bawahnya ada tabel "dipanggil" per `k` (yang dihitung ulang berwarna merah) dan tabel `memo[k]` yang terisi satu per satu. `fib(5)`: 15 panggilan tanpa memo, 9 dengan memo, sesuai tabel di halaman itu.
 
 ### Lain-lain
 
