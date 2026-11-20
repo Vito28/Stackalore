@@ -43,7 +43,7 @@ Langkah DFS dari sebuah simpul `u`:
 
 Langkah 3 memanggil DFS lagi dari dalam DFS, jadi bentuk paling alaminya adalah fungsi [rekursif](/docs/cpp/rekursi). Langkah 1 adalah kasus dasarnya. "Mundur" di labirin terjadi otomatis saat sebuah pemanggilan selesai dan kembali ke pemanggilnya.
 
-```cpp tab="C++"
+```cpp tab="C++" input="6 6\n1 2\n1 3\n2 4\n2 5\n3 4\n4 5"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -153,6 +153,10 @@ Setiap pemanggilan yang belum selesai menunggu di **call stack**. Tabel berikut 
 
 Saat sebuah simpul dikunjungi, isi call stack sama dengan jalur dari simpul awal ke simpul itu, misalnya 1 → 2 → 4 → 3. "Mundur" berarti pemanggilan teratas selesai dan dikeluarkan dari call stack.
 
+Ikuti jejak yang sama langkah demi langkah di bawah ini. Perhatikan call stack yang bertambah saat DFS masuk lebih dalam dan berkurang saat DFS mundur. Lewat **Ubah graph**, kamu juga bisa menyusun graph sendiri, misalnya mengubah urutan sisi lalu melihat urutan kunjungannya ikut berubah.
+
+<VisualisasiDFS />
+
 <DeepDive href="/docs/cpp/pendalaman/call-stack" kind="konsep" title="Call stack">
   Bagaimana setiap pemanggilan fungsi disimpan di call stack, apa yang terjadi saat rekursi terlalu dalam, dan cara mengganti rekursi dengan perulangan dan stack sendiri.
 </DeepDive>
@@ -209,7 +213,7 @@ Rekursi menyimpan "persimpangan yang belum selesai" di call stack. Kamu juga bis
 2. Selama stack tidak kosong, pop sebuah simpul `u`.
 3. Jika `u` sudah dikunjungi, lewati. Jika belum, tandai, lalu push semua tetangganya yang belum dikunjungi.
 
-```cpp tab="C++"
+```cpp tab="C++" input="6 6\n1 2\n1 3\n2 4\n2 5\n3 4\n4 5"
 #include <iostream>
 #include <stack>
 #include <vector>
@@ -299,6 +303,10 @@ Urutannya **berbeda** dari versi rekursif (`1 2 4 3 5`). Jejaknya:
 
 Penyebabnya sifat **LIFO**: simpul 1 mem-push 2 lalu 3, sehingga 3 yang keluar lebih dulu. Versi rekursif justru langsung masuk ke tetangga **pertama**. Keduanya tetap DFS yang sah, karena sama-sama masuk sedalam mungkin sebelum mundur. Hanya urutan memilih tetangganya yang terbalik.
 
+Jalankan versi stack langkah demi langkah di bawah ini, lalu pilih **Rekursif** untuk membandingkan urutannya pada graph yang sama.
+
+<VisualisasiDFS mode="stack" />
+
 Jika ingin urutan yang sama persis dengan versi rekursif, push tetangga dari yang **terakhir** ke yang pertama:
 
 ```cpp tab="C++"
@@ -351,7 +359,7 @@ Pada graph contoh, DFS dari 1 menandai simpul 1 sampai 5, sehingga ada jalan dar
 
 Satu kali DFS mengunjungi **satu komponen** utuh, yaitu semua simpul yang bisa dicapai dari simpul awal. Untuk menghitung komponen, coba setiap simpul dari 1 sampai `n`. Simpul yang belum dikunjungi pasti milik komponen baru, jadi tambah penghitung lalu jalankan DFS dari sana untuk menandai seluruh komponennya.
 
-```cpp tab="C++"
+```cpp tab="C++" input="6 6\n1 2\n1 3\n2 4\n2 5\n3 4\n4 5"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -437,7 +445,7 @@ Simpul 1 memulai komponen pertama dan DFS-nya menandai 1 sampai 5. Simpul 2 samp
 
 Setelah DFS selesai, jalannya dibaca **mundur**: mulai dari `b`, ikuti `induk` sampai tiba di `a`, lalu balik urutannya.
 
-```cpp tab="C++"
+```cpp tab="C++" input="6 6\n1 2\n1 3\n2 4\n2 5\n3 4\n4 5\n1 5"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -543,7 +551,7 @@ Di [Graph](/docs/cpp/graph) kamu melihat bahwa [grid](/docs/cpp/matriks) adalah 
 
 Contoh: sebuah denah berisi `.` untuk lantai dan `#` untuk dinding. Berapa banyak ruangan, yaitu kelompok lantai yang tersambung? Ini sama dengan menghitung komponen, hanya simpulnya berupa sel.
 
-```cpp tab="C++"
+```cpp tab="C++" input="5 9\n.....#...\n.....#...\n######.##\n...#.....\n...#....."
 #include <iostream>
 #include <string>
 #include <vector>
@@ -642,7 +650,7 @@ Saat DFS berada di `u` dan menemukan tetangga `v` yang **sudah dikunjungi**, art
 
 Ada satu pengecualian. Di graph tak berarah, simpul yang baru saja kita tinggalkan untuk datang ke `u`, yaitu induknya, pasti sudah dikunjungi. Sisi `u`–induk adalah sisi yang sama yang baru dilewati, bukan siklus. Karena itu induknya dilewati.
 
-```cpp tab="C++"
+```cpp tab="C++" input="6 6\n1 2\n1 3\n2 4\n2 5\n3 4\n4 5"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -908,7 +916,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jalankan DFS dari `a`, lalu periksa `visited[b]`. Kasus `a` sama dengan `b` tertangani otomatis, karena `a` adalah simpul pertama yang ditandai.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 4\n1 2\n2 3\n4 5\n5 6\n1 3"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -977,7 +985,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="DFS yang tidak berhenti">
   Program berikut seharusnya menampilkan banyak simpul yang bisa dicapai dari simpul 1, termasuk simpul 1 sendiri. Namun versi Python berhenti dengan `RecursionError`, dan versi C++ crash. Temukan kesalahannya dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="5 3\n1 2\n2 3\n1 4" check="skip"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -1045,7 +1053,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `visited[u]` baru diisi **setelah** semua tetangga ditelusuri. Saat `hitung(1)` memanggil `hitung(2)`, simpul 1 belum ditandai, sehingga `hitung(2)` memanggil `hitung(1)` lagi, dan seterusnya tanpa akhir. Pindahkan penandaan ke sebelum perulangan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 3\n1 2\n2 3\n1 4"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1136,7 +1144,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pola menghitung komponen tetap sama, hanya hasil DFS-nya kini disimpan. Pada contoh 1, komponennya adalah 1-2-3 (3 simpul), 4-5-6-7 (4 simpul), dan simpul 8 sendirian. Simpul yang tidak punya sisi sama sekali tetap satu komponen berukuran 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8 5\n1 2\n2 3\n4 5\n6 7\n7 4"
     #include <algorithm>
     #include <iostream>
     #include <vector>
@@ -1272,7 +1280,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pada contoh 1, dari 2 kamu bisa ke 3 dan 5, lalu dari 3 ke 1. Persimpangan 4 tidak bisa dicapai, walaupun ada jalan 4 → 3, karena arahnya berlawanan. Graph berarah membuat "bisa dicapai" tidak lagi berlaku dua arah: dari 6 semua persimpangan lain bisa dicapai, tetapi dari 5 tidak ada satu pun.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 6\n1 2\n2 3\n3 1\n4 3\n2 5\n6 4\n2"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1388,7 +1396,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pada contoh 1, pulau kiri atas berisi 3 sel, pulau kanan atas 2 sel, dan pulau bawah 4 sel. Sel `(2, 2)` dan `(3, 2)` bersebelahan atas-bawah, sehingga keempat sel di bawah membentuk satu pulau. Pemeriksaan batas tetap dilakukan paling awal, sebelum `grid[i][j]` dibaca.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 5\n##..#\n#...#\n..#..\n.###."
     #include <iostream>
     #include <string>
     #include <vector>
@@ -1506,7 +1514,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Array `komponen` sekaligus berperan sebagai `visited`: nilai 0 berarti belum dikunjungi. Pada contoh, simpul 1, 2, 3 mendapat nomor 1, simpul 4 dan 5 nomor 2, dan simpul 6 nomor 3. Kerja seluruh DFS adalah O(n + m), dan setiap pertanyaan dijawab dalam satu langkah. Bandingkan dengan DFS ulang untuk setiap pertanyaan, yang bisa memakan 100.000 kali O(n + m).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 3\n1 2\n2 3\n4 5\n4\n1 3\n1 4\n5 4\n6 6"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1640,7 +1648,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Keterhubungan diperiksa dengan satu DFS dari simpul 1: graph terhubung jika semua `n` simpul dikunjungi. Kasus `n = 1, m = 0` adalah tree berisi satu simpul. Cara lain yang juga benar: periksa terhubung, lalu periksa tidak ada siklus dengan fungsi `adaSiklus` dari materi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 4\n1 2\n1 3\n3 4\n3 5"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1747,7 +1755,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Status diberi nilai 0 (belum), 1 (sedang), atau 2 (selesai). Sebuah simpul berubah dari 1 menjadi 2 tepat sebelum pemanggilannya selesai, yaitu saat ia keluar dari call stack. DFS harus dicoba dari setiap simpul yang masih berstatus 0, karena siklus bisa saja tidak terjangkau dari simpul 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 4\n1 2\n1 3\n3 2\n2 4"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1878,7 +1886,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Fungsinya adalah DFS mengikuti panah prasyarat ke belakang, dengan array `memo` sebagai pengganti `visited`: nilai 0 berarti belum dihitung. Tanpa `memo`, mata kuliah yang menjadi prasyarat banyak mata kuliah lain akan dihitung berulang kali, dan pada graph tertentu banyak pemanggilannya bisa meledak secara eksponensial. Dengan `memo`, setiap simpul dihitung sekali, jadi totalnya O(n + m). Teknik menyimpan hasil pemanggilan rekursif seperti ini dibahas di [Memoisasi](/docs/cpp/pendalaman/memoisasi).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 5\n1 2\n2 4\n3 4\n4 5\n1 6"
     #include <algorithm>
     #include <iostream>
     #include <vector>

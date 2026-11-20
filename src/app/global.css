@@ -272,3 +272,202 @@ kbd,
 .soal-reveal-body > :last-child {
   margin-bottom: 1rem;
 }
+
+/* ------------------------------------------------------------------------ */
+/* Playground editor (CodeMirror). Token colors follow the github-light /    */
+/* github-dark themes used by the static code blocks.                       */
+/* ------------------------------------------------------------------------ */
+
+.playground-editor .cm-editor {
+  max-height: 26rem;
+  background: transparent;
+  color: var(--color-fd-foreground);
+  /* 16px on phones stops iOS Safari from zooming in when the editor gets focus. */
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  .playground-editor .cm-editor {
+    font-size: 0.8125rem;
+  }
+}
+
+.playground-editor .cm-scroller {
+  font-family: var(--font-mono);
+  line-height: 1.6;
+}
+
+.playground-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.playground-editor .cm-content {
+  padding: 0.75rem 0;
+  caret-color: var(--color-fd-primary);
+}
+
+.playground-editor .cm-gutters {
+  background: transparent;
+  border-right: 1px solid var(--color-fd-border);
+  color: var(--color-fd-muted-foreground);
+}
+
+.playground-editor .cm-activeLine,
+.playground-editor .cm-activeLineGutter {
+  background: color-mix(in oklab, var(--color-fd-primary) 6%, transparent);
+}
+
+.playground-editor .cm-selectionBackground,
+.playground-editor .cm-focused .cm-selectionBackground {
+  background: color-mix(in oklab, var(--color-fd-primary) 22%, transparent) !important;
+}
+
+.playground-editor .cm-matchingBracket {
+  background: color-mix(in oklab, var(--color-fd-primary) 18%, transparent);
+  outline: none;
+}
+
+.playground-editor .cm-cursor {
+  border-left-color: var(--color-fd-primary);
+}
+
+.playground-editor .tok-keyword,
+.playground-editor .tok-operatorKeyword,
+.playground-editor .tok-modifier,
+.playground-editor .tok-controlKeyword,
+.playground-editor .tok-meta {
+  color: #d73a49;
+}
+.playground-editor .tok-string,
+.playground-editor .tok-string2 {
+  color: #032f62;
+}
+.playground-editor .tok-number,
+.playground-editor .tok-bool,
+.playground-editor .tok-atom,
+.playground-editor .tok-typeName,
+.playground-editor .tok-className,
+.playground-editor .tok-namespace {
+  color: #005cc5;
+}
+.playground-editor .tok-comment {
+  color: #6a737d;
+  font-style: italic;
+}
+.playground-editor .tok-definition,
+.playground-editor .tok-macroName,
+.playground-editor .tok-propertyName.tok-definition {
+  color: #6f42c1;
+}
+
+.dark .playground-editor .tok-keyword,
+.dark .playground-editor .tok-operatorKeyword,
+.dark .playground-editor .tok-modifier,
+.dark .playground-editor .tok-controlKeyword,
+.dark .playground-editor .tok-meta {
+  color: #f97583;
+}
+.dark .playground-editor .tok-string,
+.dark .playground-editor .tok-string2 {
+  color: #9ecbff;
+}
+.dark .playground-editor .tok-number,
+.dark .playground-editor .tok-bool,
+.dark .playground-editor .tok-atom,
+.dark .playground-editor .tok-typeName,
+.dark .playground-editor .tok-className,
+.dark .playground-editor .tok-namespace {
+  color: #79b8ff;
+}
+.dark .playground-editor .tok-comment {
+  color: #8b949e;
+}
+.dark .playground-editor .tok-definition,
+.dark .playground-editor .tok-macroName,
+.dark .playground-editor .tok-propertyName.tok-definition {
+  color: #b392f0;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Visualisasi: one meaning per color in every visualization.               */
+/* aktif = being processed, khusus = marker (top, mid, pivot),              */
+/* selesai = done/found, dibuang = discarded, error = error.                */
+/* ------------------------------------------------------------------------ */
+
+:root {
+  --viz-aktif: #2563eb;
+  --viz-khusus: #d97706;
+  --viz-selesai: #059669;
+  --viz-dibuang: #a1a1aa;
+  --viz-error: #e11d48;
+  --viz-soft: 13%;
+}
+
+.dark {
+  --viz-aktif: #60a5fa;
+  --viz-khusus: #fbbf24;
+  --viz-selesai: #34d399;
+  --viz-dibuang: #71717a;
+  --viz-error: #fb7185;
+  --viz-soft: 22%;
+}
+
+.viz-cell {
+  border: 1.5px solid var(--color-fd-border);
+  background: var(--color-fd-background);
+  color: var(--color-fd-foreground);
+  transition:
+    background-color 250ms ease,
+    border-color 250ms ease,
+    box-shadow 250ms ease,
+    opacity 250ms ease;
+}
+
+.viz-cell[data-role='aktif'] {
+  border-color: var(--viz-aktif);
+  background: color-mix(in oklab, var(--viz-aktif) var(--viz-soft), var(--color-fd-background));
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--viz-aktif) 18%, transparent);
+}
+.viz-cell[data-role='khusus'] {
+  border-color: var(--viz-khusus);
+  background: color-mix(in oklab, var(--viz-khusus) var(--viz-soft), var(--color-fd-background));
+}
+.viz-cell[data-role='selesai'] {
+  border-color: var(--viz-selesai);
+  background: color-mix(in oklab, var(--viz-selesai) var(--viz-soft), var(--color-fd-background));
+}
+.viz-cell[data-role='dibuang'] {
+  border-color: var(--viz-dibuang);
+  color: var(--color-fd-muted-foreground);
+  opacity: 0.55;
+}
+.viz-cell[data-role='error'] {
+  border-color: var(--viz-error);
+  background: color-mix(in oklab, var(--viz-error) var(--viz-soft), var(--color-fd-background));
+}
+
+.viz-swatch[data-role='aktif'] { background: var(--viz-aktif); }
+.viz-swatch[data-role='khusus'] { background: var(--viz-khusus); }
+.viz-swatch[data-role='selesai'] { background: var(--viz-selesai); }
+.viz-swatch[data-role='dibuang'] { background: var(--viz-dibuang); }
+.viz-swatch[data-role='error'] { background: var(--viz-error); }
+
+.viz-text-khusus { color: var(--viz-khusus); }
+.viz-text-error { color: var(--viz-error); }
+
+.viz-line[data-active='true'] {
+  background: color-mix(in oklab, var(--viz-aktif) var(--viz-soft), transparent);
+  box-shadow: inset 3px 0 0 var(--viz-aktif);
+  color: var(--color-fd-foreground);
+}
+.viz-line[data-active='true'][data-error='true'] {
+  background: color-mix(in oklab, var(--viz-error) var(--viz-soft), transparent);
+  box-shadow: inset 3px 0 0 var(--viz-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viz-cell,
+  .viz-line {
+    transition: none;
+  }
+}

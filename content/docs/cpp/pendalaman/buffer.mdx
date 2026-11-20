@@ -133,7 +133,7 @@ Bagaimana jika `cin >>` diminta membaca `int`, tetapi isi buffer adalah `abc`?
 
 Untuk memulihkan `cin`, ada dua langkah: hapus status gagal dengan `cin.clear()`, lalu buang isi buffer yang bermasalah dengan `cin.ignore()`.
 
-```cpp
+```cpp input="abc\n17"
 #include <iostream>
 #include <limits>
 using namespace std;

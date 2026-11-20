@@ -36,7 +36,7 @@ Semakin ke bawah, semakin sulit ditemukan. Compile error justru yang paling "ram
 
 Program berikut lupa titik koma di baris 5:
 
-```cpp title="umur.cpp"
+```cpp title="umur.cpp" check="skip"
 #include <iostream>
 using namespace std;
 
@@ -170,7 +170,7 @@ g++ -Wall -Wextra program.cpp -o program
 
 Program ini berisi tiga kesalahan yang sudah kita bahas di materi sebelumnya:
 
-```cpp title="cek.cpp"
+```cpp title="cek.cpp" input="75" check="no-compare"
 #include <iostream>
 using namespace std;
 
@@ -321,7 +321,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={1} level="mudah" judul="Membaca pesan error">
   Program berikut seharusnya membaca bilangan bulat `n` lalu menampilkan kuadratnya, tetapi gagal dikompilasi.
 
-  ```cpp title="kuadrat.cpp"
+  ```cpp title="kuadrat.cpp" input="7" check="skip"
   #include <iostream>
   using namespace std;
 
@@ -357,7 +357,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Sisa pesan yang lebih dari 100 baris hanyalah daftar `note: candidate`, yaitu kemungkinan lain yang sudah dicoba compiler. Cukup baca error pertamanya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7"
     #include <iostream>
     using namespace std;
 
@@ -379,7 +379,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={2} level="mudah" judul="Selalu sempurna">
   Program berikut seharusnya menampilkan `Sempurna` hanya jika nilainya 100, dan `Belum sempurna` untuk nilai lain. Ternyata untuk input `85` pun yang tampil `Sempurna`.
 
-  ```cpp title="sempurna.cpp"
+  ```cpp title="sempurna.cpp" input="85"
   #include <iostream>
   using namespace std;
 
@@ -422,7 +422,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
     SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?
     ```
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="85"
     #include <iostream>
     using namespace std;
 
@@ -451,7 +451,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Rata-rata yang terpotong">
   Program berikut membaca tiga nilai ujian (bilangan bulat), lalu menampilkan rata-ratanya dengan dua angka di belakang koma. Untuk input `70 80 85`, program menampilkan `78.00`.
 
-  ```cpp
+  ```cpp input="70 80 85"
   #include <iostream>
   #include <iomanip>
   using namespace std;
@@ -480,7 +480,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     `-Wall -Wextra` tidak memberi peringatan apa pun, karena kodenya sah. Yang salah adalah maksudnya. Perbaikannya, jadikan salah satu operand pecahan, misalnya `/ 3.0`. Di Python, `/` selalu menghasilkan pecahan, jadi bug ini hanya muncul jika kamu memakai `//`. Format dua angka di belakang koma dibahas di [`<iomanip>`](/docs/cpp/pustaka/iomanip).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="70 80 85"
     #include <iostream>
     #include <iomanip>
     using namespace std;
@@ -507,7 +507,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={4} level="menengah" judul="Total yang meleset">
   Program berikut membaca `n`, lalu `n` bilangan bulat di baris berikutnya, dan menampilkan totalnya.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="4\n10 20 30 40" check="skip"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -579,7 +579,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Perbaikannya, mulai dari indeks 0 dan berhenti **sebelum** `n`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\n10 20 30 40"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -616,7 +616,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={5} level="menengah" judul="Membalik angka">
   Program berikut seharusnya membalik urutan digit sebuah bilangan bulat positif. Angka 0 di depan hasilnya tidak ditampilkan, jadi `1200` menjadi `21`.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="123"
   #include <iostream>
   using namespace std;
 
@@ -666,7 +666,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Tabel menunjukkan masalahnya: digit `3` tidak pernah diambil, karena `n` sudah dibagi 10 **sebelum** digit terakhirnya diambil. Di putaran terakhir, yang diambil malah `0` dari `n` yang sudah habis. Untuk input `4`, `n` langsung menjadi 0, jadi hasilnya 0. Perbaikannya cukup menukar urutan dua baris: ambil digit terakhir dulu, baru buang.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="123"
     #include <iostream>
     using namespace std;
 
@@ -697,7 +697,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Bagi permen">
   Program berikut membagi `permen` sama rata kepada `anak`, lalu menampilkan bagian setiap anak dan sisa permennya, dipisah spasi. Jika `anak` bernilai 0, program seharusnya menampilkan `Tidak bisa dibagi`, tetapi pemeriksaan itu belum ditulis.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="17 5"
   #include <iostream>
   using namespace std;
 
@@ -747,7 +747,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Perbaikannya, periksa `anak` **sebelum** membagi. Memeriksanya setelah pembagian sudah terlambat.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="17 5"
     #include <iostream>
     using namespace std;
 
@@ -776,7 +776,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={7} level="menengah" judul="Penghitung tanpa nilai awal">
   Program berikut membaca `n`, lalu `n` nilai di baris berikutnya, dan menampilkan banyak nilai yang lulus (minimal 60).
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="5\n80 45 60 90 30" check="skip"
   #include <iostream>
   using namespace std;
 
@@ -845,7 +845,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Di Python, variabel baru ada setelah diberi nilai. Untuk contoh di atas, nilai pertama (80) lulus, jadi program berhenti di baris 6, `lulus += 1`, dengan `NameError: name 'lulus' is not defined`. Untuk input `2` lalu `40 50`, tidak ada yang lulus, sehingga baris 6 tidak pernah dijalankan. Error yang sama baru muncul di baris 7, `print(lulus)`. Kesalahan yang sama bisa muncul di tempat berbeda, tergantung inputnya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n80 45 60 90 30"
     #include <iostream>
     using namespace std;
 
@@ -883,7 +883,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={8} level="sulit" judul="Tiga bug sekaligus">
   Program berikut membaca data `n` mahasiswa (nama satu kata dan nilai). Program lalu menampilkan rata-rata nilai dengan dua angka di belakang koma, serta nama mahasiswa yang nilainya tertinggi. Jika ada beberapa yang tertinggi, ambil yang pertama.
 
-  ```cpp title="nilai.cpp"
+  ```cpp title="nilai.cpp" input="3\nAni 80\nBudi 75\nCitra 81" check="skip"
   #include <iostream>
   #include <iomanip>
   #include <string>
@@ -966,7 +966,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Sanitizer menunjuk baris 23, tempat `data[i].nilai` dibaca, padahal penyebabnya ada di kondisi perulangan di baris 22. `Terbaik: Citra` hanya kebetulan benar. Jika memori di luar `vector` berisi angka yang lebih besar dari 81, `terbaik` akan menunjuk ke `data[3]` yang tidak ada, dan program bisa menampilkan nama aneh atau crash.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\nAni 80\nBudi 75\nCitra 81"
     #include <iostream>
     #include <iomanip>
     #include <string>
@@ -1033,7 +1033,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={9} level="sulit" judul="Bug yang lolos uji">
   Program berikut mencari bilangan terbesar dari `n` bilangan bulat (`n ≥ 1`). Penulisnya sudah mengujinya dengan dua input di bawah, dan hasilnya benar.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="5\n3 9 2 7 4"
   #include <iostream>
   using namespace std;
 
@@ -1097,7 +1097,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Perbaikan yang benar adalah memakai **data pertama** sebagai nilai awal, seperti "juara sementara". Dengan begitu, `terbesar` selalu berisi salah satu nilai dari data.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n3 9 2 7 4"
     #include <iostream>
     using namespace std;
 
@@ -1134,7 +1134,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={10} level="sulit" judul="Pemenang pemilihan">
   Program berikut menghitung suara pemilihan ketua kelas. Inputnya `n`, lalu `n` nama kandidat (satu kata), satu nama per baris. Program menampilkan nama pemenang dan banyak suaranya, dipisah spasi. Jika beberapa kandidat sama-sama mendapat suara terbanyak, pemenangnya adalah yang namanya paling awal menurut abjad.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="3\nBudi\nAni\nBudi"
   #include <iostream>
   #include <map>
   #include <string>
@@ -1234,7 +1234,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Untuk pertanyaan 3: tanpa `sorted()`, `dict` di Python ditelusuri sesuai urutan nama **pertama kali dimasukkan**. Pada input uji di atas, Budi masuk lebih dulu daripada Ani, sehingga Budi bertahan sebagai pemenang dan hasilnya kembali salah. Di C++, `map` selalu menyimpan kuncinya terurut, jadi masalah ini tidak muncul.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\nBudi\nAni\nBudi"
     #include <iostream>
     #include <map>
     #include <string>

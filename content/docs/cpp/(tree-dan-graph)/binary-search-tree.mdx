@@ -202,9 +202,13 @@ Tree contoh terbentuk jika `45 23 71 11 30 58 36 64` disisipkan satu per satu ke
 | 36 | 45 (kiri), 23 (kanan), 30 (kanan) | anak kanan 30 |
 | 64 | 45 (kanan), 71 (kiri), 58 (kanan) | anak kanan 58 |
 
+Jalankan penyisipan yang sama langkah demi langkah di bawah ini, dilanjutkan dengan mencari 36 dan 50 seperti tabel di bagian [Mencari nilai](#mencari-nilai). Subtree yang berubah abu-abu adalah subtree yang dilewati, karena nilai yang dicari pasti tidak ada di sana. Lewat **Ubah operasi**, kamu juga bisa mencoba nilai lain, misalnya nilai kembar.
+
+<VisualisasiBST />
+
 Program lengkap berikut membaca `n` bilangan, menyisipkannya ke BST, lalu mencetaknya secara inorder. Fungsi `inorder` dan `hapusTree` sama dengan di materi [Tree](/docs/cpp/tree).
 
-```cpp tab="C++"
+```cpp tab="C++" input="8\n45 23 71 11 30 58 36 64"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -471,6 +475,10 @@ Jika 11, 30, lalu 45 dihapus berturut-turut dari tree contoh, hasilnya:
 
 Inorder-nya `23 36 58 64 71`, masih terurut.
 
+Ikuti ketiga penghapusan itu langkah demi langkah di bawah ini, mulai dari tree contoh. Pada `hapus(45)`, perhatikan bagaimana pengganti dicari, nilainya disalin ke root, lalu node pengganti yang lama dihapus dari subtree kanan.
+
+<VisualisasiBST awal="45 23 71 11 30 58 36 64" operasi="hapus(11) hapus(30) hapus(45)" judul="Visualisasi menghapus nilai dari BST" />
+
 ## Bentuk tree bergantung pada urutan sisip
 
 Nilai yang sama bisa menghasilkan BST yang sangat berbeda, tergantung urutan penyisipannya. Berikut dua BST yang sama-sama berisi `10` sampai `70`:
@@ -667,7 +675,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Nilai `30` yang kedua diabaikan karena sudah ada. Inorder selalu terurut, sedangkan preorder memperlihatkan bentuk tree: root lebih dulu. Pada contoh kedua, inorder dan preorder sama persis. Itu tanda tree-nya miring, karena setiap node hanya punya anak kanan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n50 30 80 20 40 30 90"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -843,7 +851,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Tinggi dihitung dengan fungsi rekursif dari materi Tree (tree kosong bertinggi -1). Nilai terkecil dan terbesar cukup ditemukan dengan berjalan ke kiri atau ke kanan sampai mentok. Contoh kedua disisipkan dalam urutan turun, sehingga tree-nya miring ke kiri dan tingginya `n - 1`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n40 20 60 10 30 70"
     #include <iostream>
     #include <algorithm>
     using namespace std;
@@ -987,7 +995,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Fungsi `hitungRentang` mengikuti pola "selesaikan kiri, selesaikan kanan, gabungkan", tetapi melewati subtree yang pasti berada di luar rentang. Pada contoh, di node 11 fungsi tidak turun ke kiri (karena `11 < 25`), dan di node 71 fungsi tidak turun ke kanan (karena `71 > 60`). Untuk tree besar, penghematan ini membuat banyak node tidak perlu dikunjungi sama sekali.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\n45 23 71 11 30 58 36 64\n25 60"
     #include <iostream>
     using namespace std;
 
@@ -1121,7 +1129,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Cara ini menyimpan semua nilai. Versi yang lebih hemat memakai penghitung selama penelusuran inorder dan berhenti begitu penghitungnya mencapai `k`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n50 30 80 20 40 30 90\n3"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1299,7 +1307,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Selama `a` dan `b` berada di sisi yang sama, leluhur bersamanya pasti ada lebih dalam di sisi itu. Begitu keduanya "berpisah" (satu di kiri dan satu di kanan), atau salah satunya sama dengan data node, node itulah jawabannya, karena turun ke mana pun akan meninggalkan salah satunya. Pada contoh pertama, di node 45 keduanya ke kiri, lalu di node 23 nilai 11 ke kiri sedangkan 36 ke kanan, jadi jawabannya 23. Satu jalur dari root sudah cukup, sehingga waktunya sebanding dengan tinggi tree.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\n45 23 71 11 30 58 36 64\n11 36"
     #include <iostream>
     using namespace std;
 
@@ -1445,7 +1453,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Cara lain adalah membawa batas yang sah ke setiap panggilan rekursif. Root boleh bernilai apa saja. Saat turun ke kiri dari node bernilai `v`, batas atasnya menjadi `v`, dan saat turun ke kanan, batas bawahnya menjadi `v`. Node `52` pada contoh kedua harus berada di antara 23 dan 45, dan ternyata tidak.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\n45 2 3\n23 4 5\n71 6 0\n11 0 0\n30 0 7\n58 0 8\n36 0 0\n64 0 0"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1589,7 +1597,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Elemen tengah menjadi root, jadi semua elemen di kirinya lebih kecil dan semua di kanannya lebih besar. Aturan BST otomatis terpenuhi. Karena setiap langkah membagi dua bagian yang ukurannya berbeda paling banyak satu, tingginya adalah yang terkecil yang mungkin, yaitu sekitar log₂ n. Pada contoh kedua, elemen tengah dari indeks 0 sampai 5 adalah indeks 2 (nilai 3). Bagian kiri `1 2` menghasilkan root 1 dengan anak kanan 2, dan bagian kanan `4 5 6` menghasilkan root 5. Fungsi ini tidak memakai `sisipkan` sama sekali. Node langsung dibuat di posisi yang tepat.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n10 20 30 40 50 60 70"
     #include <iostream>
     #include <vector>
     #include <algorithm>
@@ -1710,7 +1718,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={10} level="sulit" judul="Perbaiki fungsi hapus">
   Program berikut membangun BST dari `n` bilangan, lalu membaca `m` dan `m` bilangan yang harus dihapus, kemudian mencetak isi tree secara inorder (atau `kosong` jika tree habis). Fungsi `hapusNilai`-nya berisi kesalahan. Saat dicoba dengan g++ dan input contoh di bawah, versi C++ berhenti dengan `Segmentation fault`, dan jika dikompilasi dengan `-fsanitize=address` program langsung berhenti dengan laporan `heap-use-after-free`. Versi Python tidak crash, tetapi hasilnya salah. Temukan semua kesalahannya, jelaskan, lalu perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="7\n50 30 70 20 40 60 80\n3\n20 70 50" check="skip"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -1900,7 +1908,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Penghapusan 70 di input contoh kebetulan tidak terkena kesalahan 1. Node 70 punya dua anak, jadi nilainya diganti di tempat, dan penghapusan successor-nya memakai baris `root->right = ...` yang sudah benar. Karena itu, bug seperti ini mudah lolos jika hanya dicoba dengan satu atau dua kasus.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n50 30 70 20 40 60 80\n3\n20 70 50"
     #include <iostream>
     #include <vector>
     using namespace std;

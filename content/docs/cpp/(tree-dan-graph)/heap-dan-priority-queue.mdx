@@ -1,0 +1,1845 @@
+---
+title: Heap & Priority Queue
+description: Cara kerja antrean prioritas di balik priority_queue dan heapq, yaitu complete binary tree yang disimpan di vector, aturan heap, push dengan sift up, pop dengan sift down, prioritas berupa pasangan, serta heapsort.
+sumber:
+  - ref: cppreference
+    judul: std::priority_queue
+    url: https://en.cppreference.com/w/cpp/container/priority_queue
+  - ref: cppreference
+    judul: std::push_heap
+    url: https://en.cppreference.com/w/cpp/algorithm/push_heap
+  - ref: cppreference
+    judul: std::pop_heap
+    url: https://en.cppreference.com/w/cpp/algorithm/pop_heap
+  - ref: cppreference
+    judul: std::make_heap
+    url: https://en.cppreference.com/w/cpp/algorithm/make_heap
+  - ref: cppreference
+    judul: std::pair
+    url: https://en.cppreference.com/w/cpp/utility/pair
+  - ref: cppreference
+    judul: std::greater
+    url: https://en.cppreference.com/w/cpp/utility/functional/greater
+  - ref: python-docs
+    judul: heapq, Heap queue algorithm
+    url: https://docs.python.org/3/library/heapq.html
+  - ref: python-docs
+    judul: Tutorial, Comparing Sequences and Other Types
+    url: https://docs.python.org/3/tutorial/datastructures.html#comparing-sequences-and-other-types
+---
+
+## Masalah: yang paling gawat dilayani dulu
+
+Di materi [Queue](/docs/cpp/queue#antrean-prioritas), kamu sudah bertemu antrean IGD rumah sakit. Pasien tidak dilayani menurut urutan datang, tetapi menurut tingkat kegawatannya. Misalkan setiap pasien diberi angka prioritas: 1 untuk yang paling gawat, 2 untuk yang gawat, dan seterusnya. Setiap kali dokter siap, pasien dengan angka **terkecil** dipanggil, sementara pasien baru terus berdatangan.
+
+Struktur data untuk situasi ini adalah **antrean prioritas** (_priority queue_). Kamu sudah memakainya lewat `priority_queue` di C++ dan `heapq` di Python. Materi ini membuka isinya: bagaimana keduanya selalu tahu elemen terkecil (atau terbesar) dengan cepat, padahal isinya terus berubah?
+
+Coba dulu dengan alat yang sudah kamu punya. Dua operasi yang dibutuhkan adalah **menambah** elemen dan **mengambil yang terkecil**, dan keduanya dilakukan silih berganti berkali-kali.
+
+| Cara menyimpan | Menambah | Mengambil terkecil |
+| --- | --- | --- |
+| Vector biasa, tidak terurut | Cepat, cukup `push_back`: O(1) | Lambat, terkecil harus dicari di seluruh vector: O(n) |
+| Vector terurut turun (terkecil di belakang) | Lambat, elemen harus digeser agar tetap terurut: O(n) | Cepat, cukup `pop_back`: O(1) |
+| Heap | O(log n) | O(log n) |
+
+Pada vector terurut, yang terkecil sengaja ditaruh di **belakang**. Jika ditaruh di depan, setiap pengambilan menggeser semua elemen lain, sama seperti `list.pop(0)` yang dibahas di materi Queue.
+
+Kedua cara pertama selalu punya satu operasi yang lambat. IGD yang sibuk, atau program yang memproses ratusan ribu data, melakukan kedua operasi itu bergantian terus-menerus. Dengan 100.000 elemen, O(n) berarti sekitar 100.000 langkah untuk **setiap** operasi yang lambat, sedangkan log₂ 100.000 hanya sekitar 17. Notasi ini dibahas di <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>.
+
+[Binary Search Tree](/docs/cpp/binary-search-tree) sebenarnya juga bisa dipakai, karena nilai terkecilnya ada di node paling kiri. Namun BST bisa miring, dan ia mengerjakan lebih banyak dari yang kita butuhkan: seluruh isinya dijaga terurut, padahal kita hanya ingin tahu **siapa yang terkecil**. **Heap** menjaga aturan yang lebih longgar, sehingga lebih sederhana. Isinya cukup disimpan di sebuah vector biasa tanpa node dan pointer, dan bentuknya selalu seimbang.
+
+## Complete binary tree
+
+Heap adalah [binary tree](/docs/cpp/tree) yang memenuhi dua syarat. Syarat pertama menyangkut **bentuk**: tree-nya harus berupa **complete binary tree**, yaitu
+
+- setiap level terisi penuh, kecuali mungkin level terakhir, dan
+- level terakhir terisi dari kiri tanpa celah.
+
+```txt
+(a) complete             (b) bukan complete       (c) bukan complete
+        A                        A                        A
+      /   \                    /   \                    /   \
+     B     C                  B     C                  B     C
+    / \   /                  / \     \                /     / \
+   D   E F                  D   E     G              D     F   G
+```
+
+Tree (a) complete: level 0 dan 1 penuh, dan level 2 terisi dari kiri (`D`, `E`, `F`). Tree (b) punya celah di level 2, karena posisi anak kiri `C` kosong sementara anak kanannya terisi. Tree (c) juga punya celah: anak kanan `B` kosong, padahal di sebelah kanannya masih ada `F` dan `G`.
+
+Akibatnya, bentuk complete binary tree hanya ditentukan oleh **banyak node**. Tujuh node selalu membentuk tiga level penuh, dan node kedelapan pasti menjadi anak kiri dari node paling kiri di level 2. Setiap level menampung dua kali lipat level sebelumnya (1, 2, 4, 8, ...), jadi tingginya tumbuh sangat lambat:
+
+| Banyak node | Tinggi complete binary tree |
+| --- | --- |
+| 7 | 2 |
+| 1.000 | 9 |
+| 1.000.000 | 19 |
+
+Tingginya adalah ⌊log₂ n⌋, yaitu log₂ n yang dibulatkan ke bawah. Angka ini sama dengan BST yang seimbang sempurna, tetapi heap **tidak pernah** miring, berapa pun urutan datanya.
+
+## Aturan heap
+
+Syarat kedua menyangkut **isi**. Pada **min-heap**, nilai setiap node tidak lebih besar dari nilai anak-anaknya. Karena aturan ini berlaku di setiap node, nilai di sepanjang jalur dari root turun ke daun mana pun tidak pernah berkurang. Akibatnya, **root selalu berisi nilai terkecil**.
+
+Pada **max-heap** aturannya dibalik: setiap node tidak lebih kecil dari anak-anaknya, sehingga root berisi nilai terbesar. Materi ini memakai min-heap. Alasannya dibahas di bagian [Min-heap atau max-heap?](#min-heap-atau-max-heap).
+
+Tree berikut adalah min-heap, dan akan dipakai sebagai contoh sepanjang materi ini:
+
+```txt
+            5
+         /     \
+       20       10
+      /  \     /  \
+    35    40  50   30
+```
+
+Perhatikan apa yang **tidak** diatur. Anak kiri boleh lebih besar dari anak kanan (20 dan 10). Nilai di level 2 boleh lebih kecil dari nilai di level 1 pada cabang lain (30 lebih kecil dari 35 dan 40, tetapi berada di bawah 10). Yang diperiksa hanya hubungan setiap node dengan parent-nya sendiri. Heap tidak terurut, tetapi cukup teratur untuk mengetahui siapa yang terkecil.
+
+Tree berikut **bukan** min-heap, walaupun bentuknya complete dan root-nya memang yang terkecil:
+
+```txt
+            5
+         /     \
+       20       10
+      /  \
+    35    15
+```
+
+`15` lebih kecil dari parent-nya, `20`. Setiap node dibandingkan dengan **parent-nya sendiri**, bukan dengan root.
+
+| | Binary search tree | Min-heap |
+| --- | --- | --- |
+| Aturan isi | kiri < node < kanan, untuk seluruh subtree | parent ≤ anak |
+| Nilai terkecil ada di | node paling kiri | root |
+| Inorder terurut? | Ya | Tidak |
+| Bentuk | bergantung urutan sisip, bisa miring | selalu complete |
+| Mencari nilai sembarang | O(log n) jika seimbang | O(n), harus diperiksa satu per satu |
+
+## Menyimpan heap di vector
+
+Karena bentuknya complete, heap tidak butuh node dan pointer. Beri nomor setiap node per level, dari atas ke bawah dan dari kiri ke kanan, mulai dari 0. Urutan ini sama dengan [level-order](/docs/cpp/tree#level-order-tingkat-demi-tingkat). Lalu simpan setiap node di vector pada indeks sesuai nomornya:
+
+```txt
+                  5 [0]
+              /           \
+         20 [1]            10 [2]
+         /    \            /    \
+     35 [3]  40 [4]    50 [5]  30 [6]
+
+indeks:    0    1    2    3    4    5    6
+        +----+----+----+----+----+----+----+
+        |  5 | 20 | 10 | 35 | 40 | 50 | 30 |
+        +----+----+----+----+----+----+----+
+```
+
+Level 0 menempati indeks 0, level 1 menempati indeks 1 sampai 2, dan level 2 menempati indeks 3 sampai 6. Karena tree-nya tidak punya celah, vector-nya juga tidak punya lubang, dan hubungan parent-anak bisa dihitung langsung dari indeks:
+
+| Yang dicari | Rumus (indeks mulai 0) |
+| --- | --- |
+| Parent dari indeks `i` | `(i - 1) / 2` (Python: `(i - 1) // 2`) |
+| Anak kiri dari indeks `i` | `2 * i + 1` |
+| Anak kanan dari indeks `i` | `2 * i + 2` |
+
+Pembagiannya adalah pembagian bulat. Periksa dengan gambar: anak-anak `20` (indeks 1) ada di indeks 3 dan 4, yaitu `35` dan `40`. Parent `50` (indeks 5) ada di indeks (5 − 1) / 2 = 2, yaitu `10`. Parent `30` (indeks 6) juga di indeks (6 − 1) / 2 = 2, karena 2,5 dibulatkan ke bawah.
+
+Kenapa rumusnya begitu? Sebelum anak-anak node `i`, ada root di indeks 0, lalu anak-anak dari `i` node sebelumnya (indeks 0 sampai `i − 1`), masing-masing dua. Jadi anak kiri node `i` berada di indeks 1 + 2i. Rumus parent adalah kebalikannya.
+
+Sebuah anak hanya ada jika indeksnya masih di dalam vector. Untuk heap berisi `n` elemen, node `i` punya anak kiri jika `2 * i + 1 < n`, dan punya anak kanan jika `2 * i + 2 < n`. Pada contoh di atas (`n = 7`), anak kiri `35` (indeks 3) seharusnya di indeks 7, yang sudah di luar vector. Jadi `35` adalah daun.
+
+<Callout type="info" title="Versi yang dimulai dari indeks 1">
+  Sebagian buku menaruh root di indeks 1 dan membiarkan indeks 0 kosong. Rumusnya menjadi lebih pendek: parent `i / 2`, anak kiri `2 * i`, dan anak kanan `2 * i + 1`. Kedua versi sama benarnya, asalkan tidak dicampur. Materi ini selalu memakai indeks mulai 0, sama seperti `heapq` di Python dan fungsi heap di pustaka C++.
+</Callout>
+
+## Push: taruh di ujung, lalu sift up
+
+Menambah elemen ke heap dilakukan dalam dua langkah:
+
+1. **Taruh elemen baru di ujung vector.** Tree tetap complete, karena elemen baru mengisi posisi kosong paling kiri di level terakhir. Namun aturan heap mungkin rusak, karena elemen baru bisa lebih kecil dari parent-nya.
+2. **Sift up** (naikkan). Selama elemen itu **lebih kecil** dari parent-nya, tukar keduanya. Berhenti jika elemen itu sudah tidak lebih kecil dari parent-nya, atau jika sudah sampai di root.
+
+Kenapa cukup memeriksa parent? Sebelum push, semua node sudah memenuhi aturan heap. Satu-satunya pasangan yang mungkin salah adalah elemen baru dengan parent-nya. Setelah ditukar, parent lama turun ke posisi elemen baru. Di sana ia tetap tidak lebih besar dari anak-anaknya, karena anak-anak itu dulunya juga berada di bawahnya. Masalahnya hanya pindah satu level ke atas, lalu diperiksa lagi di sana.
+
+Berikut tujuh push ke heap yang awalnya kosong, dengan urutan `35 20 50 10 40 5 30`:
+
+| Push | Masuk di indeks | Sift up | Isi vector sesudahnya |
+| --- | --- | --- | --- |
+| 35 | 0 | sudah di root, tidak ada yang dibandingkan | `[35]` |
+| 20 | 1 | 20 < 35 (indeks 0): tukar | `[20, 35]` |
+| 50 | 2 | 50 tidak lebih kecil dari 20 (indeks 0): berhenti | `[20, 35, 50]` |
+| 10 | 3 | 10 < 35 (indeks 1): tukar, lalu 10 < 20 (indeks 0): tukar | `[10, 20, 50, 35]` |
+| 40 | 4 | 40 tidak lebih kecil dari 20 (indeks 1): berhenti | `[10, 20, 50, 35, 40]` |
+| 5 | 5 | 5 < 50 (indeks 2): tukar, lalu 5 < 10 (indeks 0): tukar | `[5, 20, 10, 35, 40, 50]` |
+| 30 | 6 | 30 tidak lebih kecil dari 10 (indeks 2): berhenti | `[5, 20, 10, 35, 40, 50, 30]` |
+
+Push 5 menempuh perjalanan paling jauh, dari daun sampai root. Begini gambarnya di tree:
+
+```txt
+1. 5 masuk di indeks 5       2. 5 < 50, tukar             3. 5 < 10, tukar
+          10                           10                            5
+        /    \                       /    \                        /    \
+      20      50                   20      5                     20      10
+     /  \    /                    /  \    /                     /  \    /
+   35   40  5                   35   40  50                   35   40  50
+```
+
+Hasil akhirnya adalah min-heap contoh di bagian [Aturan heap](#aturan-heap). Perhatikan bahwa syarat tukarnya "lebih kecil", bukan "lebih kecil atau sama". Elemen yang sama dengan parent-nya tidak ditukar, karena menukar dua nilai yang sama tidak mengubah apa pun.
+
+```cpp tab="C++"
+void push(vector<int>& heap, int x) {
+    heap.push_back(x);                     // 1. taruh di ujung vector
+    int i = heap.size() - 1;
+    while (i > 0) {                        // 2. sift up, berhenti di root
+        int parent = (i - 1) / 2;
+        if (heap[i] < heap[parent]) {
+            swap(heap[i], heap[parent]);
+            i = parent;
+        } else {
+            break;                         // sudah tidak lebih kecil dari parent
+        }
+    }
+}
+```
+
+```python tab="Python"
+def push(heap, x):
+    heap.append(x)                         # 1. taruh di ujung list
+    i = len(heap) - 1
+    while i > 0:                           # 2. sift up, berhenti di root
+        parent = (i - 1) // 2
+        if heap[i] < heap[parent]:
+            heap[i], heap[parent] = heap[parent], heap[i]
+            i = parent
+        else:
+            break                          # sudah tidak lebih kecil dari parent
+```
+
+Vector dikirim sebagai reference (`&`) agar `push` mengubah heap milik pemanggil, bukan salinannya (lihat <Term href="/docs/cpp/pendalaman/pass-by-value-dan-reference">pass by value dan reference</Term>). `swap` berasal dari `<utility>`, seperti di materi [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan). Kondisi `i > 0` penting, karena root tidak punya parent. Bagian [Menghitung parent dari root](#menghitung-parent-dari-root) menunjukkan apa yang terjadi jika kondisi ini dilupakan.
+
+## Pop: ambil root, lalu sift down
+
+Nilai terkecil selalu berada di root, yaitu `heap[0]`. Melihatnya saja (**top**) cukup dengan membaca `heap[0]`. Mengeluarkannya (**pop**) lebih rumit, karena root tidak bisa dibuang begitu saja. Jika semua elemen digeser maju satu posisi, seperti membuang elemen pertama vector, hubungan parent-anak menjadi berantakan.
+
+Caranya:
+
+1. **Simpan `heap[0]`**, yaitu nilai yang akan dikeluarkan.
+2. **Pindahkan elemen terakhir ke root**, lalu buang elemen terakhir dengan `pop_back`. Tree tetap complete, karena yang hilang adalah posisi paling kanan di level terakhir. Namun root yang baru kemungkinan besar terlalu besar.
+3. **Sift down** (turunkan). Bandingkan kedua anak elemen itu dan pilih **anak yang lebih kecil**. Jika kedua anak sama, pilih anak kiri. Jika anak terpilih **lebih kecil** dari elemen itu, tukar keduanya dan lanjutkan dari posisi anak tadi. Berhenti jika anak terpilih tidak lebih kecil, atau jika elemen itu sudah menjadi daun.
+
+Kenapa harus anak yang lebih kecil? Anak yang naik akan menjadi parent bagi saudaranya. Jika yang naik adalah anak yang lebih besar, ia menjadi parent dari nilai yang lebih kecil darinya, dan aturan heap langsung rusak.
+
+Pop pertama pada heap contoh mengeluarkan 5:
+
+| Langkah | `i` | Anak kiri | Anak kanan | Tindakan | Isi vector |
+| --- | --- | --- | --- | --- | --- |
+| awal | | | | simpan 5, pindahkan 30 dari indeks 6 ke indeks 0 | `[30, 20, 10, 35, 40, 50]` |
+| 1 | 0 | 20 (indeks 1) | 10 (indeks 2) | anak terkecil 10 < 30: tukar | `[10, 20, 30, 35, 40, 50]` |
+| 2 | 2 | 50 (indeks 5) | tidak ada | 50 tidak lebih kecil dari 30: berhenti | `[10, 20, 30, 35, 40, 50]` |
+
+Pop kedua mengeluarkan 10:
+
+| Langkah | `i` | Anak kiri | Anak kanan | Tindakan | Isi vector |
+| --- | --- | --- | --- | --- | --- |
+| awal | | | | simpan 10, pindahkan 50 dari indeks 5 ke indeks 0 | `[50, 20, 30, 35, 40]` |
+| 1 | 0 | 20 (indeks 1) | 30 (indeks 2) | anak terkecil 20 < 50: tukar | `[20, 50, 30, 35, 40]` |
+| 2 | 1 | 35 (indeks 3) | 40 (indeks 4) | anak terkecil 35 < 50: tukar | `[20, 35, 30, 50, 40]` |
+| 3 | 3 | tidak ada | tidak ada | sudah daun: berhenti | `[20, 35, 30, 50, 40]` |
+
+Pop kedua di tree:
+
+```txt
+1. 10 keluar, 50 ke root      2. 20 < 50, tukar             3. 35 < 50, tukar
+          50                           20                            20
+        /    \                       /    \                        /    \
+      20      30                   50      30                    35      30
+     /  \                         /  \                          /  \
+   35   40                      35   40                       50   40
+```
+
+Setelah setiap pop, root berisi nilai terkecil berikutnya: 10 setelah 5 keluar, lalu 20 setelah 10 keluar.
+
+```cpp tab="C++"
+int top(const vector<int>& heap) {         // syarat: heap tidak kosong
+    return heap[0];
+}
+
+int pop(vector<int>& heap) {               // syarat: heap tidak kosong
+    int terkecil = heap[0];
+    heap[0] = heap.back();                 // 1. elemen terakhir pindah ke root
+    heap.pop_back();
+    int n = heap.size();
+    int i = 0;
+    while (true) {                         // 2. sift down
+        int kiri = 2 * i + 1;
+        int kanan = 2 * i + 2;
+        if (kiri >= n) {
+            break;                         // tidak punya anak
+        }
+        int kecil = kiri;                  // anak terkecil, kiri jika sama
+        if (kanan < n && heap[kanan] < heap[kiri]) {
+            kecil = kanan;
+        }
+        if (heap[kecil] < heap[i]) {
+            swap(heap[i], heap[kecil]);
+            i = kecil;
+        } else {
+            break;                         // tidak ada anak yang lebih kecil
+        }
+    }
+    return terkecil;
+}
+```
+
+```python tab="Python"
+def top(heap):                             # syarat: heap tidak kosong
+    return heap[0]
+
+
+def pop(heap):                             # syarat: heap tidak kosong
+    terkecil = heap[0]
+    heap[0] = heap[-1]                     # 1. elemen terakhir pindah ke root
+    heap.pop()
+    n = len(heap)
+    i = 0
+    while True:                            # 2. sift down
+        kiri = 2 * i + 1
+        kanan = 2 * i + 2
+        if kiri >= n:
+            break                          # tidak punya anak
+        kecil = kiri                       # anak terkecil, kiri jika sama
+        if kanan < n and heap[kanan] < heap[kiri]:
+            kecil = kanan
+        if heap[kecil] < heap[i]:
+            heap[i], heap[kecil] = heap[kecil], heap[i]
+            i = kecil
+        else:
+            break                          # tidak ada anak yang lebih kecil
+    return terkecil
+```
+
+`pop` buatan kita mengembalikan nilai yang dikeluarkan, sama seperti `heapq.heappop`. Ini berbeda dengan `pop()` pada `priority_queue` C++, yang tidak mengembalikan apa pun. Di versi Python, `heap.pop()` di dalam fungsi adalah method list yang membuang elemen terakhir, bukan fungsi `pop` milik kita. Jika heap hanya berisi satu elemen, langkah 1 memindahkan elemen itu ke tempatnya sendiri lalu membuangnya. Heap menjadi kosong, dan perulangan langsung berhenti karena `kiri >= n`.
+
+Ikuti tujuh push dan dua pop tadi langkah demi langkah di bawah ini.
+
+<VisualisasiHeap />
+
+## Top, size, empty, dan kecepatannya
+
+Operasi lainnya sederhana:
+
+- **top**: `heap[0]`, hanya boleh dibaca jika heap tidak kosong.
+- **size**: `heap.size()` (Python: `len(heap)`).
+- **empty**: `heap.empty()` (Python: `len(heap) == 0`).
+
+Sift up paling jauh berjalan dari daun ke root, dan sift down paling jauh dari root ke daun. Setiap pertukaran memindahkan elemen satu level, jadi banyak pertukaran paling banyak sama dengan tinggi tree, yaitu ⌊log₂ n⌋. Batas ini dijamin, karena heap selalu complete.
+
+| Operasi | Kompleksitas |
+| --- | --- |
+| push | O(log n) |
+| pop | O(log n) |
+| top, size, empty | O(1) |
+| Mencari nilai sembarang | O(n) |
+
+Dengan sejuta elemen, setiap push dan pop paling banyak melakukan 19 pertukaran. Sebaliknya, heap tidak dibuat untuk mencari nilai sembarang, karena satu-satunya nilai yang posisinya pasti adalah yang terkecil.
+
+## Program lengkap: min-heap buatan sendiri
+
+Program berikut menggabungkan `push`, `pop`, dan `top`, lalu menjalankan contoh yang sama: tujuh push, kemudian dua pop.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+#include <utility>
+using namespace std;
+
+void push(vector<int>& heap, int x) {
+    heap.push_back(x);
+    int i = heap.size() - 1;
+    while (i > 0) {                        // sift up
+        int parent = (i - 1) / 2;
+        if (heap[i] < heap[parent]) {
+            swap(heap[i], heap[parent]);
+            i = parent;
+        } else {
+            break;
+        }
+    }
+}
+
+int top(const vector<int>& heap) {         // syarat: heap tidak kosong
+    return heap[0];
+}
+
+int pop(vector<int>& heap) {               // syarat: heap tidak kosong
+    int terkecil = heap[0];
+    heap[0] = heap.back();
+    heap.pop_back();
+    int n = heap.size();
+    int i = 0;
+    while (true) {                         // sift down
+        int kiri = 2 * i + 1;
+        int kanan = 2 * i + 2;
+        if (kiri >= n) {
+            break;
+        }
+        int kecil = kiri;
+        if (kanan < n && heap[kanan] < heap[kiri]) {
+            kecil = kanan;
+        }
+        if (heap[kecil] < heap[i]) {
+            swap(heap[i], heap[kecil]);
+            i = kecil;
+        } else {
+            break;
+        }
+    }
+    return terkecil;
+}
+
+void cetak(const vector<int>& heap) {
+    cout << "Isi heap:";
+    for (int x : heap) {
+        cout << " " << x;
+    }
+    cout << endl;
+}
+
+int main() {
+    vector<int> data = {35, 20, 50, 10, 40, 5, 30};
+    vector<int> heap;                      // heap kosong
+    for (int x : data) {
+        push(heap, x);
+    }
+    cetak(heap);
+
+    cout << "Keluar: " << pop(heap) << endl;
+    cetak(heap);
+    cout << "Keluar: " << pop(heap) << endl;
+    cetak(heap);
+
+    cout << "Top: " << top(heap) << ", banyak elemen: " << heap.size() << endl;
+    return 0;
+}
+```
+
+```python tab="Python"
+def push(heap, x):
+    heap.append(x)
+    i = len(heap) - 1
+    while i > 0:                           # sift up
+        parent = (i - 1) // 2
+        if heap[i] < heap[parent]:
+            heap[i], heap[parent] = heap[parent], heap[i]
+            i = parent
+        else:
+            break
+
+
+def top(heap):                             # syarat: heap tidak kosong
+    return heap[0]
+
+
+def pop(heap):                             # syarat: heap tidak kosong
+    terkecil = heap[0]
+    heap[0] = heap[-1]
+    heap.pop()
+    n = len(heap)
+    i = 0
+    while True:                            # sift down
+        kiri = 2 * i + 1
+        kanan = 2 * i + 2
+        if kiri >= n:
+            break
+        kecil = kiri
+        if kanan < n and heap[kanan] < heap[kiri]:
+            kecil = kanan
+        if heap[kecil] < heap[i]:
+            heap[i], heap[kecil] = heap[kecil], heap[i]
+            i = kecil
+        else:
+            break
+    return terkecil
+
+
+data = [35, 20, 50, 10, 40, 5, 30]
+heap = []                                  # heap kosong
+for x in data:
+    push(heap, x)
+print("Isi heap:", *heap)
+
+print("Keluar:", pop(heap))
+print("Isi heap:", *heap)
+print("Keluar:", pop(heap))
+print("Isi heap:", *heap)
+
+print(f"Top: {top(heap)}, banyak elemen: {len(heap)}")
+```
+
+```txt title="Output"
+Isi heap: 5 20 10 35 40 50 30
+Keluar: 5
+Isi heap: 10 20 30 35 40 50
+Keluar: 10
+Isi heap: 20 35 30 50 40
+Top: 20, banyak elemen: 5
+```
+
+Isi vector setelah setiap langkah sama persis dengan tabel jejak di atas. Ubah isi `data`, lalu jalankan lagi untuk mencoba urutan lain.
+
+## Priority queue dan heap
+
+**Priority queue** adalah sebuah **gagasan**: wadah yang bisa diisi, dan yang keluar selalu elemen berprioritas tertinggi. **Heap** adalah **cara** yang paling umum untuk mewujudkannya. Hubungannya sama seperti [stack](/docs/cpp/stack) dan vector: stack adalah aturan LIFO, sedangkan vector adalah salah satu tempat untuk menyimpannya. Priority queue juga bisa diwujudkan dengan vector terurut atau `set`, tetapi heap paling sederhana dan cepat untuk dua operasi utamanya.
+
+`priority_queue` di C++ dan `heapq` di Python sama-sama heap yang disimpan di vector atau list, persis seperti buatanmu tadi.
+
+### Min-heap atau max-heap?
+
+Materi ini memakai min-heap karena dua alasan. Pertama, banyak masalah menganggap angka **terkecil** sebagai yang terpenting: tingkat kegawatan 1, waktu paling awal, berkas paling kecil, atau jarak paling dekat pada graph berbobot (algoritma Dijkstra, yang disinggung lagi di materi [BFS](/docs/cpp/bfs)). Kedua, `heapq` di Python adalah min-heap, sehingga kode buatan kita berperilaku sama dengannya.
+
+`priority_queue` di C++ justru max-heap secara bawaan: `top()` adalah elemen **terbesar**. Berikut cara mendapatkan urutan yang lain:
+
+| | Terkecil keluar dulu (min-heap) | Terbesar keluar dulu (max-heap) |
+| --- | --- | --- |
+| Heap buatan sendiri | seperti di materi ini | balik ketiga perbandingan antarelemen dari `<` menjadi `>` |
+| C++ `priority_queue` | `priority_queue<int, vector<int>, greater<int>>` | `priority_queue<int>` (bawaan) |
+| Python `heapq` | bawaan | simpan `-x`, lalu balik lagi tandanya saat keluar |
+
+Pembanding pada `priority_queue` menjawab pertanyaan "apakah `a` keluar **belakangan** dibanding `b`?". Pembanding bawaannya adalah `less`: yang lebih kecil keluar belakangan, jadi yang terbesar keluar dulu. Dengan `greater`, yang lebih besar keluar belakangan, jadi yang terkecil keluar dulu. Kedengarannya terbalik, jadi ingat saja pasangannya: `greater` untuk min-heap.
+
+Trik `-x` juga berlaku untuk heap buatan sendiri. Push `-x` ke min-heap, maka nilai yang paling negatif, yaitu yang aslinya terbesar, akan keluar lebih dulu.
+
+### Isi heap pustaka sama dengan milik kita
+
+`heapq` bekerja langsung pada list biasa, jadi isinya bisa dicetak. Isi `priority_queue` di C++ tidak bisa dilihat, tetapi standar C++ menetapkan bahwa `push` pada `priority_queue` sama dengan `push_back` lalu `push_heap`, dan `pop` sama dengan `pop_heap` lalu `pop_back`. Kedua fungsi itu berasal dari `<algorithm>` dan bisa dipakai langsung pada vector biasa:
+
+- `push_heap(v.begin(), v.end(), greater<int>())` menjalankan sift up untuk elemen terakhir `v`.
+- `pop_heap(v.begin(), v.end(), greater<int>())` menukar root dengan elemen terakhir, lalu menjalankan sift down pada sisanya. Setelah itu, nilai terkecil berada di `v.back()` dan bisa dibuang dengan `pop_back()`.
+
+```cpp tab="C++"
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <functional>
+using namespace std;
+
+void cetak(const vector<int>& heap) {
+    cout << "Isi heap:";
+    for (int x : heap) {
+        cout << " " << x;
+    }
+    cout << endl;
+}
+
+int main() {
+    vector<int> data = {35, 20, 50, 10, 40, 5, 30};
+    vector<int> heap;
+    for (int x : data) {
+        heap.push_back(x);
+        push_heap(heap.begin(), heap.end(), greater<int>());   // sift up elemen terakhir
+    }
+    cetak(heap);
+
+    pop_heap(heap.begin(), heap.end(), greater<int>());        // terkecil pindah ke ujung
+    cout << "Keluar: " << heap.back() << endl;
+    heap.pop_back();
+    cetak(heap);
+    return 0;
+}
+```
+
+```python tab="Python"
+import heapq
+
+data = [35, 20, 50, 10, 40, 5, 30]
+pq = []
+for x in data:
+    heapq.heappush(pq, x)
+print("Isi heap:", *pq)
+
+print("Keluar:", heapq.heappop(pq))
+print("Isi heap:", *pq)
+```
+
+```txt title="Output"
+Isi heap: 5 20 10 35 40 50 30
+Keluar: 5
+Isi heap: 10 20 30 35 40 50
+```
+
+Hasilnya sama persis dengan tabel jejak di atas. Detail sift down di kedua pustaka sedikit berbeda dari milik kita, misalnya cara memilih anak saat kedua anak sama besar. Karena itu, pada data yang berisi nilai kembar, susunan vector setelah pop bisa berbeda. Namun aturan heap selalu terpenuhi, dan nilai yang keluar selalu yang terkecil.
+
+### Prioritas berupa pasangan
+
+Di IGD, yang disimpan bukan sekadar angka, tetapi pasien beserta prioritasnya. C++ menyediakan `pair` dari pustaka `<utility>`, yaitu dua nilai yang dibungkus menjadi satu. Isinya dibaca dengan `.first` dan `.second`, yang sudah sekilas kamu lihat saat menelusuri isi map di materi [Map & Set](/docs/cpp/map-dan-set). Python memakai tuple, yang sudah kamu kenal dari materi [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan#beberapa-kunci-sekaligus).
+
+```cpp tab="C++"
+#include <utility>
+
+pair<int, string> p = {2, "Citra"};            // (prioritas, nama)
+cout << p.first << " " << p.second << endl;    // 2 Citra
+```
+
+```python tab="Python"
+p = (2, "Citra")                               # (prioritas, nama)
+print(p[0], p[1])                              # 2 Citra
+```
+
+Dua pair dibandingkan dengan cara yang sama seperti dua tuple: elemen pertama lebih dulu, dan elemen kedua baru diperiksa jika elemen pertama sama. Jadi `(1, "Dodi")` lebih kecil dari `(2, "Ani")`, dan `(2, "Bayu")` lebih kecil dari `(2, "Citra")`. Karena itu, pasangan `(prioritas, nama)` bisa langsung dimasukkan ke antrean prioritas tanpa pembanding tambahan, dan pasien otomatis diurutkan menurut prioritasnya lebih dulu.
+
+Program berikut menjalankan perintah `DATANG nama prioritas` (pasien masuk antrean) dan `PANGGIL` (dokter memanggil pasien paling gawat), seperti simulasi loket di materi Queue:
+
+```cpp tab="C++" input="9\nDATANG Citra 2\nDATANG Dodi 3\nDATANG Ani 1\nDATANG Bayu 2\nPANGGIL\nPANGGIL\nPANGGIL\nPANGGIL\nPANGGIL"
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <string>
+#include <utility>
+#include <functional>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    // berisi pasangan (prioritas, nama), prioritas terkecil keluar dulu
+    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> igd;
+
+    for (int i = 0; i < n; i++) {
+        string perintah;
+        cin >> perintah;
+        if (perintah == "DATANG") {
+            string nama;
+            int prioritas;
+            cin >> nama >> prioritas;
+            igd.push({prioritas, nama});
+        } else if (perintah == "PANGGIL") {
+            if (igd.empty()) {
+                cout << "Tidak ada pasien" << endl;
+            } else {
+                pair<int, string> p = igd.top();
+                igd.pop();
+                cout << "Memanggil " << p.second << " (prioritas " << p.first << ")" << endl;
+            }
+        }
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+import heapq
+
+n = int(input())
+igd = []                                   # berisi tuple (prioritas, nama)
+
+for i in range(n):
+    bagian = input().split()
+    if bagian[0] == "DATANG":
+        nama = bagian[1]
+        prioritas = int(bagian[2])
+        heapq.heappush(igd, (prioritas, nama))
+    elif bagian[0] == "PANGGIL":
+        if len(igd) == 0:
+            print("Tidak ada pasien")
+        else:
+            prioritas, nama = heapq.heappop(igd)
+            print(f"Memanggil {nama} (prioritas {prioritas})")
+```
+
+```txt title="Contoh input"
+9
+DATANG Citra 2
+DATANG Dodi 3
+DATANG Ani 1
+DATANG Bayu 2
+PANGGIL
+PANGGIL
+PANGGIL
+PANGGIL
+PANGGIL
+```
+
+```txt title="Contoh output"
+Memanggil Ani (prioritas 1)
+Memanggil Bayu (prioritas 2)
+Memanggil Citra (prioritas 2)
+Memanggil Dodi (prioritas 3)
+Tidak ada pasien
+```
+
+`igd.push({prioritas, nama})` membuat pair langsung dari kurung kurawal. Jenis antreannya memang panjang. Bacalah dari dalam: isinya `pair<int, string>`, disimpan di `vector<pair<int, string>>`, dan diurutkan dengan `greater` agar yang terkecil keluar dulu.
+
+Perhatikan Citra dan Bayu. Keduanya berprioritas 2, dan Citra datang lebih dulu. Namun Bayu dipanggil lebih dulu, karena saat elemen pertama sama, pasangan dibandingkan dengan elemen kedua, dan "Bayu" lebih dulu menurut abjad daripada "Citra". Di IGD sungguhan, pasien dengan prioritas yang sama seharusnya dilayani sesuai urutan datang. Kamu akan memperbaikinya di Latihan.
+
+## Heapsort
+
+Heap juga bisa dipakai untuk mengurutkan. Masukkan semua data ke min-heap, lalu lakukan pop berulang kali. Setiap pop mengeluarkan yang terkecil di antara yang tersisa, jadi hasilnya terurut naik. Algoritma ini disebut **heapsort**. Dengan fungsi `push` dan `pop` di atas, cukup beberapa baris saja:
+
+```cpp tab="C++"
+vector<int> heapsort(const vector<int>& data) {
+    vector<int> heap;
+    for (int x : data) {
+        push(heap, x);
+    }
+    vector<int> hasil;
+    while (!heap.empty()) {
+        hasil.push_back(pop(heap));        // terkecil di antara yang tersisa
+    }
+    return hasil;
+}
+```
+
+```python tab="Python"
+def heapsort(data):
+    heap = []
+    for x in data:
+        push(heap, x)
+    hasil = []
+    while len(heap) > 0:
+        hasil.append(pop(heap))            # terkecil di antara yang tersisa
+    return hasil
+```
+
+Ada `n` kali push dan `n` kali pop, masing-masing O(log n), jadi totalnya O(n log n), sama dengan merge sort di materi [Divide & Conquer](/docs/cpp/divide-and-conquer). Kelebihan heapsort, ia **selalu** O(n log n) dan tidak punya kasus terburuk O(n²) seperti quick sort. Itulah sebabnya `sort` di g++ beralih ke heapsort jika rekursi quick sort-nya mulai terlalu dalam. Kekurangannya, heapsort tidak [stabil](/docs/cpp/algoritma-pengurutan#pengurutan-yang-stabil).
+
+Versi di atas memakai vector kedua. Heapsort yang sesungguhnya bekerja **di tempat**, di dalam vector data itu sendiri, dengan max-heap: elemen terbesar ditukar ke ujung vector, bagian heap menyusut satu, lalu root yang baru di-sift down. Kamu akan menulisnya di Latihan.
+
+## Kesalahan yang sering terjadi
+
+### Mencampur rumus indeks
+
+Rumus untuk heap yang dimulai dari indeks 1 tidak boleh dipakai pada vector yang root-nya di indeks 0.
+
+```cpp
+// ✗ rumus untuk root di indeks 1
+int kiri = 2 * i;
+int kanan = 2 * i + 1;
+int parent = i / 2;
+
+// ✓ rumus untuk root di indeks 0
+int kiri = 2 * i + 1;
+int kanan = 2 * i + 2;
+int parent = (i - 1) / 2;
+```
+
+Dengan rumus yang salah, anak kiri root (indeks 0) adalah indeks 0 juga, yaitu root itu sendiri. `10` di indeks 2 dianggap anak `20` di indeks 1, padahal keduanya bersaudara. Program tetap berjalan tanpa pesan error, tetapi hasilnya sesekali salah, sehingga kesalahan ini sulit ditemukan.
+
+### Menghitung parent dari root
+
+Sift up harus berhenti di root, karena root tidak punya parent. Jika kondisi `i > 0` dilupakan, program menghitung parent dari indeks 0. Hasilnya berbeda di kedua bahasa, karena pembagian bulat bilangan negatif berbeda (lihat [Operator Aritmatika](/docs/cpp/operator-aritmatika)):
+
+- Di C++, `(0 - 1) / 2` bernilai `0`. Root dibandingkan dengan dirinya sendiri, hasilnya `false`, dan perulangan berhenti. Programnya benar, tetapi hanya karena kebetulan.
+- Di Python, `(0 - 1) // 2` bernilai `-1`, dan `heap[-1]` adalah elemen **terakhir**. Root bisa ditukar dengan elemen terakhir, dan nilai terkecil terlempar ke bawah tanpa pesan error apa pun.
+
+Tulis kondisi `i > 0` secara eksplisit di kedua bahasa. Kamu akan melihat akibatnya di Latihan.
+
+### Lupa sift up atau sift down
+
+`push_back` tanpa sift up, atau memindahkan elemen terakhir ke root tanpa sift down, menghasilkan vector yang bukan heap. Akibatnya tidak langsung terlihat. Program tetap berjalan, tetapi `top` mulai mengembalikan nilai yang salah. Misalnya, push 35 lalu 20 tanpa sift up menghasilkan `[35, 20]`, dan `top` mengembalikan 35.
+
+### Memilih anak yang salah saat sift down
+
+Misalkan setelah pop, isi heap menjadi `[30, 20, 10]`. Jika 30 selalu ditukar dengan anak kiri, hasilnya `[20, 30, 10]`. Sekarang 20 menjadi parent dari 10, aturan heap rusak, dan `top` mengembalikan 20 padahal 10 masih ada. Bandingkan dulu kedua anak, lalu tukar dengan yang lebih kecil.
+
+Jangan lupa juga memeriksa `kanan < n` sebelum membaca `heap[kanan]`. Node di ujung bisa saja hanya punya anak kiri. Tanpa pemeriksaan itu, Python berhenti dengan `IndexError: list index out of range`, sedangkan C++ diam-diam membaca memori di luar vector.
+
+### Mengambil dari heap kosong
+
+`top` dan `pop` membaca `heap[0]`. Pada heap kosong, Python berhenti dengan `IndexError: list index out of range` (atau `IndexError: index out of range` dari `heapq.heappop`). Di C++, akibatnya [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior), sama seperti `top()` atau `pop()` pada `priority_queue` yang kosong. Selalu periksa `empty()` lebih dulu, seperti pada contoh IGD.
+
+### Mengira isi heap sudah terurut
+
+Isi vector heap tidak terurut, misalnya `[5, 20, 10, 35, 40, 50, 30]`. Hanya `heap[0]` yang pasti terkecil. Nilai terkecil kedua pasti salah satu anak root (indeks 1 atau 2), dan elemen terakhir belum tentu terbesar. Jika kamu butuh seluruh isi secara terurut, lakukan pop satu per satu, atau urutkan salinannya dengan `sort`.
+
+## Rangkuman
+
+- **Priority queue** adalah gagasan wadah yang selalu mengeluarkan elemen berprioritas tertinggi. **Heap** adalah cara yang paling umum untuk mewujudkannya.
+- Heap adalah **complete binary tree** (setiap level penuh, kecuali level terakhir yang terisi dari kiri tanpa celah) yang memenuhi **aturan heap**. Pada min-heap, setiap parent tidak lebih besar dari anaknya, sehingga root selalu terkecil. Max-heap adalah kebalikannya.
+- Heap disimpan di vector tanpa pointer. Dengan indeks mulai 0, parent dari `i` ada di `(i - 1) / 2`, anak kirinya di `2i + 1`, dan anak kanannya di `2i + 2`. Anak hanya ada jika indeksnya lebih kecil dari `n`.
+- **push**: taruh di ujung vector, lalu **sift up** selama elemen itu lebih kecil dari parent-nya. Berhenti di root.
+- **pop**: simpan root, pindahkan elemen terakhir ke root, buang elemen terakhir, lalu **sift down** dengan menukar elemen itu dengan anak terkecilnya (kiri jika sama) selama anak itu lebih kecil.
+- Tinggi heap selalu ⌊log₂ n⌋, jadi push dan pop O(log n), sedangkan top, size, dan empty O(1). Mencari nilai sembarang tetap O(n).
+- `priority_queue` di C++ bawaannya max-heap. Pakai `greater<int>` untuk min-heap. `heapq` di Python adalah min-heap. Simpan `-x` untuk max-heap.
+- `pair` di C++ dan tuple di Python dibandingkan mulai dari elemen pertama, sehingga cocok untuk menyimpan `(prioritas, data)`.
+- **Heapsort**: push semua data, lalu pop semuanya. Waktunya selalu O(n log n).
+- Periksa `empty()` sebelum `top` atau `pop`, dan jangan menghitung parent dari root.
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, input berisi `n` di baris pertama dan `n` bilangan bulat di baris kedua (`1 ≤ n ≤ 100.000`), dan deretan bilangan dicetak dalam satu baris, dipisah satu spasi. Heap pada soal mengikuti aturan persis seperti di materi: indeks mulai 0, sift up hanya menukar jika elemen **lebih kecil** dari parent-nya, dan sift down memilih anak kiri jika kedua anak sama.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Jejak push dan pop">
+  Tanpa menjalankan program, masukkan `12 6 14 5 3 14 5` satu per satu ke min-heap yang awalnya kosong. Tuliskan isi vector setelah setiap push. Setelah itu, lakukan satu kali pop. Nilai berapa yang keluar, dan bagaimana isi vector sesudahnya?
+
+  <Petunjuk>
+    Gambar tree-nya di samping vector, dan perbarui keduanya setiap langkah. Perhatikan push 14 yang kedua dan pop-nya: apa yang terjadi jika nilainya **sama**?
+  </Petunjuk>
+
+  <Pembahasan>
+    | Push | Sift up | Isi vector sesudahnya |
+    | --- | --- | --- |
+    | 12 | sudah di root | `[12]` |
+    | 6 | 6 < 12: tukar indeks 1 dan 0 | `[6, 12]` |
+    | 14 | 14 tidak lebih kecil dari 6: berhenti | `[6, 12, 14]` |
+    | 5 | 5 < 12: tukar indeks 3 dan 1, lalu 5 < 6: tukar indeks 1 dan 0 | `[5, 6, 14, 12]` |
+    | 3 | 3 < 6: tukar indeks 4 dan 1, lalu 3 < 5: tukar indeks 1 dan 0 | `[3, 5, 14, 12, 6]` |
+    | 14 | parent-nya (indeks 2) juga 14, tidak lebih kecil: berhenti | `[3, 5, 14, 12, 6, 14]` |
+    | 5 | 5 < 14: tukar indeks 6 dan 2, lalu 5 tidak lebih kecil dari 3: berhenti | `[3, 5, 5, 12, 6, 14, 14]` |
+
+    ```txt
+                3
+             /     \
+            5       5
+          /  \     /  \
+        12    6   14   14
+    ```
+
+    Pop mengeluarkan **3**. Elemen terakhir (14) pindah ke root, sehingga isinya `[14, 5, 5, 12, 6, 14]`. Kedua anak root sama-sama 5, jadi yang dipilih anak kiri (indeks 1). Karena 5 < 14, keduanya ditukar: `[5, 14, 5, 12, 6, 14]`. Di indeks 1, anak-anaknya 12 (indeks 3) dan 6 (indeks 4). Anak terkecilnya 6, dan 6 < 14, jadi ditukar lagi: `[5, 6, 5, 12, 14, 14]`. Indeks 4 tidak punya anak, jadi sift down berhenti.
+
+    ```txt
+                5
+             /     \
+            6       5
+          /  \     /
+        12    14  14
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Min-heap atau bukan?">
+  Baca sebuah vector, lalu periksa apakah isinya sudah memenuhi aturan min-heap. Cetak `YA` jika memenuhi. Jika tidak, cetak `TIDAK` diikuti indeks **terkecil** yang nilainya lebih kecil dari nilai parent-nya.
+
+  ```txt title="Contoh input"
+  6
+  3 8 5 9 10 4
+  ```
+
+  ```txt title="Contoh output"
+  TIDAK 5
+  ```
+
+  ```txt title="Contoh input 2"
+  7
+  5 20 10 35 40 50 30
+  ```
+
+  ```txt title="Contoh output 2"
+  YA
+  ```
+
+  ```txt title="Contoh input 3"
+  5
+  4 4 9 4 6
+  ```
+
+  ```txt title="Contoh output 3"
+  YA
+  ```
+
+  <Pembahasan>
+    Cukup bandingkan setiap node dengan parent-nya, mulai dari indeks 1, karena root tidak punya parent. Pada contoh 1, `4` di indeks 5 lebih besar dari root (3), tetapi lebih kecil dari parent-nya sendiri, yaitu `5` di indeks 2. Pada contoh 3, beberapa node sama dengan parent-nya, dan itu tetap sah. Aturan min-heap adalah "tidak lebih besar", bukan "lebih kecil".
+
+    Memeriksa dari sisi parent juga bisa, yaitu membandingkan setiap node dengan anak kiri dan kanannya. Namun cara itu harus memastikan indeks anaknya masih kurang dari `n`. Dari sisi anak, setiap indeks `i ≥ 1` pasti punya parent.
+
+    ```cpp tab="C++" input="6\n3 8 5 9 10 4"
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+
+        int salah = -1;                        // indeks pertama yang melanggar
+        for (int i = 1; i < n; i++) {          // mulai dari 1, root tidak punya parent
+            if (a[i] < a[(i - 1) / 2]) {
+                salah = i;
+                break;
+            }
+        }
+
+        if (salah == -1) {
+            cout << "YA" << endl;
+        } else {
+            cout << "TIDAK " << salah << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    a = list(map(int, input().split()))
+
+    salah = -1                                 # indeks pertama yang melanggar
+    for i in range(1, n):                      # mulai dari 1, root tidak punya parent
+        if a[i] < a[(i - 1) // 2]:
+            salah = i
+            break
+
+    if salah == -1:
+        print("YA")
+    else:
+        print("TIDAK", salah)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Sift up yang kebablasan">
+  Program berikut seharusnya membangun min-heap dari `35 20 50 10 40 5 30`. Versi C++ mencetak hasil yang benar, yaitu `Isi heap: 5 20 10 35 40 50 30` dan `Top: 5`. Versi Python yang ditulis dengan cara yang sama justru mencetak `Isi heap: 50 35 20 10 40 5 30` dan `Top: 50`. Jelaskan penyebabnya, jelaskan kenapa versi C++ tampak benar, lalu perbaiki keduanya.
+
+  ```cpp tab="C++" check="no-compare"
+  #include <iostream>
+  #include <vector>
+  #include <utility>
+  using namespace std;
+
+  void push(vector<int>& heap, int x) {
+      heap.push_back(x);
+      int i = heap.size() - 1;
+      while (heap[i] < heap[(i - 1) / 2]) {
+          int p = (i - 1) / 2;
+          swap(heap[i], heap[p]);
+          i = p;
+      }
+  }
+
+  int main() {
+      vector<int> data = {35, 20, 50, 10, 40, 5, 30};
+      vector<int> heap;
+      for (int x : data) {
+          push(heap, x);
+      }
+      cout << "Isi heap:";
+      for (int x : heap) {
+          cout << " " << x;
+      }
+      cout << endl;
+      cout << "Top: " << heap[0] << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  def push(heap, x):
+      heap.append(x)
+      i = len(heap) - 1
+      while heap[i] < heap[(i - 1) // 2]:
+          p = (i - 1) // 2
+          heap[i], heap[p] = heap[p], heap[i]
+          i = p
+
+
+  data = [35, 20, 50, 10, 40, 5, 30]
+  heap = []
+  for x in data:
+      push(heap, x)
+  print("Isi heap:", *heap)
+  print("Top:", heap[0])
+  ```
+
+  <Petunjuk>
+    Ikuti push kedua (20) di versi Python. Setelah 20 naik ke indeks 0, berapa nilai `(i - 1) // 2`, dan elemen mana yang ditunjuk oleh indeks itu?
+  </Petunjuk>
+
+  <Pembahasan>
+    Perulangan tidak pernah memeriksa apakah elemen sudah sampai di root. Pada push 20, isi list menjadi `[35, 20]`. Karena 20 < 35, keduanya ditukar menjadi `[20, 35]`, dan `i` menjadi 0. Perulangan lalu menghitung parent dari root:
+
+    - **Python:** `(0 - 1) // 2` bernilai `-1`, karena `//` membulatkan ke bawah. `heap[-1]` adalah elemen terakhir, yaitu 35. Karena 20 < 35, keduanya ditukar lagi, dan isinya kembali menjadi `[35, 20]`. Nilai terkecil terlempar keluar dari root. Kesalahan yang sama terulang setiap kali sebuah elemen sampai di root, sehingga hasil akhirnya kacau.
+    - **C++:** `(0 - 1) / 2` bernilai `0`, karena pembagian bulat di C++ memotong ke arah nol. Root dibandingkan dengan dirinya sendiri, `heap[0] < heap[0]` bernilai salah, dan perulangan berhenti. Hasilnya benar hanya karena kebetulan.
+
+    Perbaikannya adalah menghentikan sift up di root dengan kondisi `i > 0`, yang diperiksa **sebelum** parent dihitung. Short-circuit pada `&&` dan `and` membuat bagian kanan tidak dijalankan saat `i` sudah 0.
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <vector>
+    #include <utility>
+    using namespace std;
+
+    void push(vector<int>& heap, int x) {
+        heap.push_back(x);
+        int i = heap.size() - 1;
+        while (i > 0 && heap[i] < heap[(i - 1) / 2]) {   // berhenti di root
+            int p = (i - 1) / 2;
+            swap(heap[i], heap[p]);
+            i = p;
+        }
+    }
+
+    int main() {
+        vector<int> data = {35, 20, 50, 10, 40, 5, 30};
+        vector<int> heap;
+        for (int x : data) {
+            push(heap, x);
+        }
+        cout << "Isi heap:";
+        for (int x : heap) {
+            cout << " " << x;
+        }
+        cout << endl;
+        cout << "Top: " << heap[0] << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def push(heap, x):
+        heap.append(x)
+        i = len(heap) - 1
+        while i > 0 and heap[i] < heap[(i - 1) // 2]:   # berhenti di root
+            p = (i - 1) // 2
+            heap[i], heap[p] = heap[p], heap[i]
+            i = p
+
+
+    data = [35, 20, 50, 10, 40, 5, 30]
+    heap = []
+    for x in data:
+        push(heap, x)
+    print("Isi heap:", *heap)
+    print("Top:", heap[0])
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Max-heap buatan sendiri">
+  Ubah `push` dan `pop` dari materi menjadi **max-heap**: elemen naik jika **lebih besar** dari parent-nya, dan sift down memilih anak yang lebih besar (kiri jika sama). Masukkan semua bilangan input sesuai urutan, lalu cetak isi vector di baris pertama. Setelah itu, lakukan pop sampai heap kosong dan cetak nilai-nilai yang keluar di baris kedua.
+
+  ```txt title="Contoh input"
+  7
+  35 20 50 10 40 5 30
+  ```
+
+  ```txt title="Contoh output"
+  50 40 35 10 20 5 30
+  50 40 35 30 20 10 5
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  3 7 7 1 9
+  ```
+
+  ```txt title="Contoh output 2"
+  9 7 7 1 3
+  9 7 7 3 1
+  ```
+
+  <Petunjuk>
+    Bagian yang mengurus indeks, yaitu rumus parent dan anak, pemeriksaan `i > 0`, dan pemeriksaan `kiri >= n`, tidak berubah sama sekali. Yang berubah hanya perbandingan antara dua **elemen** heap. Ada berapa perbandingan seperti itu di `push` dan `pop`?
+  </Petunjuk>
+
+  <Pembahasan>
+    Ada tiga perbandingan antarelemen, dan ketiganya dibalik dari `<` menjadi `>`: satu di sift up, dan dua di sift down (memilih anak dan memutuskan tukar). Kesalahan yang sering terjadi adalah hanya membalik perbandingan di `push`. Baris pertama output tetap benar, tetapi pop mengeluarkan nilai dalam urutan yang salah, karena sift down masih menaikkan anak yang lebih kecil.
+
+    Pada contoh 2, push 7 yang kedua masuk di indeks 2 dengan parent 7 di indeks 0. Nilainya sama, jadi tidak ditukar. Nilai yang keluar sudah terurut turun, sehingga program ini sekaligus menjadi heapsort dengan urutan turun.
+
+    ```cpp tab="C++" input="7\n35 20 50 10 40 5 30"
+    #include <iostream>
+    #include <vector>
+    #include <utility>
+    using namespace std;
+
+    void push(vector<int>& heap, int x) {
+        heap.push_back(x);
+        int i = heap.size() - 1;
+        while (i > 0) {
+            int parent = (i - 1) / 2;
+            if (heap[i] > heap[parent]) {              // dibalik: naik jika lebih besar
+                swap(heap[i], heap[parent]);
+                i = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+    int pop(vector<int>& heap) {
+        int terbesar = heap[0];
+        heap[0] = heap.back();
+        heap.pop_back();
+        int n = heap.size();
+        int i = 0;
+        while (true) {
+            int kiri = 2 * i + 1;
+            int kanan = 2 * i + 2;
+            if (kiri >= n) {
+                break;
+            }
+            int besar = kiri;                          // anak terbesar, kiri jika sama
+            if (kanan < n && heap[kanan] > heap[kiri]) {   // dibalik
+                besar = kanan;
+            }
+            if (heap[besar] > heap[i]) {               // dibalik
+                swap(heap[i], heap[besar]);
+                i = besar;
+            } else {
+                break;
+            }
+        }
+        return terbesar;
+    }
+
+    void cetakVector(const vector<int>& v) {
+        for (int i = 0; i < (int)v.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << v[i];
+        }
+        cout << endl;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> heap;
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            push(heap, x);
+        }
+        cetakVector(heap);
+
+        vector<int> keluar;
+        while (!heap.empty()) {
+            keluar.push_back(pop(heap));
+        }
+        cetakVector(keluar);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def push(heap, x):
+        heap.append(x)
+        i = len(heap) - 1
+        while i > 0:
+            parent = (i - 1) // 2
+            if heap[i] > heap[parent]:                 # dibalik: naik jika lebih besar
+                heap[i], heap[parent] = heap[parent], heap[i]
+                i = parent
+            else:
+                break
+
+
+    def pop(heap):
+        terbesar = heap[0]
+        heap[0] = heap[-1]
+        heap.pop()
+        n = len(heap)
+        i = 0
+        while True:
+            kiri = 2 * i + 1
+            kanan = 2 * i + 2
+            if kiri >= n:
+                break
+            besar = kiri                               # anak terbesar, kiri jika sama
+            if kanan < n and heap[kanan] > heap[kiri]:     # dibalik
+                besar = kanan
+            if heap[besar] > heap[i]:                  # dibalik
+                heap[i], heap[besar] = heap[besar], heap[i]
+                i = besar
+            else:
+                break
+        return terbesar
+
+
+    n = int(input())
+    heap = []
+    for x in map(int, input().split()):
+        push(heap, x)
+    print(*heap)
+
+    keluar = []
+    while len(heap) > 0:
+        keluar.append(pop(heap))
+    print(*keluar)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Antrean IGD yang adil">
+  Ubah program IGD di materi agar pasien dengan prioritas yang **sama** dipanggil sesuai urutan datang. Format perintah dan output-nya tetap sama: `DATANG nama prioritas` dan `PANGGIL`, dengan output `Memanggil nama (prioritas p)` atau `Tidak ada pasien`.
+
+  ```txt title="Contoh input"
+  9
+  DATANG Citra 2
+  DATANG Dodi 3
+  DATANG Ani 1
+  DATANG Bayu 2
+  PANGGIL
+  PANGGIL
+  PANGGIL
+  PANGGIL
+  PANGGIL
+  ```
+
+  ```txt title="Contoh output"
+  Memanggil Ani (prioritas 1)
+  Memanggil Citra (prioritas 2)
+  Memanggil Bayu (prioritas 2)
+  Memanggil Dodi (prioritas 3)
+  Tidak ada pasien
+  ```
+
+  <Petunjuk>
+    Beri setiap pasien nomor urut kedatangan: 0, 1, 2, dan seterusnya. Jadikan nomor itu elemen kedua pasangan, menggantikan nama. Nomor tidak pernah kembar, jadi perbandingan pasangan tidak pernah perlu melihat nama. Di C++, simpan nama di sebuah vector, dengan nomor kedatangan sebagai indeksnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Antrean sekarang berisi pasangan `(prioritas, nomor kedatangan)`. Jika prioritasnya sama, nomor yang lebih kecil, yaitu yang datang lebih dulu, keluar lebih dulu. Citra datang ke-0 dan Bayu ke-3, jadi `(2, 0)` lebih kecil dari `(2, 3)`.
+
+    Di C++, nama disimpan terpisah di `namaPasien`. Nomor kedatangan seorang pasien sama dengan panjang `namaPasien` tepat sebelum namanya ditambahkan. Di Python, tuple boleh berisi tiga elemen, jadi namanya bisa ikut disimpan sebagai elemen ketiga. Karena nomor kedatangan tidak pernah kembar, elemen ketiga itu tidak pernah ikut dibandingkan.
+
+    Cara "tambahkan nomor urut sebagai elemen kedua" ini juga membuat antrean prioritas menjadi stabil, seperti pengurutan yang stabil di materi [Algoritma Pengurutan](/docs/cpp/algoritma-pengurutan#pengurutan-yang-stabil).
+
+    ```cpp tab="C++" input="9\nDATANG Citra 2\nDATANG Dodi 3\nDATANG Ani 1\nDATANG Bayu 2\nPANGGIL\nPANGGIL\nPANGGIL\nPANGGIL\nPANGGIL"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    #include <string>
+    #include <utility>
+    #include <functional>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<string> namaPasien;             // namaPasien[k] = nama pasien yang datang ke-k
+        // berisi pasangan (prioritas, nomor kedatangan)
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> igd;
+
+        for (int i = 0; i < n; i++) {
+            string perintah;
+            cin >> perintah;
+            if (perintah == "DATANG") {
+                string nama;
+                int prioritas;
+                cin >> nama >> prioritas;
+                int nomor = namaPasien.size();
+                namaPasien.push_back(nama);
+                igd.push({prioritas, nomor});
+            } else if (perintah == "PANGGIL") {
+                if (igd.empty()) {
+                    cout << "Tidak ada pasien" << endl;
+                } else {
+                    pair<int, int> p = igd.top();
+                    igd.pop();
+                    cout << "Memanggil " << namaPasien[p.second] << " (prioritas " << p.first << ")" << endl;
+                }
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    import heapq
+
+    n = int(input())
+    igd = []                                   # berisi tuple (prioritas, nomor kedatangan, nama)
+    nomor = 0
+
+    for i in range(n):
+        bagian = input().split()
+        if bagian[0] == "DATANG":
+            heapq.heappush(igd, (int(bagian[2]), nomor, bagian[1]))
+            nomor += 1
+        elif bagian[0] == "PANGGIL":
+            if len(igd) == 0:
+                print("Tidak ada pasien")
+            else:
+                pasien = heapq.heappop(igd)
+                print(f"Memanggil {pasien[2]} (prioritas {pasien[0]})")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Terbesar ke-k setiap saat">
+  Baris pertama berisi `n` dan `k` (`1 ≤ k ≤ n ≤ 100.000`), dan baris kedua berisi `n` bilangan bulat yang datang satu per satu. Setiap kali sebuah bilangan datang, cetak bilangan **terbesar ke-`k`** di antara semua bilangan yang sudah datang, atau `-1` jika bilangan yang datang belum ada `k`. Bilangan yang sama dihitung sendiri-sendiri.
+
+  ```txt title="Contoh input"
+  8 3
+  5 1 9 3 7 9 2 8
+  ```
+
+  ```txt title="Contoh output"
+  -1 -1 1 3 5 7 7 8
+  ```
+
+  ```txt title="Contoh input 2"
+  4 1
+  4 2 6 6
+  ```
+
+  ```txt title="Contoh output 2"
+  4 4 6 6
+  ```
+
+  <Petunjuk>
+    Mengurutkan ulang semua bilangan setiap kali ada yang datang terlalu lambat untuk `n = 100.000`. Simpan hanya `k` bilangan terbesar di sebuah **min-heap**. Bilangan terbesar ke-`k` adalah yang terkecil di antara mereka, yaitu top heap itu. Jika isinya menjadi `k + 1`, buang yang terkecil.
+  </Petunjuk>
+
+  <Pembahasan>
+    Heap berisi paling banyak `k` bilangan, yaitu `k` bilangan terbesar sejauh ini. Bilangan yang dibuang adalah yang terkecil di antara `k + 1` bilangan, jadi bilangan itu tidak mungkin masuk `k` terbesar lagi, berapa pun bilangan yang datang kemudian. Pada contoh 1, setelah `5 1 9 3` datang, heap berisi `3 5 9` dan top-nya 3.
+
+    Min-heap dipakai untuk mencari yang **terbesar** ke-`k`, karena yang perlu cepat dibuang adalah yang terkecil di antara kandidat. Setiap bilangan butuh push dan mungkin satu pop pada heap berukuran `k`, jadi totalnya O(n log k).
+
+    ```cpp tab="C++" input="8 3\n5 1 9 3 7 9 2 8"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    #include <functional>
+    using namespace std;
+
+    int main() {
+        int n, k;
+        cin >> n >> k;
+        priority_queue<int, vector<int>, greater<int>> terbesar;   // k bilangan terbesar sejauh ini
+
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            terbesar.push(x);
+            if ((int)terbesar.size() > k) {
+                terbesar.pop();                // yang terkecil tidak termasuk k terbesar lagi
+            }
+
+            if (i > 0) {
+                cout << " ";
+            }
+            if ((int)terbesar.size() == k) {
+                cout << terbesar.top();
+            } else {
+                cout << -1;
+            }
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    import heapq
+
+    n, k = map(int, input().split())
+    data = list(map(int, input().split()))
+
+    terbesar = []                              # k bilangan terbesar sejauh ini
+    hasil = []
+    for x in data:
+        heapq.heappush(terbesar, x)
+        if len(terbesar) > k:
+            heapq.heappop(terbesar)            # yang terkecil tidak termasuk k terbesar lagi
+
+        if len(terbesar) == k:
+            hasil.append(terbesar[0])
+        else:
+            hasil.append(-1)
+    print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Membangun heap sekaligus">
+  Selain push satu per satu, heap bisa dibangun langsung dari sebuah vector **di tempat**: jalankan sift down untuk setiap indeks, mulai dari `n / 2 - 1` mundur sampai 0. Baca sebuah vector, ubah menjadi min-heap dengan cara ini, lalu cetak isinya di baris pertama dan banyak pertukaran yang terjadi di baris kedua.
+
+  ```txt title="Contoh input"
+  7
+  35 20 50 10 40 5 30
+  ```
+
+  ```txt title="Contoh output"
+  5 10 30 20 40 50 35
+  Pertukaran: 4
+  ```
+
+  ```txt title="Contoh input 2"
+  7
+  70 60 50 40 30 20 10
+  ```
+
+  ```txt title="Contoh output 2"
+  10 30 20 40 60 70 50
+  Pertukaran: 4
+  ```
+
+  <Petunjuk>
+    Tulis fungsi `siftDown(a, i, n)` yang sama dengan bagian sift down di `pop`, tetapi mulai dari indeks `i` dan mengembalikan banyak pertukaran. Kenapa mulai dari `n / 2 - 1`? Hitung indeks parent dari elemen terakhir.
+  </Petunjuk>
+
+  <Pembahasan>
+    Elemen terakhir (indeks `n - 1`) punya parent di indeks `n / 2 - 1`. Semua indeks sesudahnya adalah daun, dan daun yang berdiri sendiri sudah merupakan heap. Arahnya harus **mundur**. Sift down di indeks `i` hanya benar jika kedua subtree-nya sudah berupa heap, sama seperti pada pop. Dengan berjalan mundur, subtree di bawah `i` selalu sudah diperbaiki lebih dulu.
+
+    | `i` | Sift down | Isi vector sesudahnya |
+    | --- | --- | --- |
+    | awal | | `[35, 20, 50, 10, 40, 5, 30]` |
+    | 2 | 50 ditukar dengan anak terkecilnya, 5 | `[35, 20, 5, 10, 40, 50, 30]` |
+    | 1 | 20 ditukar dengan 10 | `[35, 10, 5, 20, 40, 50, 30]` |
+    | 0 | 35 ditukar dengan 5, lalu dengan 30 | `[5, 10, 30, 20, 40, 50, 35]` |
+
+    Push satu per satu untuk data yang sama menghasilkan `[5, 20, 10, 35, 40, 50, 30]` dengan 5 pertukaran. Keduanya heap yang sah. Data yang sama bisa membentuk beberapa heap yang berbeda. Untuk contoh 2, push satu per satu butuh 10 pertukaran, karena setiap bilangan baru lebih kecil dari semua yang sudah ada dan harus naik sampai root. Cara di soal ini tetap hanya 4 pertukaran.
+
+    Secara umum, membangun heap dengan cara ini hanya O(n), lebih cepat dari `n` kali push yang O(n log n). Sebagian besar node berada di level bawah, dan node-node itu hanya bisa turun sedikit. Python menyediakannya sebagai `heapq.heapify(a)`, dan C++ sebagai `make_heap(a.begin(), a.end(), greater<int>())` dari `<algorithm>`. Untuk kedua contoh di atas, keduanya menghasilkan susunan yang sama dengan solusi ini.
+
+    ```cpp tab="C++" input="7\n35 20 50 10 40 5 30"
+    #include <iostream>
+    #include <vector>
+    #include <utility>
+    using namespace std;
+
+    // sift down a[i] di dalam heap a[0 .. n-1], mengembalikan banyak pertukaran
+    int siftDown(vector<int>& a, int i, int n) {
+        int tukar = 0;
+        while (true) {
+            int kiri = 2 * i + 1;
+            int kanan = 2 * i + 2;
+            if (kiri >= n) {
+                break;
+            }
+            int kecil = kiri;
+            if (kanan < n && a[kanan] < a[kiri]) {
+                kecil = kanan;
+            }
+            if (a[kecil] < a[i]) {
+                swap(a[i], a[kecil]);
+                tukar++;
+                i = kecil;
+            } else {
+                break;
+            }
+        }
+        return tukar;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+
+        int total = 0;
+        for (int i = n / 2 - 1; i >= 0; i--) {     // dari parent terakhir mundur ke root
+            total += siftDown(a, i, n);
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << a[i];
+        }
+        cout << endl;
+        cout << "Pertukaran: " << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    # sift down a[i] di dalam heap a[0 .. n-1], mengembalikan banyak pertukaran
+    def sift_down(a, i, n):
+        tukar = 0
+        while True:
+            kiri = 2 * i + 1
+            kanan = 2 * i + 2
+            if kiri >= n:
+                break
+            kecil = kiri
+            if kanan < n and a[kanan] < a[kiri]:
+                kecil = kanan
+            if a[kecil] < a[i]:
+                a[i], a[kecil] = a[kecil], a[i]
+                tukar += 1
+                i = kecil
+            else:
+                break
+        return tukar
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+
+    total = 0
+    for i in range(n // 2 - 1, -1, -1):        # dari parent terakhir mundur ke root
+        total += sift_down(a, i, n)
+
+    print(*a)
+    print("Pertukaran:", total)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Heapsort di tempat">
+  Urutkan sebuah vector secara naik dengan heapsort **di tempat**, tanpa vector atau list kedua. Pertama, ubah vector menjadi **max-heap** dengan cara seperti soal sebelumnya, lalu cetak isinya di baris pertama. Setelah itu, ulangi langkah berikut sampai bagian heap tinggal satu elemen: tukar root dengan elemen terakhir bagian heap, perkecil bagian heap satu elemen, lalu sift down root-nya di dalam bagian heap yang tersisa. Cetak vector yang sudah terurut di baris kedua.
+
+  ```txt title="Contoh input"
+  7
+  35 20 50 10 40 5 30
+  ```
+
+  ```txt title="Contoh output"
+  50 40 35 10 20 5 30
+  5 10 20 30 35 40 50
+  ```
+
+  ```txt title="Contoh input 2"
+  5
+  4 1 3 1 5
+  ```
+
+  ```txt title="Contoh output 2"
+  5 4 3 1 1
+  1 1 3 4 5
+  ```
+
+  <Petunjuk>
+    Root max-heap adalah yang terbesar, dan tempat yang benar untuk yang terbesar adalah ujung vector. Setelah ditukar ke ujung, elemen itu tidak boleh disentuh lagi. Karena itu, `siftDown` perlu parameter `n`, yaitu ukuran bagian heap saat ini, bukan ukuran vector.
+  </Petunjuk>
+
+  <Pembahasan>
+    Vector dibagi dua: bagian depan adalah max-heap, dan bagian belakang berisi elemen-elemen terbesar yang sudah terurut. Setiap putaran memindahkan satu elemen dari bagian heap ke bagian terurut. Jejak contoh 1 setelah max-heap terbentuk:
+
+    | Putaran | Ditukar | Bagian heap sesudah sift down | Bagian terurut |
+    | --- | --- | --- | --- |
+    | awal | | `50 40 35 10 20 5 30` | |
+    | 1 | 50 dan 30 | `40 30 35 10 20 5` | `50` |
+    | 2 | 40 dan 5 | `35 30 5 10 20` | `40 50` |
+    | 3 | 35 dan 20 | `30 20 5 10` | `35 40 50` |
+    | 4 | 30 dan 10 | `20 10 5` | `30 35 40 50` |
+    | 5 | 20 dan 5 | `10 5` | `20 30 35 40 50` |
+    | 6 | 10 dan 5 | `5` | `10 20 30 35 40 50` |
+
+    Max-heap dipakai agar hasilnya terurut **naik**. Dengan min-heap, yang terkecil akan ditukar ke ujung dan hasilnya terurut turun. Kesalahan yang sering terjadi adalah memanggil `siftDown(a, 0, n)` dengan ukuran vector penuh, sehingga elemen yang sudah terurut di belakang ikut naik lagi.
+
+    Membangun heap butuh O(n), dan setiap putaran butuh O(log n), jadi totalnya O(n log n). Memorinya tidak bertambah sama sekali, karena semuanya terjadi di dalam vector itu sendiri.
+
+    ```cpp tab="C++" input="7\n35 20 50 10 40 5 30"
+    #include <iostream>
+    #include <vector>
+    #include <utility>
+    using namespace std;
+
+    // sift down untuk max-heap, bagian heap adalah a[0 .. n-1]
+    void siftDown(vector<int>& a, int i, int n) {
+        while (true) {
+            int kiri = 2 * i + 1;
+            int kanan = 2 * i + 2;
+            if (kiri >= n) {
+                break;
+            }
+            int besar = kiri;
+            if (kanan < n && a[kanan] > a[kiri]) {
+                besar = kanan;
+            }
+            if (a[besar] > a[i]) {
+                swap(a[i], a[besar]);
+                i = besar;
+            } else {
+                break;
+            }
+        }
+    }
+
+    void cetakVector(const vector<int>& v) {
+        for (int i = 0; i < (int)v.size(); i++) {
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << v[i];
+        }
+        cout << endl;
+    }
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<int> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+
+        for (int i = n / 2 - 1; i >= 0; i--) {     // 1. bangun max-heap
+            siftDown(a, i, n);
+        }
+        cetakVector(a);
+
+        for (int akhir = n - 1; akhir > 0; akhir--) {
+            swap(a[0], a[akhir]);                   // 2. terbesar pindah ke ujung bagian heap
+            siftDown(a, 0, akhir);                  // 3. bagian heap tinggal a[0 .. akhir-1]
+        }
+        cetakVector(a);
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    # sift down untuk max-heap, bagian heap adalah a[0 .. n-1]
+    def sift_down(a, i, n):
+        while True:
+            kiri = 2 * i + 1
+            kanan = 2 * i + 2
+            if kiri >= n:
+                break
+            besar = kiri
+            if kanan < n and a[kanan] > a[kiri]:
+                besar = kanan
+            if a[besar] > a[i]:
+                a[i], a[besar] = a[besar], a[i]
+                i = besar
+            else:
+                break
+
+
+    n = int(input())
+    a = list(map(int, input().split()))
+
+    for i in range(n // 2 - 1, -1, -1):        # 1. bangun max-heap
+        sift_down(a, i, n)
+    print(*a)
+
+    for akhir in range(n - 1, 0, -1):
+        a[0], a[akhir] = a[akhir], a[0]        # 2. terbesar pindah ke ujung bagian heap
+        sift_down(a, 0, akhir)                 # 3. bagian heap tinggal a[0 .. akhir-1]
+    print(*a)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Median berjalan">
+  Bilangan datang satu per satu. Setiap kali sebuah bilangan datang, cetak **median** dari semua bilangan yang sudah datang, yaitu nilai tengahnya setelah diurutkan. Jika banyak bilangannya genap, cetak yang lebih kecil di antara dua nilai tengah.
+
+  ```txt title="Contoh input"
+  7
+  5 15 1 3 8 7 9
+  ```
+
+  ```txt title="Contoh output"
+  5 5 5 3 5 5 7
+  ```
+
+  ```txt title="Contoh input 2"
+  4
+  4 3 2 1
+  ```
+
+  ```txt title="Contoh output 2"
+  4 3 3 2
+  ```
+
+  <Petunjuk>
+    Bagi bilangan-bilangan itu menjadi dua kelompok: separuh kecil dan separuh besar. Simpan separuh kecil di **max-heap** dan separuh besar di **min-heap**. Jaga agar separuh kecil berisi sama banyak dengan separuh besar, atau lebih banyak satu. Median yang diminta selalu berada di top separuh kecil.
+  </Petunjuk>
+
+  <Pembahasan>
+    Dua heap ini menjaga dua hal. Pertama, setiap isi `kiri` tidak lebih besar dari setiap isi `kanan`. Kedua, `kiri` berisi sama banyak dengan `kanan` atau lebih banyak satu. Bilangan baru masuk ke `kiri` jika tidak lebih besar dari top `kiri`, dan masuk ke `kanan` jika lebih besar. Jika ukurannya menjadi tidak seimbang, top dari heap yang terlalu besar dipindahkan ke heap yang lain. Jejak contoh 1:
+
+    | Datang | Isi `kiri` (max-heap) | Isi `kanan` (min-heap) | Median |
+    | --- | --- | --- | --- |
+    | 5 | 5 | | 5 |
+    | 15 | 5 | 15 | 5 |
+    | 1 | 1 5 | 15 | 5 |
+    | 3 | 1 3 | 5 15 (5 dipindah dari `kiri`) | 3 |
+    | 8 | 1 3 5 (5 dipindah dari `kanan`) | 8 15 | 5 |
+    | 7 | 1 3 5 | 7 8 15 | 5 |
+    | 9 | 1 3 5 7 (7 dipindah dari `kanan`) | 8 9 15 | 7 |
+
+    Setiap bilangan butuh beberapa push dan pop, masing-masing O(log n), jadi totalnya O(n log n). Mengurutkan ulang semua bilangan setiap kali ada yang datang akan butuh O(n² log n). Di Python, `kiri` dibuat menjadi max-heap dengan menyimpan nilai negatif.
+
+    ```cpp tab="C++" input="7\n5 15 1 3 8 7 9"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    #include <functional>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        priority_queue<int> kiri;                                  // separuh kecil, max-heap
+        priority_queue<int, vector<int>, greater<int>> kanan;      // separuh besar, min-heap
+
+        for (int i = 0; i < n; i++) {
+            int x;
+            cin >> x;
+            if (kiri.empty() || x <= kiri.top()) {
+                kiri.push(x);
+            } else {
+                kanan.push(x);
+            }
+
+            // seimbangkan: kiri sama banyak dengan kanan, atau lebih banyak satu
+            if (kiri.size() > kanan.size() + 1) {
+                kanan.push(kiri.top());
+                kiri.pop();
+            } else if (kanan.size() > kiri.size()) {
+                kiri.push(kanan.top());
+                kanan.pop();
+            }
+
+            if (i > 0) {
+                cout << " ";
+            }
+            cout << kiri.top();
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    import heapq
+
+    n = int(input())
+    data = list(map(int, input().split()))
+
+    kiri = []                                  # separuh kecil, disimpan negatif (max-heap)
+    kanan = []                                 # separuh besar, min-heap
+    hasil = []
+    for x in data:
+        if len(kiri) == 0 or x <= -kiri[0]:
+            heapq.heappush(kiri, -x)
+        else:
+            heapq.heappush(kanan, x)
+
+        # seimbangkan: kiri sama banyak dengan kanan, atau lebih banyak satu
+        if len(kiri) > len(kanan) + 1:
+            heapq.heappush(kanan, -heapq.heappop(kiri))
+        elif len(kanan) > len(kiri):
+            heapq.heappush(kiri, -heapq.heappop(kanan))
+
+        hasil.append(-kiri[0])
+    print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Menggabungkan daftar terurut">
+  Beberapa cabang toko mengirim daftar harga transaksi yang masing-masing sudah terurut naik. Baris pertama berisi `k`, banyak daftar (`1 ≤ k ≤ 1.000`). Setiap `k` baris berikutnya diawali `m` (`m ≥ 1`), banyak bilangan di daftar itu, lalu diikuti `m` bilangan yang terurut naik. Total semua bilangan paling banyak 100.000. Gabungkan semua daftar menjadi satu deret yang terurut naik.
+
+  ```txt title="Contoh input"
+  3
+  4 1 4 7 10
+  3 2 5 11
+  2 3 4
+  ```
+
+  ```txt title="Contoh output"
+  1 2 3 4 4 5 7 10 11
+  ```
+
+  ```txt title="Contoh input 2"
+  2
+  3 5 6 7
+  2 1 2
+  ```
+
+  ```txt title="Contoh output 2"
+  1 2 5 6 7
+  ```
+
+  <Petunjuk>
+    Bilangan terkecil dari seluruh data pasti salah satu dari bilangan **pertama** setiap daftar. Simpan di heap hanya satu bilangan dari setiap daftar, yaitu bilangan terdepan yang belum dicetak, bersama nomor daftarnya. Setiap kali sebuah bilangan dikeluarkan dan dicetak, masukkan bilangan berikutnya dari daftar yang sama.
+  </Petunjuk>
+
+  <Pembahasan>
+    Heap berisi pasangan `(nilai, nomor daftar)`, paling banyak satu pasangan untuk setiap daftar. `posisi[i]` mencatat indeks bilangan di daftar `i` yang belum pernah masuk heap. Setiap kali pasangan terkecil keluar, nilainya dicetak, lalu bilangan berikutnya dari daftar yang sama dimasukkan, jika masih ada. Bilangan itu satu-satunya calon baru, karena bilangan lain di daftar tersebut pasti lebih besar atau sama.
+
+    Isi heap pada beberapa langkah pertama contoh 1:
+
+    | Keluar | Dimasukkan berikutnya | Isi heap sesudahnya |
+    | --- | --- | --- |
+    | | (awal) | `(1, 0) (2, 1) (3, 2)` |
+    | 1 dari daftar 0 | 4 dari daftar 0 | `(2, 1) (3, 2) (4, 0)` |
+    | 2 dari daftar 1 | 5 dari daftar 1 | `(3, 2) (4, 0) (5, 1)` |
+    | 3 dari daftar 2 | 4 dari daftar 2 | `(4, 0) (4, 2) (5, 1)` |
+
+    Isi heap pada tabel ditulis terurut supaya mudah dibaca. Heap tidak pernah berisi lebih dari `k` pasangan, jadi setiap push dan pop hanya O(log k), dan totalnya O(N log k) untuk `N` bilangan. Menggabungkan semua daftar lalu mengurutkannya juga benar, tetapi O(N log N) dan tidak memanfaatkan bahwa setiap daftar sudah terurut. Cara dengan heap juga tetap bisa dipakai saat datanya datang sedikit demi sedikit dari setiap cabang.
+
+    ```cpp tab="C++" input="3\n4 1 4 7 10\n3 2 5 11\n2 3 4"
+    #include <iostream>
+    #include <queue>
+    #include <vector>
+    #include <utility>
+    #include <functional>
+    using namespace std;
+
+    int main() {
+        int k;
+        cin >> k;
+        vector<vector<int>> daftar(k);
+        for (int i = 0; i < k; i++) {
+            int m;
+            cin >> m;
+            for (int j = 0; j < m; j++) {
+                int x;
+                cin >> x;
+                daftar[i].push_back(x);
+            }
+        }
+
+        // berisi pasangan (nilai, nomor daftar)
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+        vector<int> posisi(k);                     // posisi[i] = indeks berikutnya di daftar i
+        for (int i = 0; i < k; i++) {
+            pq.push({daftar[i][0], i});
+            posisi[i] = 1;
+        }
+
+        bool pertama = true;
+        while (!pq.empty()) {
+            pair<int, int> p = pq.top();
+            pq.pop();
+            int i = p.second;
+
+            if (!pertama) {
+                cout << " ";
+            }
+            cout << p.first;
+            pertama = false;
+
+            if (posisi[i] < (int)daftar[i].size()) {   // daftar i masih punya isi
+                pq.push({daftar[i][posisi[i]], i});
+                posisi[i]++;
+            }
+        }
+        cout << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    import heapq
+
+    k = int(input())
+    daftar = []
+    for i in range(k):
+        bagian = list(map(int, input().split()))
+        daftar.append(bagian[1:])              # buang m, ambil isinya saja
+
+    pq = []                                    # berisi tuple (nilai, nomor daftar)
+    posisi = [0] * k                           # posisi[i] = indeks berikutnya di daftar i
+    for i in range(k):
+        heapq.heappush(pq, (daftar[i][0], i))
+        posisi[i] = 1
+
+    hasil = []
+    while len(pq) > 0:
+        nilai, i = heapq.heappop(pq)
+        hasil.append(nilai)
+        if posisi[i] < len(daftar[i]):         # daftar i masih punya isi
+            heapq.heappush(pq, (daftar[i][posisi[i]], i))
+            posisi[i] += 1
+    print(*hasil)
+    ```
+  </Pembahasan>
+</Soal>

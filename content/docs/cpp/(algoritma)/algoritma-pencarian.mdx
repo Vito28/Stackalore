@@ -79,7 +79,7 @@ Mencari `20`, yang tidak ada di data:
 
 Perhatikan langkah 5. Nilai 20 seharusnya berada di antara 18 (indeks 2) dan 23 (indeks 3). Pencarian berhenti tepat di celah itu, dengan `lo` menunjuk ke posisi tempat 20 seharusnya disisipkan. Fakta ini akan berguna di bagian varian nanti.
 
-```cpp tab="C++"
+```cpp tab="C++" input="10\n5 12 18 23 31 40 47 56 64 78\n47"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -324,7 +324,7 @@ Bentuk ini sama dengan data terurut, sehingga batas antara "tidak" dan "ya" bisa
 
 Cari bilangan bulat terbesar `r` dengan `r × r ≤ n`, untuk `0 ≤ n ≤ 1.000.000.000`. Syarat `r × r ≤ n` bernilai "ya" untuk `r` kecil, lalu "tidak" mulai dari suatu titik. Arahnya terbalik dari gambar di atas, jadi kita mencari "ya" yang **terakhir**: saat `mid` memenuhi, simpan sebagai jawaban dan coba yang lebih besar.
 
-```cpp tab="C++"
+```cpp tab="C++" input="50"
 #include <iostream>
 using namespace std;
 
@@ -396,7 +396,7 @@ Mencari `k` secara langsung sulit. Namun untuk `k` **tertentu**, mudah menghitun
 
 Makin besar `k`, hari yang dibutuhkan tidak pernah bertambah. Syaratnya monoton, jadi `k` terkecil yang cukup bisa dicari dengan pencarian biner. Rentang pencariannya juga jelas. `k` tidak boleh lebih kecil dari bab terpanjang, karena bab itu harus selesai dalam sehari. `k` juga tidak perlu lebih besar dari total halaman, karena dengan itu semua bab selesai dalam sehari.
 
-```cpp tab="C++"
+```cpp tab="C++" input="5 3\n30 50 20 40 10"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -490,7 +490,7 @@ Kedua bahasa sudah menyediakan pencarian biner yang teruji. Di C++, fungsinya ad
 | Indeks pertama > `x` | `upper_bound(v.begin(), v.end(), x) - v.begin()` | `bisect_right(a, x)` |
 | Banyak `x` | selisih kedua indeks di atas | `bisect_right(a, x) - bisect_left(a, x)` |
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -576,7 +576,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={1} level="mudah" judul="Jejak pencarian biner">
   Program berikut mencetak `data[mid]` di setiap langkah, lalu hasil pencariannya. Tanpa menjalankannya, tebak output untuk `x = 39` dan untuk `x = 12`.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="39"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -663,7 +663,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Dengan pencarian linear, kasus terburuknya 100.000 × 100.000 = 10 miliar perbandingan. Dengan pencarian biner, setiap pertanyaan hanya butuh sekitar 17 langkah. Solusi ini memakai `cariBiner` dari materi. Versi pustakanya: `binary_search(data.begin(), data.end(), x)` di C++, atau `bisect_left` di Python.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n3 9 14 14 20 31\n4\n14 4 31 32"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -748,7 +748,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Banyak elemen yang `< x` sama dengan indeks pertama yang `≥ x`, yaitu batas bawah. Semua elemen sebelum indeks itu pasti lebih kecil daripada `x`. Jika semua elemen lebih kecil, hasilnya `n`, seperti contoh ketiga. Solusi ini memakai versi pustaka.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n2 4 4 4 7 9\n5"
     #include <iostream>
     #include <algorithm>
     #include <vector>
@@ -808,7 +808,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah diurutkan, data menjadi `1 1 3 5 5 5 7 9`. Untuk `x = 5`, batas bawahnya 3 dan batas atasnya 6, jadi ada 3 kemunculan. Untuk `x = 4`, keduanya bernilai 3, jadi 0. Mengurutkan sekali butuh O(n log n), dan setiap pertanyaan O(log n). Solusi ini memakai `batasBawah` dan `batasAtas` dari materi. Soal ini juga bisa diselesaikan dengan map frekuensi dari materi [Map & Set](/docs/cpp/map-dan-set).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\n5 1 5 3 9 5 1 7\n4\n5 1 4 9"
     #include <iostream>
     #include <algorithm>
     #include <vector>
@@ -910,7 +910,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={5} level="menengah" judul="Pencarian yang macet">
   Program berikut membaca `n` bilangan yang sudah terurut naik, lalu `x`, dan seharusnya menampilkan indeks `x` atau `-1`. Untuk input pertama di bawah hasilnya benar. Untuk input kedua, program **tidak pernah selesai**. Untuk input ketiga, hasilnya `-1`, padahal `7` ada. Temukan semua kesalahannya dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" check="no-compare" input="1\n7\n7"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -985,7 +985,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Ketiganya harus diperbaiki bersamaan. Mengganti `lo < hi` menjadi `lo <= hi` saja justru membuat `hi = mid` macet saat `lo == hi`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n10 20 30 40 50\n50"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1059,7 +1059,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Syarat `r³ ≤ n` bernilai "ya" untuk `r` kecil dan "tidak" mulai dari suatu titik, jadi cari "ya" yang terakhir. Jebakannya ada di batas atas. Dengan `hi = n = 10¹⁸`, `mid` pertama sekitar 5 × 10¹⁷, dan pangkat tiganya jauh melewati batas `long long` (sekitar 9,2 × 10¹⁸). Karena 1.000.000³ = 10¹⁸, jawabannya tidak mungkin lebih dari satu juta. Dengan `hi = 1000000`, `mid³` paling besar 10¹⁸, masih muat. Python tidak bisa overflow, tetapi batas yang kecil tetap membuat pencarian lebih singkat.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="100"
     #include <iostream>
     using namespace std;
 
@@ -1125,7 +1125,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Untuk `x = 18`, batas bawahnya adalah indeks 3 (`21`), dan kandidat kirinya `data[2] = 15`. Keduanya berjarak 3, jadi dipilih yang lebih kecil, `15`. Kasus tepi: jika `i = 0`, tidak ada elemen di kiri (contoh `x = 1`). Jika `i = n`, tidak ada elemen di kanan (contoh `x = 40`). Memakai `<=` saat membandingkan jarak membuat elemen kiri, yang lebih kecil, menang saat seri.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n3 8 15 21 30\n5\n10 18 1 40 21"
     #include <iostream>
     #include <algorithm>
     #include <vector>
@@ -1219,7 +1219,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Ada dua jebakan overflow. Pertama, batas atas `min(t) × m` bisa mencapai 10¹⁸, seperti contoh 2, jadi pakai `long long`. Kedua, saat memeriksa `T` yang besar, `T / t[i]` bisa mencapai 10¹⁸ untuk setiap mesin, dan jumlahnya untuk 100.000 mesin pasti meluap. Karena kita hanya perlu tahu apakah jumlahnya sudah mencapai `m`, hentikan penjumlahan begitu `m` tercapai. Python tidak bisa overflow, tetapi berhenti lebih awal tetap menghemat waktu.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3 10\n2 3 5"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1323,7 +1323,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Kenapa mendirikan kios **sedini mungkin** selalu terbaik? Kios yang lebih ke kiri menyisakan ruang paling banyak untuk kios-kios berikutnya. Jika ada susunan yang berhasil, menggeser setiap kiosnya ke posisi paling kiri yang diperbolehkan tidak akan merusaknya. Rentang pencariannya mulai dari 1, karena semua posisi berbeda sehingga jarak 1 pasti bisa, sampai selisih posisi terbesar dan terkecil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 3\n1 2 8 4 9"
     #include <iostream>
     #include <algorithm>
     #include <vector>
@@ -1425,7 +1425,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Mencari hanya di kanan `i` menjamin setiap pasangan dihitung tepat sekali dan elemen tidak dipasangkan dengan dirinya sendiri. Di C++, `upper_bound(a.begin() + i + 1, a.end(), batas)` mencari mulai dari indeks `i + 1`. Di Python, `bisect_right` menerima argumen ketiga yang opsional untuk indeks awal pencarian. Banyak pasangan bisa mencapai sekitar 5 miliar, jauh di atas batas `int` (sekitar 2,1 miliar), jadi penghitungnya harus `long long`. Data dan `s` juga disimpan sebagai `long long` agar semua perhitungan memakai tipe yang sama.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5 10\n7 2 5 1 8"
     #include <iostream>
     #include <algorithm>
     #include <vector>

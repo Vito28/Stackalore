@@ -45,7 +45,7 @@ Indeks pertama selalu **baris**, indeks kedua selalu **kolom**, dan keduanya dim
 
 Di materi ini dan materi-materi berikutnya, matriks dibaca dengan format yang sama: baris pertama berisi `r` dan `c`, lalu ada `r` baris yang masing-masing berisi `c` bilangan.
 
-```cpp tab="C++"
+```cpp tab="C++" input="4 3\n80 75 90\n65 88 70\n92 81 85\n70 60 78"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -221,7 +221,7 @@ diagonal utama (i == j)      diagonal anti (i + j == n - 1)
 
 Setiap baris punya tepat satu elemen di diagonal utama, yaitu `a[i][i]`, dan satu elemen di diagonal anti, yaitu `a[i][n - 1 - i]`. Jadi cukup **satu** perulangan:
 
-```cpp tab="C++"
+```cpp tab="C++" input="3\n4 1 7\n2 9 3\n5 8 6"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -396,7 +396,7 @@ def kali(a, b):
 
 Ketiga fungsi di atas dipakai dalam program berikut. Fungsi `cetak` menampilkan matriks baris per baris.
 
-```cpp tab="C++"
+```cpp tab="C++" run="none"
 void cetak(const vector<vector<int>>& m) {
     for (int i = 0; i < (int)m.size(); i++) {
         for (int j = 0; j < (int)m[i].size(); j++) {
@@ -543,7 +543,7 @@ Tetangga ke arah `d` adalah `(i + dr[d], j + dc[d])`. Sel di pinggir grid punya 
 
 Program berikut mengganti setiap sel terbuka dengan banyak tetangganya yang juga terbuka. Tembok tetap ditampilkan sebagai `#`.
 
-```cpp tab="C++"
+```cpp tab="C++" input="4 5\n..#..\n.#...\n...#.\n#...."
 #include <iostream>
 #include <string>
 #include <vector>
@@ -742,7 +742,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Nilai yang diharapkan di posisi `[i][j]` adalah `1` jika `i == j` dan `0` jika tidak. Begitu ada satu elemen yang berbeda, jawabannya sudah pasti `Tidak`. Membungkus pemeriksaan dalam fungsi membuat `return false` langsung keluar dari **kedua** perulangan sekaligus, sesuatu yang tidak bisa dilakukan `break`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3\n1 0 0\n0 1 0\n0 0 1"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -845,7 +845,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Perbaiki jumlah per baris">
   Program berikut seharusnya menampilkan jumlah setiap baris, satu per baris. Untuk matriks 3 × 3 hasilnya selalu benar, tetapi untuk contoh di bawah program menampilkan `3` dan `9`. Temukan kesalahannya, perbaiki, lalu jelaskan kenapa matriks persegi tidak memperlihatkan kesalahan ini.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="2 3\n1 2 3\n4 5 6" check="no-compare"
   #include <iostream>
   #include <vector>
   using namespace std;
@@ -896,7 +896,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Perulangan dalam memakai indeks kolom `j`, tetapi dibatasi `r` (banyak baris). Untuk matriks 2 × 3, `j` hanya sampai 1, sehingga kolom terakhir tidak ikut dijumlah: `1 + 2 = 3` dan `4 + 5 = 9`. Pada matriks persegi `r` sama dengan `c`, jadi kesalahan ini tersembunyi. Untuk matriks 3 × 2 kesalahannya justru membaca kolom yang tidak ada: Python berhenti dengan `IndexError`, sedangkan C++ mengalami _undefined behavior_. Ganti batasnya menjadi `j < c`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2 3\n1 2 3\n4 5 6"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -976,7 +976,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah kedua matriks dibaca, periksa aturan ukuran sebelum mengalikan. Setiap elemen hasil paling besar 100 × 1.000 × 1.000 = 10⁸, jadi masih muat di `int`. Pada contoh pertama, `C[1][1]` = 0×0 + 3×4 + 1×5 = 17.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2 3\n1 -1 2\n0 3 1\n3 2\n2 0\n1 4\n-1 5"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1082,7 +1082,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Memutar satu miliar kali jelas terlalu lama, padahal hasilnya sama dengan memutar `k % 4` kali. Contoh kedua memutar `7 % 4 = 3` kali, sama dengan memutar sekali berlawanan arah jarum jam. Karena `putarKanan` membaca ukuran dari matriks yang diterimanya, ukuran yang berubah setiap putaran tertangani dengan sendirinya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="2 3\n1 2 3\n4 5 6\n2"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1178,7 +1178,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Jejak contoh: dari `(0, 0)`, `D` dua kali ke `(0, 2)`. `D` ketiga terhalang tembok di `(0, 3)`. `S` dua kali ke `(2, 2)`, `A` ke `(2, 1)`, lalu kedua `W` terhalang tembok di `(1, 1)`. Kuncinya, posisi robot hanya diubah **setelah** sel tujuan lolos pemeriksaan batas dan tembok.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4 5\nR..#.\n.#...\n...#.\n#....\nDDDSSAWW"
     #include <iostream>
     #include <string>
     #include <vector>
@@ -1405,7 +1405,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap putaran mengupas satu "cincin" luar. Setelah sisi atas dan sisi kanan selesai, bagian yang tersisa bisa saja sudah habis. Itulah gunanya pemeriksaan `atas <= bawah` sebelum sisi bawah dan `kiri <= kanan` sebelum sisi kiri. Tanpa pemeriksaan itu, contoh kedua (satu kolom) akan menampilkan `5 8 2 7 2 8`, karena kolom yang sama ditelusuri lagi dari bawah ke atas. Cara lain yang sering dipakai adalah menghitung banyak elemen yang sudah dicetak dan berhenti tepat di `r × c`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3 4\n1 2 3 4\n10 11 12 5\n9 8 7 6"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1531,7 +1531,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Menyiapkan `p` butuh satu kali penelusuran matriks, lalu setiap pertanyaan dijawab dengan empat angka saja. Jumlahnya bisa mencapai 10⁶ × 10⁹ = 10¹⁵, jadi pakai `long long`. Baris dan kolom tambahan berisi nol membuat rumus tetap benar saat `r1 = 1` atau `c1 = 1`, tanpa `if` tambahan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="3 4\n2 -1 3 0\n4 5 -2 1\n1 0 6 3\n4\n1 1 2 2\n2 2 3 4\n1 3 3 3\n1 1 3 4"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1626,7 +1626,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
     | 3, 4, 5 | 1 | kotak 3, 4, 5 |
     | 6, 7, 8 | 2 | kotak 6, 7, 8 |
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4.3..29.5\n2.....6..\n...3..87.\n.....3.8.\n.589.1.6.\n32.......\n.3.....5.\n.72..8.49\n8..4.9.2."
     #include <iostream>
     #include <string>
     #include <vector>

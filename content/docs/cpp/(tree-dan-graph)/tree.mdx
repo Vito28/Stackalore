@@ -410,6 +410,10 @@ print(*hasil)                          # 3 7 40 25 12 30 18
 
 Di Python tidak perlu tanda khusus, karena list yang dikirim ke fungsi tidak disalin. Semua panggilan memakai list yang sama, seperti dijelaskan di <Term href="/docs/cpp/pendalaman/pass-by-value-dan-reference">pass by value dan reference</Term>. Preorder dan postorder disimpan dengan cara yang sama, cukup pindahkan baris `push_back`/`append`.
 
+Jalankan keempat penelusuran pada tree contoh langkah demi langkah di bawah ini. Pilih jenisnya di atas gambar, lalu perhatikan call stack (atau queue untuk level-order) dan urutan kunjungan yang terbentuk. Lewat **Ubah tree**, kamu juga bisa mencobanya pada tree acak.
+
+<VisualisasiTraversal />
+
 ## Fungsi rekursif pada tree
 
 Banyak pertanyaan tentang tree dijawab dengan pola tiga langkah yang sama:
@@ -627,7 +631,7 @@ def baca_tree():
 
 Program lengkap berikut membaca tree, lalu menampilkan urutan inorder, banyak node, tinggi, dan banyak daun:
 
-```cpp tab="C++"
+```cpp tab="C++" input="7\n12 2 3\n7 4 5\n30 0 6\n3 0 0\n25 7 0\n18 0 0\n40 0 0"
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -880,7 +884,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kedua penelusuran hanya berbeda pada posisi baris `push_back`/`append`. Urutan disimpan ke vector lebih dulu agar bisa dicetak tanpa spasi di akhir baris.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n8 2 3\n1 0 4\n6 5 0\n9 0 0\n2 0 0"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1148,7 +1152,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Kuncinya adalah mencatat ukuran queue **sebelum** memproses sebuah level. Jika kondisi perulangan dalam memakai `q.size()` secara langsung, ukurannya ikut bertambah setiap kali anak dimasukkan, sehingga level berikutnya ikut tercetak di baris yang sama.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n12 2 3\n7 4 5\n30 0 6\n3 0 0\n25 7 0\n18 0 0\n40 0 0"
     #include <iostream>
     #include <vector>
     #include <queue>
@@ -1296,7 +1300,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Menukar dua pointer sama seperti menukar dua bilangan, jadi `swap` di C++ dan `a, b = b, a` di Python bisa dipakai langsung. Perhatikan bahwa inorder tree cermin adalah kebalikan inorder tree aslinya (`3 7 40 25 12 30 18` dibalik), karena urutan kiri dan kanan tertukar di setiap node.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n12 2 3\n7 4 5\n30 0 6\n3 0 0\n25 7 0\n18 0 0\n40 0 0"
     #include <iostream>
     #include <vector>
     #include <utility>
@@ -1582,7 +1586,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Ada dua kasus dasar: tree kosong (tidak ditemukan, `-1`) dan node yang berisi `x` (kembalikan `d`). Selain itu, cari di kiri dulu. Hanya jika hasil kiri `-1`, cari di kanan. Kesalahan yang sering terjadi adalah langsung menjumlahkan atau mengambil `max` dari hasil kiri dan kanan, padahal `-1` bukan kedalaman sungguhan.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n12 2 3\n7 4 5\n30 0 6\n3 0 0\n25 7 0\n18 0 0\n40 0 0\n40"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1732,7 +1736,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Solusi ini menghitung ulang tinggi di setiap node, sehingga waktunya O(n²). Untuk `n ≤ 100` itu sangat cepat. Versi O(n) menghitung tinggi dan diameter sekaligus dalam satu penelusuran.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n12 2 3\n7 4 5\n30 0 6\n3 0 0\n25 7 0\n18 0 0\n40 0 0"
     #include <iostream>
     #include <vector>
     #include <algorithm>
@@ -1884,7 +1888,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Cara pintas yang salah adalah memeriksa apakah urutan inorder berupa palindrom. Tree berisi `2` dengan satu anak kiri `2` punya inorder `2 2` yang palindrom, padahal tree itu jelas tidak simetris.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n7 2 3\n5 0 4\n5 5 0\n9 0 0\n9 0 0"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -2020,7 +2024,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Syarat "semua data berbeda" penting. Jika ada data kembar, posisi root di inorder bisa ambigu, dan tree-nya tidak selalu bisa ditentukan secara pasti.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n12 7 3 25 40 30 18\n3 7 40 25 12 30 18"
     #include <iostream>
     #include <vector>
     using namespace std;

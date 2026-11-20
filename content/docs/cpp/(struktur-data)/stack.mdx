@@ -43,6 +43,10 @@ Tabel berikut menunjukkan isi sebuah stack yang awalnya kosong setelah setiap op
 
 Perhatikan angka `3`. Ia masuk paling awal dan masih tertimbun di dasar. Ia baru bisa keluar setelah semua elemen di atasnya keluar.
 
+Jalankan urutan yang sama langkah demi langkah di bawah ini. Lewat **Ubah operasi**, kamu juga bisa menyusun urutanmu sendiri, misalnya mencoba `pop` saat stack kosong.
+
+<VisualisasiStack />
+
 ## Stack dengan vector
 
 Kamu sudah punya semua yang dibutuhkan untuk membuat stack, yaitu [vector](/docs/cpp/array-dan-vector). Anggap **ujung belakang** vector sebagai bagian atas stack. Di Python, list dipakai dengan cara yang sama.
@@ -105,7 +109,7 @@ atas = s.pop()          # ambil dan buang sekaligus
 
 C++ juga menyediakan tipe khusus `stack` dari pustaka `<stack>`. Nama operasinya sama persis dengan nama konsepnya. Contoh berikut membaca `n` bilangan, lalu mengeluarkannya dari stack. Karena yang terakhir masuk keluar pertama, urutannya **terbalik**. Membalik urutan adalah penerapan stack yang paling sederhana.
 
-```cpp tab="C++"
+```cpp tab="C++" input="5\n10 20 30 40 50"
 #include <iostream>
 #include <stack>
 using namespace std;
@@ -244,7 +248,7 @@ Jejak pemeriksaan untuk `{[()]}`:
 
 Semua karakter habis dan stack kosong, jadi ekspresi ini seimbang. Untuk `([)]`, saat `)` datang, puncak stack adalah `[`. Tidak cocok, sehingga pemeriksaan langsung berhenti dengan hasil tidak seimbang.
 
-```cpp tab="C++"
+```cpp tab="C++" input="{[(a + b) * c] - d}"
 #include <iostream>
 #include <stack>
 #include <string>
@@ -356,7 +360,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Huruf pertama masuk paling awal sehingga keluar paling akhir. Hasilnya otomatis terbalik. Python sebenarnya punya cara singkat `kata[::-1]`, tetapi tujuan soal ini adalah merasakan sifat LIFO.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="stack"
     #include <iostream>
     #include <stack>
     #include <string>
@@ -448,7 +452,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={3} level="mudah" judul="Perbaiki program pembalik">
   Program berikut membaca bilangan bulat satu per baris sampai bertemu `0` (angka 0 tidak ikut disimpan), lalu menampilkannya dalam urutan terbalik, satu per baris. Versi C++ gagal dikompilasi. Versi Python menampilkan angka yang benar, tetapi kemudian berhenti dengan error. Temukan kesalahannya dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="4\n8\n15\n0" check="skip"
   #include <iostream>
   #include <stack>
   using namespace std;
@@ -500,7 +504,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     **Kedua bahasa:** syarat `>= 0` selalu benar, karena ukuran tidak pernah negatif. Setelah stack kosong, perulangan tetap berjalan dan memanggil pop pada stack kosong. Python berhenti dengan `IndexError: pop from empty list`, sedangkan C++ masuk ke _undefined behavior_. Compiler sebenarnya sudah memperingatkan lewat `-Wextra`: `comparison of unsigned expression in '>= 0' is always true`. Syarat yang benar adalah "selama stack tidak kosong".
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\n8\n15\n0"
     #include <iostream>
     #include <stack>
     using namespace std;
@@ -576,7 +580,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pemeriksaan stack kosong ditaruh di satu tempat untuk `POP` dan `TOP` sekaligus, sehingga tidak ada jalur yang lupa memeriksa.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\nPUSH 5\nPUSH 12\nTOP\nPOP\nPOP\nPOP\nPUSH 7\nSIZE"
     #include <iostream>
     #include <stack>
     #include <string>
@@ -649,7 +653,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Push setiap sisa bagi, lalu pop semuanya. Jangan lupa kasus `n = 0`: perulangan `while (n > 0)` tidak berjalan sama sekali, sehingga tanpa penanganan khusus tidak ada yang tercetak. Digit-digit ini adalah bit yang sama dengan yang kamu olah di [Operator Bitwise](/docs/cpp/operator-bitwise).
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="13"
     #include <iostream>
     #include <stack>
     using namespace std;
@@ -715,7 +719,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah sepasang huruf terhapus, puncak stack kembali ke huruf **sebelum** pasangan itu, sehingga huruf berikutnya otomatis dibandingkan dengannya. Inilah yang menangani penghapusan berantai dalam satu kali penelusuran. Hasil akhirnya harus dibaca dari bawah ke atas, jadi C++ memakai `vector` sebagai stack, bukan `std::stack`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="xyyxz"
     #include <iostream>
     #include <string>
     #include <vector>
@@ -809,7 +813,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Kesalahan yang paling sering adalah tertukar operand: `4 7 -` menjadi 7 − 4 = 3, padahal seharusnya 4 − 7 = −3. Untuk `+` dan `*` urutannya tidak berpengaruh, jadi kesalahan ini hanya terlihat pada `-`. Kalkulator dan compiler pun sering mengubah ekspresi biasa ke bentuk postfix dulu sebelum menghitungnya.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="7\n10 2 8 * + 3 -"
     #include <iostream>
     #include <stack>
     #include <string>
@@ -920,7 +924,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Membatalkan `TULIS` berarti membuang kata terakhir, dan membatalkan `HAPUS` berarti mengembalikan kata yang dihapus. Karena itu aksi `HAPUS` harus mencatat katanya. Pada contoh 1, setelah dua kali UNDO dokumen menjadi `saya suka` dan stack redo berisi dua aksi. `TULIS teh` mengosongkan stack redo, jadi `REDO` berikutnya tidak melakukan apa pun. Dokumen sendiri disimpan di `vector` karena perlu dicetak dari awal sampai akhir.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="9\nTULIS saya\nTULIS suka\nTULIS kopi\nHAPUS\nUNDO\nUNDO\nTULIS teh\nREDO\nTULIS manis"
     #include <iostream>
     #include <stack>
     #include <string>
@@ -1095,7 +1099,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Dengan stack, kandidat yang lebih kecil atau sama dengan `a[i]` boleh dibuang **selamanya**. Alasannya, bilangan mana pun di sebelah kiri `a[i]` akan bertemu `a[i]` lebih dulu, dan `a[i]` setidaknya sama besar dengan kandidat-kandidat itu. Setiap bilangan di-push sekali dan di-pop paling banyak sekali, jadi total kerjanya sebanding dengan `n`. Perhatikan syarat `<=`: pada contoh 2, angka 3 yang sama tidak dianggap lebih besar.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n4 7 3 5 9 2"
     #include <iostream>
     #include <stack>
     #include <vector>
@@ -1186,7 +1190,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
     | 5 | `)` | `2 3` | 5 − 3 = 2 |
     | 6 | `)` | `2` | 6 − 2 = **4** |
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="())(())"
     #include <iostream>
     #include <stack>
     #include <string>

@@ -239,7 +239,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Bentuknya sama dengan segitiga bintang di materi, tetapi yang dicetak adalah nilai `kolom`, bukan `*`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4"
     #include <iostream>
     using namespace std;
 
@@ -294,7 +294,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Jumlah bintang di setiap baris adalah `n - baris + 1`, dan itulah batas perulangan dalam.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4"
     #include <iostream>
     using namespace std;
 
@@ -391,7 +391,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Perulangan bersarang mengunjungi semua sel `(baris, kolom)`, lalu sebuah `if` memilih `*` atau spasi. Kondisi tepinya digabung dengan `||`. Karena kolom terakhir selalu `*`, tidak ada spasi di akhir baris. Uji juga `n = 1` dan `n = 2`: semua selnya tepi, jadi hasilnya persegi penuh.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5"
     #include <iostream>
     using namespace std;
 
@@ -449,7 +449,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Program terbagi menjadi dua bagian. Bagian pertama mencetak sel pojok `x` (tiga spasi lalu `x`, jadi lebarnya juga 4) dan angka 1 sampai `n`. Bagian kedua adalah perulangan bersarang seperti di materi, dengan satu tambahan: sebelum perulangan dalam, cetak dulu nomor baris `i`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4"
     #include <iostream>
     #include <iomanip>
     using namespace std;
@@ -522,7 +522,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Cara "coba semua kemungkinan" ini disebut _brute force_. Untuk 36 kombinasi, cara ini sangat cepat dan paling mudah dipastikan benar. Counter `banyak` disiapkan sebelum kedua perulangan, karena yang dihitung adalah total dari seluruh kombinasi. Jika kamu mencoba semua `s`, jumlah 7 punya cara terbanyak, yaitu 6.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5"
     #include <iostream>
     using namespace std;
 
@@ -561,7 +561,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={7} level="menengah" judul="Perbaiki break bersarang">
   Program berikut seharusnya mencari pasangan **pertama** `(a, b)`, dengan `a` dan `b` dari 1 sampai 9, yang memenuhi `a * b == n`. "Pertama" berarti `a` sekecil mungkin. Begitu pasangan pertama ditemukan, program harus berhenti mencari. Jika tidak ada pasangan sama sekali, tampilkan `Tidak ada`.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" input="12"
   #include <iostream>
   using namespace std;
 
@@ -626,7 +626,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     `break` hanya menghentikan perulangan `b`. Perulangan `a` tetap lanjut ke nilai berikutnya, sehingga setiap `a` yang punya pasangan ikut dicetak. Perbaikannya, periksa `ketemu` tepat setelah perulangan dalam selesai, lalu `break` sekali lagi dari perulangan luar. Di C++, cara lainnya adalah menambahkan syarat ke kondisi perulangan luar: `for (int a = 1; a <= 9 && !ketemu; a++)`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="12"
     #include <iostream>
     using namespace std;
 
@@ -692,7 +692,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Variabel `prima` harus diatur ulang menjadi `true` di **awal setiap putaran luar**, karena setiap `x` diperiksa dari awal. Jika ditulis sekali di luar kedua perulangan, begitu satu bilangan bukan prima, semua bilangan setelahnya ikut dianggap bukan prima. `break` di sini hanya keluar dari perulangan pembagi, dan memang itu yang kita mau: perulangan luar lanjut ke `x` berikutnya. Counter `banyak` dipakai dua kali, untuk menentukan perlu tidaknya spasi dan untuk mendeteksi kasus `Tidak ada`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="20"
     #include <iostream>
     using namespace std;
 
@@ -777,7 +777,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Gunakan rumus piramida yang sama untuk kedua bagian: spasi = `n - baris`, bintang = `2 * baris - 1`. Bagian atas memakai `baris` dari 1 naik ke `n`. Bagian bawah memakai `baris` dari `n - 1` turun ke 1. Baris ke-`n` hanya dicetak sekali, oleh bagian atas. Karena setiap baris berakhir dengan bintang, tidak ada spasi di akhir baris.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4"
     #include <iostream>
     using namespace std;
 
@@ -860,7 +860,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Untuk `n = 100`, badan perulangan terdalam dijalankan 161.700 kali. Angka ini masih kecil untuk komputer, tetapi tumbuh sangat cepat jika `n` membesar, sesuai catatan tentang jumlah langkah di materi.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="15"
     #include <iostream>
     using namespace std;
 

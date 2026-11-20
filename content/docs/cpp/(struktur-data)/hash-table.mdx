@@ -1,0 +1,2074 @@
+---
+title: Hash Table
+description: Membuat hash table sendiri dengan fungsi hash dan separate chaining, memahami tabrakan, load factor, dan rehash, lalu memakai unordered_map, unordered_set, dict, dan set dengan tepat.
+sumber:
+  - ref: cppreference
+    judul: std::unordered_map
+    url: https://en.cppreference.com/w/cpp/container/unordered_map
+  - ref: cppreference
+    judul: std::unordered_set
+    url: https://en.cppreference.com/w/cpp/container/unordered_set
+  - ref: cppreference
+    judul: std::hash
+    url: https://en.cppreference.com/w/cpp/utility/hash
+  - ref: python-docs
+    judul: Built-in Functions, hash()
+    url: https://docs.python.org/3/library/functions.html#hash
+  - ref: python-docs
+    judul: Mapping Types, dict
+    url: https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+  - ref: python-docs
+    judul: Glossary, hashable
+    url: https://docs.python.org/3/glossary.html#term-hashable
+---
+
+## Loker di balik `unordered_map`
+
+Di materi [Map & Set](/docs/cpp/map-dan-set#kenapa-pencarian-di-map-cepat), kamu sudah melihat gambaran deretan loker bernomor 0 sampai 9. Setiap kunci disimpan di loker yang nomornya dihitung dari kunci itu sendiri, sehingga pencarian langsung menuju loker yang tepat tanpa memeriksa semua data. Begitulah cara kerja `unordered_map` dan `unordered_set` di C++, serta `dict` dan `set` di Python.
+
+Gambaran itu masih menyisakan banyak pertanyaan. Apa sebenarnya isi setiap loker? Apa yang terjadi jika dua kunci masuk ke loker yang sama? Kenapa tabelnya perlu diperbesar? Kenapa urutan `unordered_map` tidak bisa ditebak, dan kenapa list tidak boleh menjadi kunci `dict`?
+
+Cara terbaik untuk menjawabnya adalah membuat **hash table** sendiri. Bahannya sudah kamu kenal semua: [vector](/docs/cpp/array-dan-vector), [struct](/docs/cpp/struct), dan fungsi. Hash table buatan kita memang tidak secepat versi pustaka, tetapi setelah membuatnya, kamu tahu persis apa yang terjadi setiap kali menulis `umur["budi"] = 21`.
+
+## Dari kunci ke indeks
+
+Array punya kemampuan istimewa: `data[7]` langsung menuju elemen ke-7 tanpa menyentuh elemen lain. Seandainya kunci kita selalu bilangan kecil, misalnya nomor kursi 0 sampai 99, kita cukup memakai array berukuran 100 dan menyimpan data kursi `k` di `data[k]`.
+
+Sayangnya kunci biasanya berupa nama, kata, atau bilangan yang sangat besar. **Fungsi hash** menjembatani keduanya: ia mengubah kunci apa pun menjadi nomor indeks di dalam array. Array yang dipakai dengan cara ini disebut **hash table**. Setiap elemennya adalah satu loker, yang dalam istilah teknis disebut **bucket**.
+
+Kita memakai lagi fungsi hash mainan dari materi Map & Set: jumlahkan kode ASCII setiap huruf, lalu ambil sisa baginya dengan 10.
+
+```cpp tab="C++"
+int hashMainan(string kunci) {
+    int total = 0;
+    for (char c : kunci) {
+        total += c;              // kode ASCII setiap huruf
+    }
+    return total % 10;           // nomor loker 0 sampai 9
+}
+```
+
+```python tab="Python"
+def hash_mainan(kunci):
+    total = 0
+    for c in kunci:
+        total += ord(c)          # kode ASCII setiap huruf
+    return total % 10            # nomor loker 0 sampai 9
+```
+
+| Kunci | Jumlah kode ASCII | Nomor loker |
+| --- | --- | --- |
+| `"budi"` | 420 | 0 |
+| `"citra"` | 531 | 1 |
+| `"andi"` | 412 | 2 |
+| `"dina"` | 412 | 2 |
+| `"dodi"` | 416 | 6 |
+| `"eko"` | 319 | 9 |
+
+Fungsi ini bekerja dalam dua tahap. Penjumlahan mengubah teks menjadi sebuah bilangan, lalu `% 10` memastikan bilangan itu jatuh di salah satu dari 10 loker, berapa pun besarnya.
+
+### Ciri fungsi hash yang baik
+
+- **Deterministik.** Kunci yang sama harus selalu menghasilkan nomor yang sama. Jika `"budi"` disimpan di loker 0 tetapi saat dicari dihitung masuk loker 3, data budi tidak akan pernah ditemukan. Karena itu fungsi hash tidak boleh memakai bilangan acak atau waktu saat ini.
+- **Menyebar rata.** Kunci yang berbeda sebaiknya jatuh di loker yang berbeda-beda, agar tidak ada loker yang penuh sesak sementara loker lain kosong.
+- **Cepat dihitung.** Fungsi hash dijalankan pada setiap operasi. Jika menghitungnya selambat memeriksa semua data, tidak ada untungnya.
+
+Hash mainan kita lolos ciri pertama dan ketiga, tetapi lemah di ciri kedua. Perhatikan `"andi"` dan `"dina"`: hurufnya persis sama, hanya urutannya berbeda. Penjumlahan tidak peduli urutan, jadi setiap pasangan kata yang tersusun dari huruf yang sama (anagram) **pasti** masuk ke loker yang sama. Fungsi hash sungguhan juga memperhitungkan posisi setiap huruf. Kamu akan mencobanya di latihan.
+
+<Callout type="info" title="Hash sama belum tentu kunci sama">
+  Banyaknya kunci yang mungkin tidak terbatas, sedangkan banyaknya loker terbatas. Jadi dua kunci berbeda yang mendapat nomor loker sama tidak mungkin dihindari sepenuhnya. Kejadian ini disebut **tabrakan** (_collision_). Akibatnya, hash table **selalu** membandingkan kuncinya sendiri sebelum menyatakan "ketemu".
+</Callout>
+
+## Tabrakan dan _separate chaining_
+
+Cara paling sederhana menangani tabrakan: biarkan setiap loker menampung **beberapa** entri. Setiap loker berisi deretan pendek pasangan kunci dan nilai, dan kunci-kunci yang bertabrakan cukup berbaris di loker yang sama. Cara ini disebut **_separate chaining_**, karena setiap loker punya rantainya sendiri.
+
+Berikut isi tabel 10 loker setelah lima nama dari tabel di atas dimasukkan, masing-masing bersama umurnya:
+
+```txt
+loker 0 | budi:21
+loker 1 | citra:20
+loker 2 | andi:19 → dina:22      ← tabrakan: dua kunci di satu loker
+loker 3 |
+loker 4 |
+loker 5 |
+loker 6 | dodi:18
+loker 7 |
+loker 8 |
+loker 9 |
+```
+
+Di buku teks, rantai di setiap loker biasanya digambar sebagai [linked list](/docs/cpp/linked-list). Kita cukup memakai `vector` agar tidak perlu pointer: tabelnya berupa vector berisi 10 loker, dan setiap loker adalah vector berisi struct `Entri`. Di Python, tabelnya adalah list berisi 10 list.
+
+```cpp tab="C++"
+struct Entri {
+    string kunci;
+    int nilai;
+};
+
+vector<vector<Entri>> tabel(10);     // 10 loker, semuanya masih kosong
+```
+
+```python tab="Python"
+class Entri:
+    def __init__(self, kunci, nilai):
+        self.kunci = kunci
+        self.nilai = nilai
+
+
+tabel = [[] for _ in range(10)]      # 10 loker, masing-masing list kosong sendiri
+```
+
+`tabel[2]` adalah isi loker 2, dan `tabel[2][1].kunci` adalah kunci entri kedua di loker itu, yaitu `"dina"`. Di Python, jangan menulis `[[]] * 10`. Kesepuluh loker akan menjadi list **yang sama**, sehingga kunci yang masuk ke satu loker muncul di semua loker. Jebakan ini sama dengan yang dibahas di [Matriks](/docs/cpp/matriks).
+
+Ketiga operasi hash table (tambah, cari, hapus) diawali dua langkah yang sama: hitung nomor loker milik kunci, lalu cari kunci itu **di dalam loker tersebut saja**. Langkah kedua kita jadikan fungsi bantu:
+
+```cpp tab="C++"
+// posisi kunci di dalam satu loker, atau -1 jika tidak ada
+int cariDiLoker(const vector<Entri>& loker, const string& kunci) {
+    for (int j = 0; j < (int)loker.size(); j++) {
+        if (loker[j].kunci == kunci) {   // bandingkan kuncinya, bukan hash-nya
+            return j;
+        }
+    }
+    return -1;
+}
+```
+
+```python tab="Python"
+# posisi kunci di dalam satu loker, atau -1 jika tidak ada
+def cari_di_loker(loker, kunci):
+    for j in range(len(loker)):
+        if loker[j].kunci == kunci:      # bandingkan kuncinya, bukan hash-nya
+            return j
+    return -1
+```
+
+Ini [pencarian linear](/docs/cpp/array-dan-vector#mencari-elemen) biasa, tetapi hanya pada satu loker yang isinya sedikit, bukan pada seluruh data.
+
+### Menambah
+
+1. Hitung nomor loker `i` dari kunci.
+2. Cari kunci itu di loker `i`.
+3. Jika sudah ada, **ganti nilainya**. Jika belum, tambahkan entri baru di belakang loker `i`.
+
+```cpp tab="C++"
+void tambah(vector<vector<Entri>>& tabel, const string& kunci, int nilai) {
+    int i = hashMainan(kunci);
+    int j = cariDiLoker(tabel[i], kunci);
+    if (j != -1) {
+        tabel[i][j].nilai = nilai;           // kunci sudah ada: ganti nilainya
+    } else {
+        tabel[i].push_back({kunci, nilai});  // kunci baru: masuk ke loker i
+    }
+}
+```
+
+```python tab="Python"
+def tambah(tabel, kunci, nilai):
+    i = hash_mainan(kunci)
+    j = cari_di_loker(tabel[i], kunci)
+    if j != -1:
+        tabel[i][j].nilai = nilai            # kunci sudah ada: ganti nilainya
+    else:
+        tabel[i].append(Entri(kunci, nilai)) # kunci baru: masuk ke loker i
+```
+
+Berikut yang terjadi saat kelima nama dimasukkan ke tabel yang masih kosong:
+
+| Langkah | Operasi | Jumlah ASCII | Loker | Yang terjadi |
+| --- | --- | --- | --- | --- |
+| 1 | tambah budi 21 | 420 | 0 | Loker 0 kosong, budi masuk |
+| 2 | tambah citra 20 | 531 | 1 | Loker 1 kosong, citra masuk |
+| 3 | tambah andi 19 | 412 | 2 | Loker 2 kosong, andi masuk |
+| 4 | tambah dina 22 | 412 | 2 | Tabrakan. Loker 2 sudah berisi andi, bukan dina, jadi dina berbaris di belakang andi |
+| 5 | tambah dodi 18 | 416 | 6 | Loker 6 kosong, dodi masuk |
+
+Langkah ketiga pada fungsi `tambah` meniru perilaku `umur["budi"] = 22` pada map. Seandainya sekarang `tambah(tabel, "budi", 22)` dipanggil, loker 0 diperiksa, budi ditemukan, dan umurnya diganti menjadi 22. Tabel tetap berisi lima kunci. Tanpa pemeriksaan ini, loker 0 akan berisi dua budi, dan pencarian berikutnya akan menemukan budi yang lama.
+
+### Mencari
+
+Untuk mencari, hitung nomor loker, lalu periksa loker itu saja. Loker lain tidak perlu disentuh, karena seandainya kunci itu pernah ditambahkan, ia pasti masuk ke loker yang sama.
+
+```cpp tab="C++"
+bool cari(const vector<vector<Entri>>& tabel, const string& kunci, int& hasil) {
+    int i = hashMainan(kunci);
+    int j = cariDiLoker(tabel[i], kunci);
+    if (j == -1) {
+        return false;                    // tidak ada di lokernya, berarti tidak ada di tabel
+    }
+    hasil = tabel[i][j].nilai;           // titipkan nilainya ke variabel pemanggil
+    return true;
+}
+```
+
+```python tab="Python"
+def cari(tabel, kunci):
+    i = hash_mainan(kunci)
+    j = cari_di_loker(tabel[i], kunci)
+    if j == -1:
+        return None                      # tidak ada di lokernya, berarti tidak ada di tabel
+    return tabel[i][j].nilai
+```
+
+Versi Python cukup mengembalikan `None` jika kunci tidak ada, seperti `dict.get`. Fungsi C++ yang mengembalikan `int` tidak punya nilai "kosong". Mengembalikan angka khusus seperti `-1` juga berbahaya, karena angka itu bisa saja nilai yang sah. Jadi `cari` di C++ mengembalikan `bool` (ketemu atau tidak), dan nilainya dititipkan lewat parameter reference `hasil`, sama seperti cara fungsi mengubah struct milik pemanggil di materi [Struct](/docs/cpp/struct#struct-sebagai-parameter-fungsi).
+
+| Pencarian | Jumlah ASCII | Loker | Kunci yang dibandingkan | Hasil |
+| --- | --- | --- | --- | --- |
+| `dina` | 412 | 2 | `andi` (bukan), `dina` (cocok) | 22 |
+| `eko` | 319 | 9 | tidak ada, loker 9 kosong | tidak ditemukan |
+
+Pencarian `eko` selesai tanpa satu perbandingan pun. Loker 9 kosong, jadi `eko` pasti tidak ada di tabel. Pencarian `dina` butuh dua perbandingan karena tabrakan di loker 2. Di sini terlihat kenapa kunci harus dibandingkan: andi dan dina punya nomor loker yang sama, dan tanpa membandingkan kunci, pencarian dina akan mengembalikan umur andi.
+
+### Menghapus
+
+Untuk menghapus, cari posisi kunci di lokernya, lalu buang entri itu dari loker tersebut.
+
+```cpp tab="C++"
+bool hapus(vector<vector<Entri>>& tabel, const string& kunci) {
+    int i = hashMainan(kunci);
+    int j = cariDiLoker(tabel[i], kunci);
+    if (j == -1) {
+        return false;                            // tidak ada yang dihapus
+    }
+    tabel[i].erase(tabel[i].begin() + j);        // buang entri ke-j dari loker i
+    return true;
+}
+```
+
+```python tab="Python"
+def hapus(tabel, kunci):
+    i = hash_mainan(kunci)
+    j = cari_di_loker(tabel[i], kunci)
+    if j == -1:
+        return False                             # tidak ada yang dihapus
+    del tabel[i][j]                              # buang entri ke-j dari loker i
+    return True
+```
+
+`v.erase(v.begin() + j)` membuang elemen ke-`j` dari vector, dan padanannya di Python adalah `del v[j]` (lihat [pustaka vector](/docs/cpp/pustaka/vector)). Menghapus `andi` berarti membuang entri pertama di loker 2. Setelah itu, dina maju menjadi satu-satunya isi loker 2, dan loker lain tidak tersentuh sama sekali:
+
+```txt
+loker 0 | budi:21
+loker 1 | citra:20
+loker 2 | dina:22
+loker 6 | dodi:18
+(loker 3, 4, 5, 7, 8, dan 9 tetap kosong)
+```
+
+Jalankan kelima penambahan, kedua pencarian, dan penghapusan tadi langkah demi langkah di bawah ini.
+
+<VisualisasiHashTable />
+
+## Program lengkap
+
+Semua bagian di atas disatukan menjadi satu program yang menjalankan contoh yang sama. Fungsi `cetak` menampilkan isi setiap loker.
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+struct Entri {
+    string kunci;
+    int nilai;
+};
+
+int hashMainan(string kunci) {
+    int total = 0;
+    for (char c : kunci) {
+        total += c;
+    }
+    return total % 10;
+}
+
+int cariDiLoker(const vector<Entri>& loker, const string& kunci) {
+    for (int j = 0; j < (int)loker.size(); j++) {
+        if (loker[j].kunci == kunci) {
+            return j;
+        }
+    }
+    return -1;
+}
+
+void tambah(vector<vector<Entri>>& tabel, const string& kunci, int nilai) {
+    int i = hashMainan(kunci);
+    int j = cariDiLoker(tabel[i], kunci);
+    if (j != -1) {
+        tabel[i][j].nilai = nilai;
+    } else {
+        tabel[i].push_back({kunci, nilai});
+    }
+}
+
+bool cari(const vector<vector<Entri>>& tabel, const string& kunci, int& hasil) {
+    int i = hashMainan(kunci);
+    int j = cariDiLoker(tabel[i], kunci);
+    if (j == -1) {
+        return false;
+    }
+    hasil = tabel[i][j].nilai;
+    return true;
+}
+
+bool hapus(vector<vector<Entri>>& tabel, const string& kunci) {
+    int i = hashMainan(kunci);
+    int j = cariDiLoker(tabel[i], kunci);
+    if (j == -1) {
+        return false;
+    }
+    tabel[i].erase(tabel[i].begin() + j);
+    return true;
+}
+
+void cetak(const vector<vector<Entri>>& tabel) {
+    for (int i = 0; i < (int)tabel.size(); i++) {
+        cout << i << ":";
+        for (const Entri& e : tabel[i]) {
+            cout << " [" << e.kunci << " " << e.nilai << "]";
+        }
+        cout << endl;
+    }
+}
+
+int main() {
+    vector<vector<Entri>> tabel(10);
+
+    tambah(tabel, "budi", 21);
+    tambah(tabel, "citra", 20);
+    tambah(tabel, "andi", 19);
+    tambah(tabel, "dina", 22);
+    tambah(tabel, "dodi", 18);
+    cetak(tabel);
+
+    vector<string> dicari = {"dina", "eko"};
+    for (string nama : dicari) {
+        int umur;
+        if (cari(tabel, nama, umur)) {
+            cout << "cari " << nama << ": " << umur << endl;
+        } else {
+            cout << "cari " << nama << ": tidak ada" << endl;
+        }
+    }
+
+    hapus(tabel, "andi");
+    cout << "setelah hapus andi:" << endl;
+    cetak(tabel);
+    return 0;
+}
+```
+
+```python tab="Python"
+class Entri:
+    def __init__(self, kunci, nilai):
+        self.kunci = kunci
+        self.nilai = nilai
+
+
+def hash_mainan(kunci):
+    total = 0
+    for c in kunci:
+        total += ord(c)
+    return total % 10
+
+
+def cari_di_loker(loker, kunci):
+    for j in range(len(loker)):
+        if loker[j].kunci == kunci:
+            return j
+    return -1
+
+
+def tambah(tabel, kunci, nilai):
+    i = hash_mainan(kunci)
+    j = cari_di_loker(tabel[i], kunci)
+    if j != -1:
+        tabel[i][j].nilai = nilai
+    else:
+        tabel[i].append(Entri(kunci, nilai))
+
+
+def cari(tabel, kunci):
+    i = hash_mainan(kunci)
+    j = cari_di_loker(tabel[i], kunci)
+    if j == -1:
+        return None
+    return tabel[i][j].nilai
+
+
+def hapus(tabel, kunci):
+    i = hash_mainan(kunci)
+    j = cari_di_loker(tabel[i], kunci)
+    if j == -1:
+        return False
+    del tabel[i][j]
+    return True
+
+
+def cetak(tabel):
+    for i in range(len(tabel)):
+        baris = f"{i}:"
+        for e in tabel[i]:
+            baris += f" [{e.kunci} {e.nilai}]"
+        print(baris)
+
+
+tabel = [[] for _ in range(10)]
+
+tambah(tabel, "budi", 21)
+tambah(tabel, "citra", 20)
+tambah(tabel, "andi", 19)
+tambah(tabel, "dina", 22)
+tambah(tabel, "dodi", 18)
+cetak(tabel)
+
+for nama in ["dina", "eko"]:
+    umur = cari(tabel, nama)
+    if umur is not None:
+        print(f"cari {nama}: {umur}")
+    else:
+        print(f"cari {nama}: tidak ada")
+
+hapus(tabel, "andi")
+print("setelah hapus andi:")
+cetak(tabel)
+```
+
+```txt title="Output"
+0: [budi 21]
+1: [citra 20]
+2: [andi 19] [dina 22]
+3:
+4:
+5:
+6: [dodi 18]
+7:
+8:
+9:
+cari dina: 22
+cari eko: tidak ada
+setelah hapus andi:
+0: [budi 21]
+1: [citra 20]
+2: [dina 22]
+3:
+4:
+5:
+6: [dodi 18]
+7:
+8:
+9:
+```
+
+Di Python, `umur is not None` sengaja dipakai, bukan sekadar `if umur:`. Umur yang tersimpan bisa saja 0, dan `if 0:` dianggap salah.
+
+Perhatikan urutan cetaknya. Isi tabel tercetak menurut **nomor loker**, sehingga hasilnya tidak urut abjad (budi muncul sebelum andi). Urutan itu juga tidak mengikuti urutan masuk: seandainya dodi dimasukkan paling awal, ia tetap tercetak sesudah dina. Inilah sebabnya `unordered_map` disebut _unordered_. Urutan penelusurannya mengikuti loker, dan nomor loker tidak ada hubungannya dengan urutan kunci.
+
+## Load factor dan rehash
+
+Tabel kita punya 10 loker. Bagaimana jika yang disimpan bukan lima nama, melainkan 1.000 mahasiswa? Rata-rata setiap loker akan berisi 100 entri, dan setiap pencarian bisa membandingkan puluhan sampai ratusan kunci. Tabel yang terlalu kecil membuat hash table kembali lambat seperti pencarian linear.
+
+Kepadatan tabel diukur dengan **load factor**:
+
+```txt
+load factor = banyak kunci / banyak loker
+```
+
+| Banyak kunci | Banyak loker | Load factor | Artinya |
+| --- | --- | --- | --- |
+| 5 | 10 | 0,5 | Rata-rata setengah entri per loker. Lega |
+| 1.000 | 10 | 100 | Rata-rata 100 entri per loker. Lambat |
+| 1.000 | 2.000 | 0,5 | Lega lagi setelah tabel diperbesar |
+
+Hash table sungguhan menjaga load factor tetap kecil dengan **memperbesar tabel** secara otomatis. Secara bawaan, `unordered_map` memperbesar tabelnya begitu load factor melewati 1, sedangkan `dict` Python sudah memperbesar tabel saat sekitar dua pertiga lokernya terisi.
+
+### Kenapa isi tabel harus dihitung ulang
+
+Memperbesar tabel tidak bisa dilakukan dengan menyalin isi setiap loker apa adanya, karena nomor loker bergantung pada **banyak loker**. Untuk tabel dengan `m` loker, rumus hash mainan kita menjadi jumlah ASCII `% m`. Lihat apa yang terjadi saat tabel diperbesar dari 10 menjadi 20 loker:
+
+| Kunci | Jumlah ASCII | Loker (10 loker) | Loker (20 loker) |
+| --- | --- | --- | --- |
+| `budi` | 420 | 0 | 0 |
+| `citra` | 531 | 1 | 11 |
+| `andi` | 412 | 2 | 12 |
+| `dina` | 412 | 2 | 12 |
+| `dodi` | 416 | 6 | 16 |
+
+Empat dari lima kunci berpindah loker. Seandainya citra dibiarkan di loker 1, pencarian citra di tabel baru akan menghitung loker 11, menemukannya kosong, lalu menyimpulkan citra tidak ada. Karena itu memperbesar tabel dilakukan dengan langkah berikut, yang disebut **rehash**:
+
+1. Siapkan tabel baru dengan banyak loker kira-kira dua kali lipat.
+2. Telusuri setiap entri di tabel lama, hitung nomor lokernya dengan banyak loker yang baru, lalu masukkan ke tabel baru.
+3. Pakai tabel baru dan buang tabel lama.
+
+Rehash memang mahal karena semua kunci dipindahkan. Namun tabel menjadi dua kali lebih besar setiap kali, sehingga rehash makin lama makin jarang terjadi. Jika dirata-rata atas semua penambahan, biayanya tetap kecil, sama seperti `push_back` pada vector yang sesekali memindahkan seluruh isinya ke tempat yang lebih besar.
+
+Perhatikan juga andi dan dina. Di tabel 20 loker pun keduanya tetap bertabrakan, karena jumlah ASCII mereka persis sama. Rehash bisa menyebar kunci yang jumlah ASCII-nya berbeda, tetapi tidak bisa memisahkan kunci yang jumlahnya sama. Untuk itu, fungsi hash-nya yang harus diperbaiki.
+
+### Rata-rata O(1), terburuk O(n)
+
+Dengan fungsi hash yang menyebar rata dan load factor yang dijaga tetap kecil, setiap loker rata-rata hanya berisi satu entri atau kurang. Menambah, mencari, dan menghapus cukup menghitung hash lalu memeriksa satu loker yang hampir kosong. Banyak langkahnya tidak bertambah walaupun kunci yang tersimpan jutaan. Inilah arti **rata-rata O(1)** dalam <Term href="/docs/cpp/pendalaman/kompleksitas-waktu">kompleksitas waktu</Term>. Menghitung hash sebuah string tetap perlu membaca semua hurufnya, jadi O(1) di sini berarti tidak bergantung pada **banyak kunci** di dalam tabel.
+
+Kata "rata-rata" penting. Dengan hash mainan kita, kata `abc`, `acb`, `bac`, `bca`, `cab`, dan `cba` semuanya berjumlah ASCII 294, jadi semuanya masuk loker 4:
+
+```txt
+loker 4 | abc → acb → bac → bca → cab → cba
+```
+
+Mencari `cba` berarti membandingkan keenam kunci satu per satu, sama saja dengan pencarian linear. Memperbesar tabel juga tidak menolong, karena jumlah ASCII mereka tetap sama. Jika `n` kunci berkumpul di satu loker, setiap operasi butuh sekitar `n` langkah. Itulah **kasus terburuk O(n)**. Dengan fungsi hash yang baik, kejadian ini sangat jarang terjadi secara kebetulan.
+
+<Callout type="warning" title="Tabrakan yang disengaja">
+  Orang yang tahu fungsi hash sebuah program bisa sengaja mengirim ribuan kunci yang bertabrakan agar program itu melambat. Karena itu Python mengacak hash string setiap kali program dijalankan, sehingga `hash("budi")` berbeda dari satu run ke run berikutnya. Di lomba pemrograman pun ada soal yang datanya sengaja disusun untuk memperlambat `unordered_map`. Jika kamu butuh jaminan, `map` yang selalu O(log n) adalah pilihan yang aman.
+</Callout>
+
+## Alternatif: _open addressing_
+
+_Separate chaining_ bukan satu-satunya cara menangani tabrakan. Pada **_open addressing_**, setiap loker hanya boleh berisi **satu** entri. Jika loker tujuan sudah terisi, kunci mencari loker lain di dalam tabel yang sama. Cara paling sederhana adalah **_linear probing_**: coba loker sebelahnya (`i + 1`, `i + 2`, dan seterusnya), lalu kembali ke loker 0 setelah melewati loker terakhir.
+
+Misalkan kelima nama tadi dimasukkan ke tabel 10 loker dengan linear probing, lalu disusul `ani` (jumlah ASCII 312, loker 2):
+
+| Kunci | Loker hash | Loker yang dicoba | Ditempatkan di |
+| --- | --- | --- | --- |
+| `budi` | 0 | 0 | 0 |
+| `citra` | 1 | 1 | 1 |
+| `andi` | 2 | 2 | 2 |
+| `dina` | 2 | 2 (terisi), 3 | 3 |
+| `dodi` | 6 | 6 | 6 |
+| `ani` | 2 | 2 (terisi), 3 (terisi), 4 | 4 |
+
+```txt
+loker | 0     1      2     3     4    5   6     7   8   9
+isi   | budi  citra  andi  dina  ani  -   dodi  -   -   -
+```
+
+Pencarian mengikuti jalur yang sama: mulai dari loker hash, lalu maju sampai kuncinya ketemu atau sampai bertemu loker **kosong**. Mencari `ani` memeriksa loker 2, 3, lalu 4. Mencari `eko` (loker 9) langsung berhenti karena loker 9 kosong.
+
+Ada dua hal yang perlu diwaspadai:
+
+- **Penggumpalan.** Kunci yang bertabrakan menempati loker tetangga, sehingga kunci lain ikut tergeser. `ani` terdorong ke loker 4 karena loker 3 dipakai `dina`, padahal loker hash `dina` adalah 2. Gumpalan seperti ini makin lama makin panjang, jadi load factor open addressing harus dijaga cukup rendah. Banyak kunci juga tidak mungkin melebihi banyak loker.
+- **Menghapus tidak boleh sekadar mengosongkan loker.** Jika `dina` di loker 3 dihapus begitu saja, pencarian `ani` akan berhenti di loker 3 yang kini kosong dan menyimpulkan `ani` tidak ada. Karena itu loker bekas hapusan diberi tanda khusus "pernah terisi", agar pencarian tetap melewatinya.
+
+Implementasi `unordered_map` yang umum, misalnya pada g++, memakai separate chaining. `dict` dan `set` Python memakai open addressing, dengan aturan memilih loker cadangan yang lebih rumit daripada sekadar loker sebelahnya.
+
+## Hash table siap pakai
+
+Dalam program sungguhan, pakai hash table dari pustaka. Cara pakainya sudah kamu kenal di materi Map & Set. Tabel berikut menunjukkan padanan setiap fungsi buatan kita:
+
+| Hash table buatan kita | C++ `unordered_map` | Python `dict` |
+| --- | --- | --- |
+| `tambah(tabel, k, v)` | `m[k] = v` | `d[k] = v` |
+| `cari(tabel, k, hasil)` | `m.find(k)` atau `m.count(k)` | `d.get(k)` atau `k in d` |
+| `hapus(tabel, k)` | `m.erase(k)` | `del d[k]` atau `d.pop(k, None)` |
+| banyak kunci | `m.size()` | `len(d)` |
+| `hashMainan(k)` | `hash<string>{}(k)` | `hash(k)` |
+
+Program berikut menjalankan contoh yang sama dengan `unordered_map` dan `dict`, ditambah `unordered_set` dan `set` yang hanya menyimpan kunci tanpa nilai:
+
+```cpp tab="C++"
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+using namespace std;
+
+int main() {
+    unordered_map<string, int> umur;
+    umur["budi"] = 21;
+    umur["citra"] = 20;
+    umur["andi"] = 19;
+    umur["dina"] = 22;
+    umur["dodi"] = 18;
+
+    vector<string> dicari = {"dina", "eko"};
+    for (string nama : dicari) {
+        auto it = umur.find(nama);
+        if (it != umur.end()) {
+            cout << "cari " << nama << ": " << it->second << endl;
+        } else {
+            cout << "cari " << nama << ": tidak ada" << endl;
+        }
+    }
+
+    umur.erase("andi");
+    cout << umur.size() << " kunci tersisa" << endl;
+
+    unordered_set<string> hadir = {"budi", "dina"};
+    if (hadir.count("dina") > 0) {
+        cout << "dina hadir" << endl;
+    }
+    return 0;
+}
+```
+
+```python tab="Python"
+umur = {}
+umur["budi"] = 21
+umur["citra"] = 20
+umur["andi"] = 19
+umur["dina"] = 22
+umur["dodi"] = 18
+
+for nama in ["dina", "eko"]:
+    if nama in umur:
+        print(f"cari {nama}: {umur[nama]}")
+    else:
+        print(f"cari {nama}: tidak ada")
+
+del umur["andi"]
+print(len(umur), "kunci tersisa")
+
+hadir = {"budi", "dina"}
+if "dina" in hadir:
+    print("dina hadir")
+```
+
+```txt title="Output"
+cari dina: 22
+cari eko: tidak ada
+4 kunci tersisa
+dina hadir
+```
+
+### Mengintip isi hash table pustaka
+
+C++ mengizinkan kita melihat keadaan tabel di dalam `unordered_map`. Python menyembunyikannya, tetapi fungsi hash-nya bisa dipanggil langsung.
+
+```cpp tab="C++"
+unordered_map<string, int> umur = {{"budi", 21}, {"citra", 20}, {"andi", 19}};
+
+cout << hash<string>{}("budi") << endl;   // bilangan bulat yang sangat besar
+cout << umur.bucket_count() << endl;      // banyak loker saat ini
+cout << umur.load_factor() << endl;       // banyak kunci / banyak loker
+cout << umur.bucket("andi") << endl;      // nomor loker milik "andi"
+
+umur.reserve(100000);                     // siapkan loker untuk 100.000 kunci sekaligus
+```
+
+```python tab="Python"
+print(hash("budi"))      # bilangan bulat besar, berubah setiap kali program dijalankan
+print(hash(42))          # 42: hash bilangan bulat kecil adalah bilangan itu sendiri
+print(hash((3, 4)))      # tuple bisa di-hash, jadi boleh menjadi kunci
+print(hash([3, 4]))      # TypeError: unhashable type: 'list'
+```
+
+`hash<string>{}` membuat fungsi hash bawaan untuk string, lalu `("budi")` memanggilnya. Hasilnya bilangan yang sangat besar, dan `unordered_map` sendiri yang mengambil sisa baginya dengan banyak loker. `reserve` berguna jika kamu sudah tahu kira-kira berapa banyak kunci yang akan disimpan: tabel langsung dibuat cukup besar sehingga tidak perlu rehash berkali-kali.
+
+Kunci `unordered_map` harus punya fungsi hash. C++ sudah menyediakannya untuk bilangan, `char`, dan `string`, tetapi tidak untuk struct buatanmu. Cara termudah adalah menggabungkan anggotanya menjadi satu string, misalnya titik `(3, 4)` disimpan dengan kunci `to_string(x) + "," + to_string(y)`, yaitu `"3,4"`. Python langsung menerima tuple `(3, 4)` sebagai kunci.
+
+Satu hal lagi tentang `dict`. Lokernya tersebar seperti hash table lain, tetapi Python juga mencatat urutan masuk setiap kunci di daftar terpisah. Itulah sebabnya menelusuri `dict` mengikuti urutan masuk, sedangkan menelusuri `unordered_map` dan `set` Python tidak.
+
+### Memilih `map` atau `unordered_map`
+
+| Kebutuhan | Pilih | Alasan |
+| --- | --- | --- |
+| Hanya menyimpan dan mencari, urutan tidak penting | `unordered_map` | Rata-rata O(1) |
+| Kunci harus ditelusuri terurut, atau perlu kunci terkecil/terbesar | `map` | Isinya selalu urut kunci |
+| Butuh jaminan waktu walaupun datanya disusun untuk menyerang | `map` | Selalu O(log n), tanpa kasus terburuk O(n) |
+
+Python hanya punya `dict` untuk keperluan ini. Jika butuh urutan kunci, telusuri `sorted(d)`.
+
+## Kesalahan yang sering terjadi
+
+### Menganggap hash sama berarti kunci sama
+
+```cpp tab="C++"
+// ✗ andi dan dina berhash sama: mencari dina bisa mendapat umur andi
+if (hashMainan(loker[j].kunci) == hashMainan(kunci)) { ... }
+
+// ✓ bandingkan kuncinya sendiri
+if (loker[j].kunci == kunci) { ... }
+```
+
+```python tab="Python"
+# ✗ andi dan dina berhash sama: mencari dina bisa mendapat umur andi
+if hash_mainan(loker[j].kunci) == hash_mainan(kunci): ...
+
+# ✓ bandingkan kuncinya sendiri
+if loker[j].kunci == kunci: ...
+```
+
+Hash hanya menunjukkan loker mana yang perlu diperiksa. Keputusan "ketemu" selalu diambil dengan membandingkan kunci.
+
+### Mengubah salinan entri (C++)
+
+```cpp
+// ✗ e adalah salinan: nilai di dalam tabel tidak berubah
+for (Entri e : tabel[i]) {
+    if (e.kunci == kunci) {
+        e.nilai = nilai;
+    }
+}
+
+// ✓ Entri& e menunjuk entri aslinya
+for (Entri& e : tabel[i]) {
+    if (e.kunci == kunci) {
+        e.nilai = nilai;
+    }
+}
+```
+
+Seperti yang dibahas di materi [Struct](/docs/cpp/struct#vector-berisi-struct), for-each tanpa `&` menghasilkan salinan. Kode yang salah di atas tidak menimbulkan error, tetapi nilai di tabel tidak pernah berubah. Di Python, `for e in tabel[i]:` memberi nama untuk objek aslinya, jadi masalah ini tidak terjadi.
+
+### Sisa bagi bilangan negatif (C++)
+
+Jika kuncinya bilangan bulat, nomor loker biasanya dihitung dengan `x % m`. Untuk `x` negatif, hasil C++ ikut negatif, dan `tabel[-7]` adalah [_undefined behavior_](/docs/cpp/pendalaman/undefined-behavior).
+
+```cpp tab="C++"
+int x = -7;
+cout << x % 10 << endl;                  // -7, bukan nomor loker yang sah
+cout << ((x % 10) + 10) % 10 << endl;    // 3
+```
+
+```python tab="Python"
+x = -7
+print(x % 10)                            # 3, sisa bagi Python tidak pernah negatif untuk pembagi positif
+```
+
+Perbedaan ini sudah kamu temui di [Operator Aritmatika](/docs/cpp/operator-aritmatika#pembagian-dengan-bilangan-negatif). Di C++, tambahkan `m` lalu ambil sisa baginya sekali lagi.
+
+### Mengubah kunci setelah disimpan
+
+Nomor loker dihitung dari kunci **saat entri dimasukkan**. Jika kunci entri diubah setelahnya, misalnya `tabel[2][0].kunci = "eko"`, entri itu tetap tinggal di loker 2, padahal pencarian `eko` memeriksa loker 9. Entri tersebut "hilang" walaupun masih ada di dalam tabel.
+
+Inilah alasan sebenarnya kenapa Python menolak list sebagai kunci `dict`: isi list bisa berubah, sehingga nomor lokernya pun bisa berubah. Dengan alasan yang sama, `unordered_map` hanya mengizinkan kunci dibaca. `it->first = "eko"` ditolak compiler, sedangkan `it->second` boleh diubah.
+
+### Mengandalkan urutan penelusuran
+
+Urutan `unordered_map`, `unordered_set`, dan `set` Python mengikuti loker. Urutan itu bisa berbeda di compiler lain, dan bisa berubah setelah rehash. Jika output harus terurut, pakai `map` atau `set` C++, atau di Python telusuri `sorted(...)`.
+
+## Rangkuman
+
+- **Hash table** menyimpan data di deretan loker (bucket). **Fungsi hash** mengubah kunci menjadi nomor loker, sehingga operasi langsung menuju loker yang tepat.
+- Fungsi hash yang baik bersifat deterministik, menyebar kunci secara rata, dan cepat dihitung.
+- Dua kunci berbeda bisa mendapat loker yang sama (**tabrakan**). Karena itu kunci selalu dibandingkan sebelum dinyatakan ketemu.
+- Pada **separate chaining**, setiap loker menampung deretan entri. Tambah, cari, dan hapus sama-sama menghitung loker lalu bekerja di loker itu saja. Menambah kunci yang sudah ada berarti mengganti nilainya.
+- **Load factor** adalah banyak kunci dibagi banyak loker. Saat terlalu padat, tabel diperbesar dan setiap kunci dihitung ulang lokernya (**rehash**).
+- Operasi hash table rata-rata O(1), tetapi bisa memburuk menjadi O(n) jika banyak kunci berkumpul di satu loker.
+- Pada **open addressing**, setiap loker berisi satu entri, dan kunci yang bertabrakan mencari loker lain, misalnya dengan linear probing.
+- Pakai `unordered_map`/`unordered_set` di C++ dan `dict`/`set` di Python. Pilih `map` jika butuh urutan kunci atau jaminan O(log n).
+
+## Latihan
+
+Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan jawabanmu dengan **Pembahasan**. Kecuali disebutkan lain, "hash mainan" berarti jumlah kode ASCII semua huruf, lalu sisa baginya dengan banyak loker.
+
+### Mudah
+
+<Soal no={1} level="mudah" judul="Nomor loker">
+  Baca `n`, lalu `n` kata (huruf kecil, satu kata per baris). Untuk setiap kata, tampilkan kata itu, jumlah kode ASCII hurufnya, dan nomor lokernya pada tabel 10 loker dengan hash mainan, dipisah spasi.
+
+  ```txt title="Contoh input"
+  4
+  budi
+  eko
+  ani
+  toni
+  ```
+
+  ```txt title="Contoh output"
+  budi 420 0
+  eko 319 9
+  ani 312 2
+  toni 442 2
+  ```
+
+  <Pembahasan>
+    Simpan jumlahnya di variabel sendiri agar bisa ditampilkan sekaligus dipakai untuk menghitung loker. Perhatikan bahwa `ani` dan `toni` bertabrakan di loker 2 walaupun hurufnya berbeda, karena jumlah 312 dan 442 sama-sama bersisa 2 jika dibagi 10.
+
+    ```cpp tab="C++" input="4\nbudi\neko\nani\ntoni"
+    #include <iostream>
+    #include <string>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        for (int k = 0; k < n; k++) {
+            string kata;
+            cin >> kata;
+
+            int total = 0;
+            for (char c : kata) {
+                total += c;
+            }
+            cout << kata << " " << total << " " << total % 10 << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    for k in range(n):
+        kata = input()
+
+        total = 0
+        for c in kata:
+            total += ord(c)
+        print(kata, total, total % 10)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={2} level="mudah" judul="Tebak isi tabel">
+  Sebuah hash table 10 loker memakai hash mainan dan separate chaining, persis seperti fungsi `tambah` dan `hapus` di materi ini. Tabel awalnya kosong, lalu operasi berikut dijalankan berurutan:
+
+  1. tambah `ani` 5
+  2. tambah `eko` 7
+  3. tambah `dina` 3
+  4. tambah `andi` 4
+  5. tambah `ani` 9
+  6. hapus `dina`
+  7. tambah `oke` 2
+
+  Tanpa menjalankan program, tuliskan isi setiap loker yang tidak kosong, termasuk urutan entri di dalamnya. Jumlah ASCII yang mungkin kamu butuhkan: `ani` 312, `eko` 319, `dina` 412, `andi` 412, `oke` 319.
+
+  <Pembahasan>
+    | Operasi | Loker | Isi loker itu sesudahnya |
+    | --- | --- | --- |
+    | tambah ani 5 | 2 | `ani:5` |
+    | tambah eko 7 | 9 | `eko:7` |
+    | tambah dina 3 | 2 | `ani:5 → dina:3` |
+    | tambah andi 4 | 2 | `ani:5 → dina:3 → andi:4` |
+    | tambah ani 9 | 2 | `ani:9 → dina:3 → andi:4`, ani sudah ada sehingga nilainya saja yang diganti |
+    | hapus dina | 2 | `ani:9 → andi:4` |
+    | tambah oke 2 | 9 | `eko:7 → oke:2` |
+
+    Hasil akhirnya: loker 2 berisi `ani:9 → andi:4`, dan loker 9 berisi `eko:7 → oke:2`. Dua jebakannya: `ani` yang ditambah lagi **tidak** pindah ke belakang karena hanya nilainya yang diganti, dan `eko` serta `oke` bertabrakan karena keduanya anagram. Program berikut menjalankan operasi yang sama dan hanya mencetak loker yang tidak kosong:
+
+    ```cpp tab="C++"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Entri {
+        string kunci;
+        int nilai;
+    };
+
+    int hashMainan(string kunci) {
+        int total = 0;
+        for (char c : kunci) {
+            total += c;
+        }
+        return total % 10;
+    }
+
+    int cariDiLoker(const vector<Entri>& loker, const string& kunci) {
+        for (int j = 0; j < (int)loker.size(); j++) {
+            if (loker[j].kunci == kunci) {
+                return j;
+            }
+        }
+        return -1;
+    }
+
+    void tambah(vector<vector<Entri>>& tabel, const string& kunci, int nilai) {
+        int i = hashMainan(kunci);
+        int j = cariDiLoker(tabel[i], kunci);
+        if (j != -1) {
+            tabel[i][j].nilai = nilai;
+        } else {
+            tabel[i].push_back({kunci, nilai});
+        }
+    }
+
+    void hapus(vector<vector<Entri>>& tabel, const string& kunci) {
+        int i = hashMainan(kunci);
+        int j = cariDiLoker(tabel[i], kunci);
+        if (j != -1) {
+            tabel[i].erase(tabel[i].begin() + j);
+        }
+    }
+
+    int main() {
+        vector<vector<Entri>> tabel(10);
+        tambah(tabel, "ani", 5);
+        tambah(tabel, "eko", 7);
+        tambah(tabel, "dina", 3);
+        tambah(tabel, "andi", 4);
+        tambah(tabel, "ani", 9);
+        hapus(tabel, "dina");
+        tambah(tabel, "oke", 2);
+
+        for (int i = 0; i < 10; i++) {
+            if (!tabel[i].empty()) {
+                cout << i << ":";
+                for (const Entri& e : tabel[i]) {
+                    cout << " [" << e.kunci << " " << e.nilai << "]";
+                }
+                cout << endl;
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Entri:
+        def __init__(self, kunci, nilai):
+            self.kunci = kunci
+            self.nilai = nilai
+
+
+    def hash_mainan(kunci):
+        total = 0
+        for c in kunci:
+            total += ord(c)
+        return total % 10
+
+
+    def cari_di_loker(loker, kunci):
+        for j in range(len(loker)):
+            if loker[j].kunci == kunci:
+                return j
+        return -1
+
+
+    def tambah(tabel, kunci, nilai):
+        i = hash_mainan(kunci)
+        j = cari_di_loker(tabel[i], kunci)
+        if j != -1:
+            tabel[i][j].nilai = nilai
+        else:
+            tabel[i].append(Entri(kunci, nilai))
+
+
+    def hapus(tabel, kunci):
+        i = hash_mainan(kunci)
+        j = cari_di_loker(tabel[i], kunci)
+        if j != -1:
+            del tabel[i][j]
+
+
+    tabel = [[] for _ in range(10)]
+    tambah(tabel, "ani", 5)
+    tambah(tabel, "eko", 7)
+    tambah(tabel, "dina", 3)
+    tambah(tabel, "andi", 4)
+    tambah(tabel, "ani", 9)
+    hapus(tabel, "dina")
+    tambah(tabel, "oke", 2)
+
+    for i in range(10):
+        if len(tabel[i]) > 0:
+            baris = f"{i}:"
+            for e in tabel[i]:
+                baris += f" [{e.kunci} {e.nilai}]"
+            print(baris)
+    ```
+
+    ```txt title="Output"
+    2: [ani 9] [andi 4]
+    9: [eko 7] [oke 2]
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={3} level="mudah" judul="Sudah pernah muncul?">
+  Baca `n`, lalu `n` kata dalam satu baris. Untuk setiap kata, dari kiri ke kanan, tampilkan `BARU` jika kata itu belum pernah muncul sebelumnya, atau `ULANG` jika sudah. Gunakan `unordered_set` di C++ dan `set` di Python.
+
+  ```txt title="Contoh input"
+  7
+  kopi teh kopi susu teh kopi air
+  ```
+
+  ```txt title="Contoh output"
+  BARU
+  BARU
+  ULANG
+  BARU
+  ULANG
+  ULANG
+  BARU
+  ```
+
+  <Pembahasan>
+    Set menyimpan kata-kata yang sudah terlihat. Setiap kata cukup dicek keanggotaannya, lalu dimasukkan jika masih baru. Karena set memakai hash table, setiap pengecekan rata-rata O(1), sehingga program tetap cepat walaupun katanya ratusan ribu. Membandingkan setiap kata dengan semua kata sebelumnya akan butuh sekitar n²/2 perbandingan.
+
+    ```cpp tab="C++" input="7\nkopi teh kopi susu teh kopi air"
+    #include <iostream>
+    #include <string>
+    #include <unordered_set>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+
+        unordered_set<string> terlihat;
+        for (int i = 0; i < n; i++) {
+            string kata;
+            cin >> kata;
+            if (terlihat.count(kata) > 0) {
+                cout << "ULANG" << endl;
+            } else {
+                cout << "BARU" << endl;
+                terlihat.insert(kata);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    kata_kata = input().split()
+
+    terlihat = set()
+    for kata in kata_kata:
+        if kata in terlihat:
+            print("ULANG")
+        else:
+            print("BARU")
+            terlihat.add(kata)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Menengah
+
+<Soal no={4} level="menengah" judul="Buku telepon buatan sendiri">
+  Buat buku telepon **tanpa** `map`, `unordered_map`, atau `dict`. Gunakan hash table 10 loker buatanmu sendiri dengan hash mainan dan separate chaining.
+
+  Baris pertama berisi `n`, lalu `n` baris berisi nama dan nomor telepon. Semua nama berbeda. Berikutnya ada `q`, lalu `q` baris berisi nama yang dicari. Untuk setiap pencarian, tampilkan nama, nomornya (atau `tidak ada`), dan berapa kali kunci dibandingkan, dengan format seperti contoh.
+
+  ```txt title="Contoh input"
+  5
+  budi 0813222
+  citra 0857333
+  andi 0812111
+  dina 0811444
+  dodi 0815555
+  4
+  dina
+  eko
+  budi
+  dani
+  ```
+
+  ```txt title="Contoh output"
+  dina 0811444 (2 perbandingan)
+  eko tidak ada (0 perbandingan)
+  budi 0813222 (1 perbandingan)
+  dani tidak ada (2 perbandingan)
+  ```
+
+  <Petunjuk>
+    Nilai yang disimpan berupa nomor telepon, jadi anggota `nilai` di struct `Entri` bertipe `string`. Untuk pencarian, telusuri loker milik nama itu, tambah penghitung setiap kali membandingkan kunci, dan berhenti begitu ketemu.
+  </Petunjuk>
+
+  <Pembahasan>
+    Karena semua nama dijamin berbeda, penambahan tidak perlu memeriksa kunci yang sudah ada. Hasil pencariannya menunjukkan inti hash table: `eko` tidak butuh satu perbandingan pun karena lokernya kosong, sedangkan `dani` butuh dua perbandingan walaupun tidak ada, karena ia anagram dari andi dan dina sehingga jatuh di loker 2 yang ramai.
+
+    ```cpp tab="C++" input="5\nbudi 0813222\ncitra 0857333\nandi 0812111\ndina 0811444\ndodi 0815555\n4\ndina\neko\nbudi\ndani"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Entri {
+        string kunci;
+        string nilai;
+    };
+
+    int hashMainan(string kunci) {
+        int total = 0;
+        for (char c : kunci) {
+            total += c;
+        }
+        return total % 10;
+    }
+
+    int main() {
+        vector<vector<Entri>> tabel(10);
+
+        int n;
+        cin >> n;
+        for (int k = 0; k < n; k++) {
+            string nama, nomor;
+            cin >> nama >> nomor;
+            tabel[hashMainan(nama)].push_back({nama, nomor});
+        }
+
+        int q;
+        cin >> q;
+        for (int k = 0; k < q; k++) {
+            string nama;
+            cin >> nama;
+
+            int perbandingan = 0;
+            string hasil = "tidak ada";
+            for (const Entri& e : tabel[hashMainan(nama)]) {
+                perbandingan++;
+                if (e.kunci == nama) {
+                    hasil = e.nilai;
+                    break;
+                }
+            }
+            cout << nama << " " << hasil << " (" << perbandingan << " perbandingan)" << endl;
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Entri:
+        def __init__(self, kunci, nilai):
+            self.kunci = kunci
+            self.nilai = nilai
+
+
+    def hash_mainan(kunci):
+        total = 0
+        for c in kunci:
+            total += ord(c)
+        return total % 10
+
+
+    tabel = [[] for _ in range(10)]
+
+    n = int(input())
+    for k in range(n):
+        nama, nomor = input().split()
+        tabel[hash_mainan(nama)].append(Entri(nama, nomor))
+
+    q = int(input())
+    for k in range(q):
+        nama = input()
+
+        perbandingan = 0
+        hasil = "tidak ada"
+        for e in tabel[hash_mainan(nama)]:
+            perbandingan += 1
+            if e.kunci == nama:
+                hasil = e.nilai
+                break
+        print(f"{nama} {hasil} ({perbandingan} perbandingan)")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={5} level="menengah" judul="Fungsi hash yang lebih baik">
+  Hash mainan selalu menabrakkan kata-kata yang hurufnya sama. Fungsi hash **polinom** memperhitungkan posisi huruf: mulai dari `h = 0`, lalu untuk setiap huruf `c` dari kiri ke kanan, hitung `h = (h * 31 + c) % m`.
+
+  Baris pertama berisi `m` (banyak loker, paling besar 1.000.000) dan `n`. Baris kedua berisi `n` kata yang semuanya berbeda. Tampilkan berapa banyak loker berbeda yang terpakai jika kata-kata itu di-hash dengan hash mainan, lalu dengan hash polinom. Makin banyak loker terpakai, makin sedikit tabrakannya.
+
+  ```txt title="Contoh input"
+  13 10
+  budi citra andi dina dodi eko oke dani ani ina
+  ```
+
+  ```txt title="Contoh output"
+  hash mainan: 5 loker terpakai
+  hash polinom: 9 loker terpakai
+  ```
+
+  <Petunjuk>
+    Tulis dua fungsi hash yang sama-sama menerima kata dan `m`. Untuk menghitung loker yang terpakai, siapkan vector `bool` berukuran `m` untuk setiap fungsi hash. Setiap kali sebuah loker pertama kali terkena, tandai dan tambah penghitungnya.
+  </Petunjuk>
+
+  <Pembahasan>
+    Dengan hash mainan, tiga kelompok anagram (`andi dina dani`, `eko oke`, `ani ina`) pasti bertabrakan di dalam kelompoknya. Hash polinom mengalikan nilai sebelumnya dengan 31 setiap kali maju satu huruf, sehingga huruf yang sama di posisi berbeda memberi sumbangan berbeda. Hasilnya, hanya satu tabrakan yang tersisa. Mengambil `% m` di setiap langkah menjaga `h` tetap kecil sehingga tidak meluap dari `int`.
+
+    Coba juga `m = 10`. Kedua fungsi hash memberi hasil yang persis sama, karena 31 bersisa 1 jika dibagi 10, sehingga mengalikan dengan 31 sama saja dengan mengalikan dengan 1. Inilah salah satu alasan banyak loker sering dipilih berupa bilangan prima, seperti 13.
+
+    ```cpp tab="C++" input="13 10\nbudi citra andi dina dodi eko oke dani ani ina"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int hashMainan(const string& kata, int m) {
+        int total = 0;
+        for (char c : kata) {
+            total += c;
+        }
+        return total % m;
+    }
+
+    int hashPolinom(const string& kata, int m) {
+        int h = 0;
+        for (char c : kata) {
+            h = (h * 31 + c) % m;          // posisi huruf ikut menentukan hasil
+        }
+        return h;
+    }
+
+    int main() {
+        int m, n;
+        cin >> m >> n;
+
+        vector<bool> terpakaiMainan(m, false);
+        vector<bool> terpakaiPolinom(m, false);
+        int lokerMainan = 0;
+        int lokerPolinom = 0;
+        for (int k = 0; k < n; k++) {
+            string kata;
+            cin >> kata;
+
+            int a = hashMainan(kata, m);
+            if (!terpakaiMainan[a]) {
+                terpakaiMainan[a] = true;
+                lokerMainan++;
+            }
+            int b = hashPolinom(kata, m);
+            if (!terpakaiPolinom[b]) {
+                terpakaiPolinom[b] = true;
+                lokerPolinom++;
+            }
+        }
+        cout << "hash mainan: " << lokerMainan << " loker terpakai" << endl;
+        cout << "hash polinom: " << lokerPolinom << " loker terpakai" << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def hash_mainan(kata, m):
+        total = 0
+        for c in kata:
+            total += ord(c)
+        return total % m
+
+
+    def hash_polinom(kata, m):
+        h = 0
+        for c in kata:
+            h = (h * 31 + ord(c)) % m      # posisi huruf ikut menentukan hasil
+        return h
+
+
+    m, n = map(int, input().split())
+    kata_kata = input().split()
+
+    terpakai_mainan = [False] * m
+    terpakai_polinom = [False] * m
+    loker_mainan = 0
+    loker_polinom = 0
+    for kata in kata_kata:
+        a = hash_mainan(kata, m)
+        if not terpakai_mainan[a]:
+            terpakai_mainan[a] = True
+            loker_mainan += 1
+        b = hash_polinom(kata, m)
+        if not terpakai_polinom[b]:
+            terpakai_polinom[b] = True
+            loker_polinom += 1
+
+    print(f"hash mainan: {loker_mainan} loker terpakai")
+    print(f"hash polinom: {loker_polinom} loker terpakai")
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={6} level="menengah" judul="Linear probing">
+  Masukkan kata-kata ke hash table `m` loker dengan **open addressing** dan **linear probing**. Loker awal sebuah kata dihitung dengan hash mainan. Jika loker itu terisi, coba loker berikutnya, dan kembali ke loker 0 setelah loker terakhir.
+
+  Baris pertama berisi `m` dan `n` (`n` tidak lebih dari `m`). Baris kedua berisi `n` kata yang semuanya berbeda, dimasukkan dari kiri ke kanan. Tampilkan isi setiap loker (`-` jika kosong), lalu jumlah seluruh loker yang diperiksa selama memasukkan kata, termasuk loker tempat kata akhirnya disimpan.
+
+  ```txt title="Contoh input"
+  10 8
+  budi citra andi dina dodi ani eko oke
+  ```
+
+  ```txt title="Contoh output"
+  0: budi
+  1: citra
+  2: andi
+  3: dina
+  4: ani
+  5: oke
+  6: dodi
+  7: -
+  8: -
+  9: eko
+  Loker diperiksa: 17
+  ```
+
+  <Petunjuk>
+    Simpan tabel sebagai vector `string` berukuran `m`, dengan string kosong sebagai tanda loker kosong. Untuk maju ke loker berikutnya sambil kembali ke 0 setelah ujung, pakai `i = (i + 1) % m`.
+  </Petunjuk>
+
+  <Pembahasan>
+    `oke` berhash 9, tetapi loker 9 sudah dipakai `eko`. Ia kembali ke loker 0 dan harus melewati gumpalan budi, citra, andi, dina, dan ani sebelum menemukan loker 5 yang kosong. Satu kata itu saja memeriksa 7 loker. Inilah penggumpalan yang membuat linear probing melambat saat tabel makin penuh. Karena `n` tidak lebih dari `m`, perulangan `while` pasti berhenti.
+
+    ```cpp tab="C++" input="10 8\nbudi citra andi dina dodi ani eko oke"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int hashMainan(const string& kata, int m) {
+        int total = 0;
+        for (char c : kata) {
+            total += c;
+        }
+        return total % m;
+    }
+
+    int main() {
+        int m, n;
+        cin >> m >> n;
+
+        vector<string> loker(m, "");       // "" berarti kosong
+        int diperiksa = 0;
+        for (int k = 0; k < n; k++) {
+            string kata;
+            cin >> kata;
+
+            int i = hashMainan(kata, m);
+            diperiksa++;
+            while (loker[i] != "") {
+                i = (i + 1) % m;           // coba loker berikutnya
+                diperiksa++;
+            }
+            loker[i] = kata;
+        }
+
+        for (int i = 0; i < m; i++) {
+            if (loker[i] == "") {
+                cout << i << ": -" << endl;
+            } else {
+                cout << i << ": " << loker[i] << endl;
+            }
+        }
+        cout << "Loker diperiksa: " << diperiksa << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    def hash_mainan(kata, m):
+        total = 0
+        for c in kata:
+            total += ord(c)
+        return total % m
+
+
+    m, n = map(int, input().split())
+    kata_kata = input().split()
+
+    loker = [""] * m                       # "" berarti kosong
+    diperiksa = 0
+    for kata in kata_kata:
+        i = hash_mainan(kata, m)
+        diperiksa += 1
+        while loker[i] != "":
+            i = (i + 1) % m                # coba loker berikutnya
+            diperiksa += 1
+        loker[i] = kata
+
+    for i in range(m):
+        if loker[i] == "":
+            print(f"{i}: -")
+        else:
+            print(f"{i}: {loker[i]}")
+    print("Loker diperiksa:", diperiksa)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={7} level="menengah" judul="Skor yang tertukar">
+  Program berikut mencatat skor pemain di hash table buatan sendiri. Seorang pemain bisa muncul lebih dari sekali, dan yang dipakai adalah skor **terakhir**. Setelah itu, program menjawab beberapa pertanyaan skor dan menampilkan banyak pemain yang tercatat.
+
+  ```cpp tab="C++" input="6\nbudi 70\nandi 85\ndina 90\nbudi 95\ncitra 60\ndodi 75\n3\ndina\nbudi\neko" check="no-compare"
+  #include <iostream>
+  #include <string>
+  #include <vector>
+  using namespace std;
+
+  struct Entri {
+      string kunci;
+      int nilai;
+  };
+
+  int hashMainan(string kunci) {
+      int total = 0;
+      for (char c : kunci) {
+          total += c;
+      }
+      return total % 10;
+  }
+
+  void tambah(vector<vector<Entri>>& tabel, const string& kunci, int nilai) {
+      int i = hashMainan(kunci);
+      tabel[i].push_back({kunci, nilai});
+  }
+
+  bool cari(const vector<vector<Entri>>& tabel, const string& kunci, int& hasil) {
+      int i = hashMainan(kunci);
+      for (const Entri& e : tabel[i]) {
+          if (hashMainan(e.kunci) == hashMainan(kunci)) {
+              hasil = e.nilai;
+              return true;
+          }
+      }
+      return false;
+  }
+
+  int main() {
+      vector<vector<Entri>> tabel(10);
+      int n;
+      cin >> n;
+      for (int k = 0; k < n; k++) {
+          string nama;
+          int skor;
+          cin >> nama >> skor;
+          tambah(tabel, nama, skor);
+      }
+
+      int q;
+      cin >> q;
+      for (int k = 0; k < q; k++) {
+          string nama;
+          cin >> nama;
+          int skor;
+          if (cari(tabel, nama, skor)) {
+              cout << nama << " " << skor << endl;
+          } else {
+              cout << nama << " tidak ada" << endl;
+          }
+      }
+
+      int total = 0;
+      for (int i = 0; i < 10; i++) {
+          total += tabel[i].size();
+      }
+      cout << "Pemain: " << total << endl;
+      return 0;
+  }
+  ```
+
+  ```python tab="Python"
+  class Entri:
+      def __init__(self, kunci, nilai):
+          self.kunci = kunci
+          self.nilai = nilai
+
+
+  def hash_mainan(kunci):
+      total = 0
+      for c in kunci:
+          total += ord(c)
+      return total % 10
+
+
+  def tambah(tabel, kunci, nilai):
+      i = hash_mainan(kunci)
+      tabel[i].append(Entri(kunci, nilai))
+
+
+  def cari(tabel, kunci):
+      i = hash_mainan(kunci)
+      for e in tabel[i]:
+          if hash_mainan(e.kunci) == hash_mainan(kunci):
+              return e.nilai
+      return None
+
+
+  tabel = [[] for _ in range(10)]
+  n = int(input())
+  for k in range(n):
+      nama, skor = input().split()
+      tambah(tabel, nama, int(skor))
+
+  q = int(input())
+  for k in range(q):
+      nama = input()
+      skor = cari(tabel, nama)
+      if skor is not None:
+          print(nama, skor)
+      else:
+          print(nama, "tidak ada")
+
+  total = 0
+  for i in range(10):
+      total += len(tabel[i])
+  print("Pemain:", total)
+  ```
+
+  Dengan input di bawah, program seharusnya menampilkan output yang diharapkan. Ternyata program menampilkan `dina 85`, `budi 70`, `eko tidak ada`, dan `Pemain: 6`. Temukan **dua** kesalahannya, lalu perbaiki.
+
+  ```txt title="Contoh input"
+  6
+  budi 70
+  andi 85
+  dina 90
+  budi 95
+  citra 60
+  dodi 75
+  3
+  dina
+  budi
+  eko
+  ```
+
+  ```txt title="Contoh output"
+  dina 90
+  budi 95
+  eko tidak ada
+  Pemain: 5
+  ```
+
+  <Petunjuk>
+    Skor 85 milik siapa? Lalu, berapa banyak entri `budi` yang ada di tabel setelah semua data dimasukkan?
+  </Petunjuk>
+
+  <Pembahasan>
+    Kesalahan pertama ada di `cari`: yang dibandingkan adalah hash-nya, bukan kuncinya. Andi dan dina sama-sama masuk loker 2 dengan hash yang sama, jadi entri pertama di loker itu, yaitu andi dengan skor 85, dianggap cocok. Kesalahan kedua ada di `tambah`: kunci yang sudah ada tidak diperiksa, sehingga loker 0 berisi dua budi. Pencarian menemukan budi yang lama (70), dan banyak pemain terhitung 6.
+
+    Perbaikannya: `cari` membandingkan `e.kunci == kunci`, dan `tambah` mengganti nilai jika kuncinya sudah ada. Fungsi bantu `cariDiLoker` dari materi menyelesaikan keduanya sekaligus.
+
+    ```cpp tab="C++" input="6\nbudi 70\nandi 85\ndina 90\nbudi 95\ncitra 60\ndodi 75\n3\ndina\nbudi\neko"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Entri {
+        string kunci;
+        int nilai;
+    };
+
+    int hashMainan(string kunci) {
+        int total = 0;
+        for (char c : kunci) {
+            total += c;
+        }
+        return total % 10;
+    }
+
+    int cariDiLoker(const vector<Entri>& loker, const string& kunci) {
+        for (int j = 0; j < (int)loker.size(); j++) {
+            if (loker[j].kunci == kunci) {          // bandingkan kunci, bukan hash
+                return j;
+            }
+        }
+        return -1;
+    }
+
+    void tambah(vector<vector<Entri>>& tabel, const string& kunci, int nilai) {
+        int i = hashMainan(kunci);
+        int j = cariDiLoker(tabel[i], kunci);
+        if (j != -1) {
+            tabel[i][j].nilai = nilai;              // pemain lama: ganti skornya
+        } else {
+            tabel[i].push_back({kunci, nilai});
+        }
+    }
+
+    bool cari(const vector<vector<Entri>>& tabel, const string& kunci, int& hasil) {
+        int i = hashMainan(kunci);
+        int j = cariDiLoker(tabel[i], kunci);
+        if (j == -1) {
+            return false;
+        }
+        hasil = tabel[i][j].nilai;
+        return true;
+    }
+
+    int main() {
+        vector<vector<Entri>> tabel(10);
+        int n;
+        cin >> n;
+        for (int k = 0; k < n; k++) {
+            string nama;
+            int skor;
+            cin >> nama >> skor;
+            tambah(tabel, nama, skor);
+        }
+
+        int q;
+        cin >> q;
+        for (int k = 0; k < q; k++) {
+            string nama;
+            cin >> nama;
+            int skor;
+            if (cari(tabel, nama, skor)) {
+                cout << nama << " " << skor << endl;
+            } else {
+                cout << nama << " tidak ada" << endl;
+            }
+        }
+
+        int total = 0;
+        for (int i = 0; i < 10; i++) {
+            total += tabel[i].size();
+        }
+        cout << "Pemain: " << total << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Entri:
+        def __init__(self, kunci, nilai):
+            self.kunci = kunci
+            self.nilai = nilai
+
+
+    def hash_mainan(kunci):
+        total = 0
+        for c in kunci:
+            total += ord(c)
+        return total % 10
+
+
+    def cari_di_loker(loker, kunci):
+        for j in range(len(loker)):
+            if loker[j].kunci == kunci:             # bandingkan kunci, bukan hash
+                return j
+        return -1
+
+
+    def tambah(tabel, kunci, nilai):
+        i = hash_mainan(kunci)
+        j = cari_di_loker(tabel[i], kunci)
+        if j != -1:
+            tabel[i][j].nilai = nilai               # pemain lama: ganti skornya
+        else:
+            tabel[i].append(Entri(kunci, nilai))
+
+
+    def cari(tabel, kunci):
+        i = hash_mainan(kunci)
+        j = cari_di_loker(tabel[i], kunci)
+        if j == -1:
+            return None
+        return tabel[i][j].nilai
+
+
+    tabel = [[] for _ in range(10)]
+    n = int(input())
+    for k in range(n):
+        nama, skor = input().split()
+        tambah(tabel, nama, int(skor))
+
+    q = int(input())
+    for k in range(q):
+        nama = input()
+        skor = cari(tabel, nama)
+        if skor is not None:
+            print(nama, skor)
+        else:
+            print(nama, "tidak ada")
+
+    total = 0
+    for i in range(10):
+        total += len(tabel[i])
+    print("Pemain:", total)
+    ```
+  </Pembahasan>
+</Soal>
+
+### Sulit
+
+<Soal no={8} level="sulit" judul="Tabel yang membesar">
+  Buat hash table dengan separate chaining yang bisa membesar sendiri. Tabel dimulai dengan **4 loker**. Nomor loker sebuah kunci adalah jumlah ASCII-nya `% m`, dengan `m` banyak loker saat itu. Ada tiga perintah:
+
+  - `TAMBAH kunci nilai`: jika kunci sudah ada, ganti nilainya. Jika belum, tambahkan di belakang lokernya. Setelah kunci **baru** ditambahkan, jika banyak kunci melebihi `m`, lakukan rehash ke `2m` loker dan tampilkan `rehash m -> 2m`.
+  - `CARI kunci`: tampilkan kunci dan nilainya, atau kunci diikuti `tidak ada`.
+  - `CETAK`: tampilkan isi setiap loker dengan format seperti contoh.
+
+  Saat rehash, telusuri loker lama mulai dari loker 0, dan di setiap loker mulai dari entri terdepan. Setiap entri dimasukkan ke belakang loker barunya. Baris pertama input berisi banyak perintah.
+
+  ```txt title="Contoh input"
+  11
+  TAMBAH budi 21
+  TAMBAH citra 20
+  TAMBAH andi 19
+  TAMBAH dina 22
+  CETAK
+  TAMBAH dodi 18
+  CARI dina
+  CARI eko
+  TAMBAH budi 25
+  TAMBAH eko 30
+  CETAK
+  ```
+
+  ```txt title="Contoh output"
+  0: [budi 21] [andi 19] [dina 22]
+  1:
+  2:
+  3: [citra 20]
+  rehash 4 -> 8
+  dina 22
+  eko tidak ada
+  0: [dodi 18]
+  1:
+  2:
+  3: [citra 20]
+  4: [budi 25] [andi 19] [dina 22]
+  5:
+  6:
+  7: [eko 30]
+  ```
+
+  <Petunjuk>
+    Tulis fungsi `rehash` yang menerima tabel lama dan mengembalikan tabel baru berukuran dua kali lipat. Di dalamnya, setiap entri dimasukkan ke loker `jumlah ASCII % (2m)`. Simpan banyak kunci di variabel tersendiri, dan tambah hanya saat kunci benar-benar baru. Mengganti nilai kunci lama tidak mengubah load factor.
+  </Petunjuk>
+
+  <Pembahasan>
+    Dengan 4 loker, budi (420), andi (412), dina (412), dan dodi (416) semuanya bersisa 0, sehingga loker 0 menumpuk. Kunci kelima membuat load factor melewati 1 dan memicu rehash ke 8 loker. Di tabel baru, dodi pindah ke loker 0 (416 % 8 = 0), sedangkan budi, andi, dan dina pindah bersama ke loker 4. Urutan mereka di loker 4 mengikuti urutan penelusuran tabel lama. Perhatikan bahwa `TAMBAH budi 25` hanya mengganti nilai, jadi tidak dihitung sebagai kunci baru dan tidak memicu rehash.
+
+    ```cpp tab="C++" input="11\nTAMBAH budi 21\nTAMBAH citra 20\nTAMBAH andi 19\nTAMBAH dina 22\nCETAK\nTAMBAH dodi 18\nCARI dina\nCARI eko\nTAMBAH budi 25\nTAMBAH eko 30\nCETAK"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    struct Entri {
+        string kunci;
+        int nilai;
+    };
+
+    int nomorLoker(const string& kunci, int m) {
+        int total = 0;
+        for (char c : kunci) {
+            total += c;
+        }
+        return total % m;
+    }
+
+    int cariDiLoker(const vector<Entri>& loker, const string& kunci) {
+        for (int j = 0; j < (int)loker.size(); j++) {
+            if (loker[j].kunci == kunci) {
+                return j;
+            }
+        }
+        return -1;
+    }
+
+    vector<vector<Entri>> rehash(const vector<vector<Entri>>& lama) {
+        int mBaru = lama.size() * 2;
+        vector<vector<Entri>> baru(mBaru);
+        for (const vector<Entri>& loker : lama) {               // loker 0, 1, 2, ...
+            for (const Entri& e : loker) {                      // dari entri terdepan
+                baru[nomorLoker(e.kunci, mBaru)].push_back(e);  // loker dihitung ulang
+            }
+        }
+        return baru;
+    }
+
+    void cetak(const vector<vector<Entri>>& tabel) {
+        for (int i = 0; i < (int)tabel.size(); i++) {
+            cout << i << ":";
+            for (const Entri& e : tabel[i]) {
+                cout << " [" << e.kunci << " " << e.nilai << "]";
+            }
+            cout << endl;
+        }
+    }
+
+    int main() {
+        vector<vector<Entri>> tabel(4);
+        int banyakKunci = 0;
+
+        int q;
+        cin >> q;
+        for (int k = 0; k < q; k++) {
+            string perintah;
+            cin >> perintah;
+            if (perintah == "TAMBAH") {
+                string kunci;
+                int nilai;
+                cin >> kunci >> nilai;
+
+                int m = tabel.size();
+                int i = nomorLoker(kunci, m);
+                int j = cariDiLoker(tabel[i], kunci);
+                if (j != -1) {
+                    tabel[i][j].nilai = nilai;          // kunci lama: load factor tetap
+                } else {
+                    tabel[i].push_back({kunci, nilai});
+                    banyakKunci++;
+                    if (banyakKunci > m) {              // load factor melewati 1
+                        tabel = rehash(tabel);
+                        cout << "rehash " << m << " -> " << tabel.size() << endl;
+                    }
+                }
+            } else if (perintah == "CARI") {
+                string kunci;
+                cin >> kunci;
+                int i = nomorLoker(kunci, tabel.size());
+                int j = cariDiLoker(tabel[i], kunci);
+                if (j != -1) {
+                    cout << kunci << " " << tabel[i][j].nilai << endl;
+                } else {
+                    cout << kunci << " tidak ada" << endl;
+                }
+            } else if (perintah == "CETAK") {
+                cetak(tabel);
+            }
+        }
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    class Entri:
+        def __init__(self, kunci, nilai):
+            self.kunci = kunci
+            self.nilai = nilai
+
+
+    def nomor_loker(kunci, m):
+        total = 0
+        for c in kunci:
+            total += ord(c)
+        return total % m
+
+
+    def cari_di_loker(loker, kunci):
+        for j in range(len(loker)):
+            if loker[j].kunci == kunci:
+                return j
+        return -1
+
+
+    def rehash(lama):
+        m_baru = len(lama) * 2
+        baru = [[] for _ in range(m_baru)]
+        for loker in lama:                                  # loker 0, 1, 2, ...
+            for e in loker:                                 # dari entri terdepan
+                baru[nomor_loker(e.kunci, m_baru)].append(e)  # loker dihitung ulang
+        return baru
+
+
+    def cetak(tabel):
+        for i in range(len(tabel)):
+            baris = f"{i}:"
+            for e in tabel[i]:
+                baris += f" [{e.kunci} {e.nilai}]"
+            print(baris)
+
+
+    tabel = [[] for _ in range(4)]
+    banyak_kunci = 0
+
+    q = int(input())
+    for k in range(q):
+        bagian = input().split()
+        perintah = bagian[0]
+        if perintah == "TAMBAH":
+            kunci = bagian[1]
+            nilai = int(bagian[2])
+
+            m = len(tabel)
+            i = nomor_loker(kunci, m)
+            j = cari_di_loker(tabel[i], kunci)
+            if j != -1:
+                tabel[i][j].nilai = nilai               # kunci lama: load factor tetap
+            else:
+                tabel[i].append(Entri(kunci, nilai))
+                banyak_kunci += 1
+                if banyak_kunci > m:                    # load factor melewati 1
+                    tabel = rehash(tabel)
+                    print(f"rehash {m} -> {len(tabel)}")
+        elif perintah == "CARI":
+            kunci = bagian[1]
+            i = nomor_loker(kunci, len(tabel))
+            j = cari_di_loker(tabel[i], kunci)
+            if j != -1:
+                print(kunci, tabel[i][j].nilai)
+            else:
+                print(kunci, "tidak ada")
+        elif perintah == "CETAK":
+            cetak(tabel)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={9} level="sulit" judul="Potongan berjumlah k">
+  Baca `n`, lalu `n` bilangan bulat antara -1.000.000.000 dan 1.000.000.000 (boleh negatif), lalu sebuah bilangan bulat `k`. Hitung banyaknya **potongan berurutan** (satu elemen atau lebih yang bersebelahan) yang jumlahnya tepat `k`. Nilai `n` bisa mencapai 200.000, jadi mencoba semua potongan dengan perulangan bersarang terlalu lambat.
+
+  ```txt title="Contoh input"
+  5
+  1 2 3 -2 2
+  3
+  ```
+
+  ```txt title="Contoh output"
+  4
+  ```
+
+  Keempat potongan itu adalah `1 2`, `3`, `2 3 -2`, dan `3 -2 2`.
+
+  <Petunjuk>
+    Misalkan `p` adalah jumlah semua elemen dari awal sampai posisi sekarang (jumlah prefiks). Sebuah potongan yang **berakhir** di posisi sekarang berjumlah `k` jika ada jumlah prefiks sebelumnya yang bernilai `p - k`. Simpan berapa kali setiap jumlah prefiks pernah muncul di sebuah `unordered_map`. Jangan lupa jumlah prefiks kosong, yaitu 0, yang sudah "muncul" sekali sebelum elemen pertama.
+  </Petunjuk>
+
+  <Pembahasan>
+    Jumlah potongan dari posisi `i + 1` sampai `j` sama dengan prefiks ke-`j` dikurangi prefiks ke-`i`. Jadi untuk setiap posisi akhir, kita cukup bertanya "berapa prefiks sebelumnya yang bernilai `p - k`?" Hash map menjawabnya dalam rata-rata O(1), sehingga seluruh program hanya menelusuri bilangan sekali.
+
+    | Elemen | Prefiks `p` | Dicari `p - 3` | Muncul sebelumnya | Jawaban |
+    | --- | --- | --- | --- | --- |
+    | (awal) | 0 | | | 0 |
+    | 1 | 1 | -2 | 0 kali | 0 |
+    | 2 | 3 | 0 | 1 kali (`1 2`) | 1 |
+    | 3 | 6 | 3 | 1 kali (`3`) | 2 |
+    | -2 | 4 | 1 | 1 kali (`2 3 -2`) | 3 |
+    | 2 | 6 | 3 | 1 kali (`3 -2 2`) | 4 |
+
+    Jumlah prefiks bisa mencapai 200.000 × 10⁹ jika bilangannya besar, dan banyak potongan bisa mencapai sekitar 2 × 10¹⁰. Keduanya melebihi `int`, jadi solusi C++ memakai `long long`. Periksa `hitung` **sebelum** mencatat prefiks yang sekarang, agar potongan kosong tidak ikut terhitung saat `k = 0`.
+
+    ```cpp tab="C++" input="5\n1 2 3 -2 2\n3"
+    #include <iostream>
+    #include <unordered_map>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        int n;
+        cin >> n;
+        vector<long long> a(n);
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        long long k;
+        cin >> k;
+
+        unordered_map<long long, long long> hitung;   // prefiks -> berapa kali muncul
+        hitung[0] = 1;                                // prefiks kosong
+        long long p = 0;
+        long long jawaban = 0;
+        for (int i = 0; i < n; i++) {
+            p += a[i];
+            auto it = hitung.find(p - k);
+            if (it != hitung.end()) {
+                jawaban += it->second;
+            }
+            hitung[p]++;                              // baru dicatat setelah diperiksa
+        }
+        cout << jawaban << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    n = int(input())
+    a = list(map(int, input().split()))
+    k = int(input())
+
+    hitung = {0: 1}                                   # prefiks -> berapa kali muncul
+    p = 0
+    jawaban = 0
+    for x in a:
+        p += x
+        jawaban += hitung.get(p - k, 0)
+        hitung[p] = hitung.get(p, 0) + 1              # baru dicatat setelah diperiksa
+    print(jawaban)
+    ```
+  </Pembahasan>
+</Soal>
+
+<Soal no={10} level="sulit" judul="Mencari kata dengan hash bergeser">
+  Baca sebuah teks dan sebuah pola (masing-masing satu baris, huruf kecil tanpa spasi). Cari semua posisi (dimulai dari 0) tempat pola muncul di dalam teks, dengan cara berikut:
+
+  1. Hitung hash pola, yaitu jumlah ASCII semua hurufnya.
+  2. Geser "jendela" sepanjang pola dari awal sampai akhir teks, dan hitung jumlah ASCII isi jendela.
+  3. Hanya jika hash jendela sama dengan hash pola, bandingkan isinya huruf demi huruf.
+
+  Tampilkan posisi-posisinya dipisah spasi (atau `tidak ada`), lalu berapa kali perbandingan huruf demi huruf dilakukan. Hash jendela harus diperbarui **tanpa** menjumlahkan ulang semua hurufnya setiap kali jendela bergeser.
+
+  ```txt title="Contoh input"
+  andidinadanidina
+  dina
+  ```
+
+  ```txt title="Contoh output"
+  posisi: 4 12
+  dibandingkan: 6 kali
+  ```
+
+  <Petunjuk>
+    Saat jendela bergeser satu langkah ke kanan, satu huruf keluar dari kiri dan satu huruf masuk dari kanan. Jadi hash jendela baru cukup dihitung dari hash lama: tambahkan kode huruf yang masuk, kurangi kode huruf yang keluar. Perhatikan juga kasus pola lebih panjang daripada teks.
+  </Petunjuk>
+
+  <Pembahasan>
+    Teks contoh berisi 13 jendela sepanjang 4 huruf, tetapi hanya 6 yang hash-nya sama dengan `dina` (412), misalnya `andi`, `inad`, dan `dani`. Dari keenamnya, hanya 2 yang benar-benar `dina`. Ini prinsip yang sama dengan hash table: hash yang sama hanya menyaring kandidat, dan keputusan akhir tetap diambil dengan membandingkan isinya. Jendela yang hash-nya berbeda langsung dilewati tanpa membandingkan satu huruf pun.
+
+    Cara ini dikenal sebagai algoritma Rabin-Karp. Versi sungguhannya memakai hash polinom yang bisa digeser, seperti di Soal 5, sehingga anagram tidak lagi lolos penyaringan.
+
+    ```cpp tab="C++" input="andidinadanidina\ndina"
+    #include <iostream>
+    #include <string>
+    #include <vector>
+    using namespace std;
+
+    int main() {
+        string teks, pola;
+        cin >> teks >> pola;
+        int n = teks.length();
+        int m = pola.length();
+
+        vector<int> posisi;
+        int dibandingkan = 0;
+        if (m <= n) {
+            int hashPola = 0;
+            int hashJendela = 0;
+            for (int i = 0; i < m; i++) {
+                hashPola += pola[i];
+                hashJendela += teks[i];                       // jendela pertama
+            }
+
+            for (int i = 0; i + m <= n; i++) {
+                if (i > 0) {
+                    hashJendela += teks[i + m - 1] - teks[i - 1];   // geser satu huruf
+                }
+                if (hashJendela == hashPola) {
+                    dibandingkan++;
+                    if (teks.substr(i, m) == pola) {
+                        posisi.push_back(i);
+                    }
+                }
+            }
+        }
+
+        cout << "posisi:";
+        if (posisi.empty()) {
+            cout << " tidak ada";
+        }
+        for (int p : posisi) {
+            cout << " " << p;
+        }
+        cout << endl;
+        cout << "dibandingkan: " << dibandingkan << " kali" << endl;
+        return 0;
+    }
+    ```
+
+    ```python tab="Python"
+    teks = input()
+    pola = input()
+    n = len(teks)
+    m = len(pola)
+
+    posisi = []
+    dibandingkan = 0
+    if m <= n:
+        hash_pola = 0
+        hash_jendela = 0
+        for i in range(m):
+            hash_pola += ord(pola[i])
+            hash_jendela += ord(teks[i])                     # jendela pertama
+
+        for i in range(n - m + 1):
+            if i > 0:
+                hash_jendela += ord(teks[i + m - 1]) - ord(teks[i - 1])   # geser satu huruf
+            if hash_jendela == hash_pola:
+                dibandingkan += 1
+                if teks[i:i + m] == pola:
+                    posisi.append(i)
+
+    if len(posisi) == 0:
+        print("posisi: tidak ada")
+    else:
+        print("posisi:", *posisi)
+    print(f"dibandingkan: {dibandingkan} kali")
+    ```
+  </Pembahasan>
+</Soal>

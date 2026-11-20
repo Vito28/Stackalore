@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SquareTerminal } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { getSubjectSlug } from '@/lib/docs-tree';
@@ -44,11 +45,32 @@ export function SiteHeader() {
               </Link>
             );
           })}
+          <span aria-hidden="true" className="mx-2 h-4 w-px bg-fd-border" />
+          <Link
+            href="/playground"
+            aria-current={pathname === '/playground' ? 'page' : undefined}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-fd-ring',
+              pathname === '/playground'
+                ? 'font-medium text-fd-foreground'
+                : 'text-fd-muted-foreground hover:text-fd-foreground',
+            )}
+          >
+            <SquareTerminal className="size-4" aria-hidden="true" />
+            Playground
+          </Link>
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <SearchTrigger className="hidden w-56 sm:inline-flex lg:w-64" />
           <SearchIconButton className="sm:hidden" />
+          <Link
+            href="/playground"
+            aria-label="Playground"
+            className="inline-flex size-9 items-center justify-center rounded-lg text-fd-muted-foreground transition-colors hover:bg-fd-muted hover:text-fd-foreground focus-visible:ring-2 focus-visible:ring-fd-ring focus-visible:outline-none md:hidden"
+          >
+            <SquareTerminal className="size-5" aria-hidden="true" />
+          </Link>
           <ThemeToggle />
         </div>
       </div>

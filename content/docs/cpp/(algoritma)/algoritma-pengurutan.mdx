@@ -104,7 +104,7 @@ Setelah satu putaran, `9` sudah berada di tempat akhirnya. Putaran kedua tidak p
 
 Putaran ketiga tidak menukar apa pun. Artinya setiap pasangan bersebelahan sudah urut, jadi **seluruh** data sudah urut. Tanpa pemeriksaan ini, program tetap menjalankan putaran keempat dan kelima yang sia-sia. Penanda "ada pertukaran atau tidak" ini disebut **berhenti lebih awal** (_early stop_).
 
-```cpp tab="C++"
+```cpp tab="C++" input="6\n4 9 2 7 5 8"
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -294,7 +294,7 @@ Ketiga algoritma tadi penting untuk dipahami, tetapi di program sungguhan kamu h
 - **C++:** `sort(v.begin(), v.end())` dari `<algorithm>` mengurutkan seluruh vector. `v.begin()` dan `v.end()` menandai awal dan akhir bagian yang diurutkan.
 - **Python:** `data.sort()` mengurutkan list itu sendiri, sedangkan `sorted(data)` membuat list **baru** yang terurut dan membiarkan list aslinya.
 
-```cpp tab="C++"
+```cpp tab="C++" check="no-compare"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -369,7 +369,7 @@ Bagaimana mengurutkan `vector<Siswa>`? Compiler tidak tahu apakah siswa harus di
 
 **Python** memakai **fungsi kunci** lewat `key=`. Fungsi ini menerima satu elemen dan mengembalikan nilai yang dipakai untuk mengurutkan. Python memanggilnya sekali untuk setiap elemen, lalu mengurutkan elemen berdasarkan hasilnya.
 
-```cpp tab="C++"
+```cpp tab="C++" input="5\nBudi 78\nDodi 92\nCitra 85\nAni 88\nEka 70"
 #include <iostream>
 #include <algorithm>
 #include <string>
@@ -615,7 +615,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Urutkan turun, lalu ambil elemen di indeks `k - 1`, karena indeks dimulai dari 0. Kesalahan yang sering terjadi adalah mengambil `data[k]`, yang meleset satu posisi dan keluar batas saat `k = n`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6 3\n40 75 12 90 75 33"
     #include <iostream>
     #include <algorithm>
     #include <functional>
@@ -658,7 +658,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setelah diurutkan naik, median berada di indeks `n / 2`. Untuk `n = 5`, indeks tengahnya 2, dengan dua elemen di kiri dan dua di kanan. Pembagian bulat `n / 2` di C++ dan `n // 2` di Python membuang sisa, sehingga hasilnya tepat indeks tengah. Rata-rata (`(7 + 2 + 9 + 4 + 5) / 5 = 5,4`) berbeda dengan median, dan median tidak mudah terpengaruh oleh satu nilai yang ekstrem.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n7 2 9 4 5"
     #include <iostream>
     #include <algorithm>
     #include <vector>
@@ -720,7 +720,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Setiap pertukaran bubble sort membetulkan tepat satu pasangan yang terbalik, yaitu pasangan `i < j` dengan `data[i] > data[j]`. Karena itu banyak pertukarannya sama dengan banyak pasangan terbalik di data awal. Pada contoh 1, pasangan terbaliknya adalah (5, 1), (5, 3), (9, 1), (9, 6), (9, 3), dan (6, 3), tepat 6 pasangan. Jika syaratnya `>=`, contoh 2 akan menukar kedua angka 2 tanpa guna dan hasilnya menjadi 1.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n5 9 1 6 3"
     #include <iostream>
     #include <utility>
     #include <vector>
@@ -811,7 +811,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Simpan peringkat di sebuah variabel yang hanya diperbarui saat nilai berubah. Karena peringkat baru selalu `i + 1`, lompatan dari 1 ke 3 terjadi dengan sendirinya. Nama hanya memengaruhi urutan cetak, bukan peringkat.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\nBudi 78\nDodi 92\nCitra 85\nAni 92\nEka 85"
     #include <iostream>
     #include <algorithm>
     #include <string>
@@ -882,7 +882,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 <Soal no={6} level="menengah" judul="Perbaiki urutan produk">
   Sebuah toko ingin menampilkan produk dari yang **termahal**. Produk dengan harga sama diurutkan menurut nama dari A ke Z. Input berisi `n`, lalu `n` baris `nama harga`. Kedua program berikut menampilkan urutan yang salah. Temukan kesalahan masing-masing dan perbaiki.
 
-  ```cpp tab="C++"
+  ```cpp tab="C++" check="no-compare" input="4\nteh 5000\nkopi 8000\nair 3000\nsusu 8000"
   #include <iostream>
   #include <algorithm>
   #include <string>
@@ -965,7 +965,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     **Python:** `reverse=True` membalik seluruh urutan tuple, termasuk nama. Hasilnya harga memang turun, tetapi nama untuk harga yang sama juga terbalik dari Z ke A: `susu` muncul sebelum `kopi`. Buat harga negatif dan jangan pakai `reverse=True`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="4\nteh 5000\nkopi 8000\nair 3000\nsusu 8000"
     #include <iostream>
     #include <algorithm>
     #include <string>
@@ -1045,7 +1045,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
   <Pembahasan>
     Pembanding hanya melihat panjang, jadi `apel`, `kiwi`, dan `duku` dianggap sama. `stable_sort` menjamin ketiganya tetap dalam urutan input. Dengan `sort` biasa, urutan ketiganya tidak dijamin. Untuk data sekecil contoh ini hasilnya mungkin kebetulan benar, tetapi bisa salah pada data yang lebih besar. Python cukup memakai `key=len`, karena `sort` Python selalu stabil.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\nmangga apel jeruk kiwi nanas duku"
     #include <iostream>
     #include <algorithm>
     #include <string>
@@ -1122,7 +1122,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Hasil pengurutan juga langsung memberi urutan cetak yang diminta. Jangan mencetak pasangan sambil mencari selisih terkecil, karena selisih terkecil baru diketahui setelah penelusuran pertama selesai. Selisih terbesar adalah 1.000.000.000, masih muat di `int`.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="6\n40 12 7 33 15 36"
     #include <iostream>
     #include <algorithm>
     #include <vector>
@@ -1195,7 +1195,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Batasannya, counting sort hanya cocok jika rentang nilainya kecil. Untuk nilai sampai satu miliar, array `hitung` akan terlalu besar. Perhatikan juga cara mencetak spasi hanya **di antara** nilai: penanda `pertama` mencatat apakah sudah ada nilai yang tercetak.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="8\n70 85 70 100 0 85 70 60"
     #include <iostream>
     #include <vector>
     using namespace std;
@@ -1281,7 +1281,7 @@ Kerjakan setiap soal sendiri dulu. Buka **Petunjuk** kalau buntu, lalu cocokkan 
 
     Jebakan utamanya ada di contoh 2. Saat bergabung, selesainya rentang harus diambil yang **lebih besar** di antara keduanya. Jika langsung ditimpa dengan selesainya pesanan baru, `1-10` akan menyusut menjadi `1-3` karena `2-3` berada di dalamnya. Jangan lupa mencetak rentang terakhir setelah perulangan selesai.
 
-    ```cpp tab="C++"
+    ```cpp tab="C++" input="5\n13 15\n9 11\n10 12\n15 16\n18 20"
     #include <iostream>
     #include <algorithm>
     #include <vector>

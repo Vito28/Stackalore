@@ -186,6 +186,22 @@ export default function LicensePage() {
               </a>
               .
             </p>
+            <p>
+              Playground menjalankan kode di browser dengan{' '}
+              <a href="https://yowasp.org/" target="_blank" rel="noopener noreferrer">
+                YoWASP Clang
+              </a>{' '}
+              (ISC; berisi LLVM dan Clang, Apache-2.0 WITH LLVM-exception) untuk C++ dan{' '}
+              <a href="https://pyodide.org/" target="_blank" rel="noopener noreferrer">
+                Pyodide
+              </a>{' '}
+              (MPL-2.0; berisi CPython, PSF License) untuk Python. Keduanya diunduh browser dari jsDelivr, tidak
+              disimpan di server Stacklore. Editornya memakai{' '}
+              <a href="https://codemirror.net/" target="_blank" rel="noopener noreferrer">
+                CodeMirror
+              </a>{' '}
+              (MIT).
+            </p>
 
             <h2 id="kebijakan-sumber">Kebijakan penggunaan sumber</h2>
             <p>

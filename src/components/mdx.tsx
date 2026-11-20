@@ -5,12 +5,19 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import type { MDXComponents } from 'mdx/types';
 import { LessonList } from '@/components/docs/lesson-list';
+// Shared lesson components, usable in every subject.
 import { BackToLesson } from '@/components/mdx/back-to-lesson';
-import { BufferStepper } from '@/components/mdx/buffer-stepper';
+import { ComingSoon } from '@/components/mdx/coming-soon';
 import { DeepDive, Term } from '@/components/mdx/deep-dive';
-import { ComingSoon, MemoryBoxes, Pipeline, TruthTable } from '@/components/mdx/diagrams';
 import { Pembahasan, Petunjuk, Soal } from '@/components/mdx/exercise';
 import { Flowchart, FlowchartSymbols } from '@/components/mdx/flowchart';
+import { Pipeline } from '@/components/mdx/pipeline';
+// Subject-specific components live in a folder named after the subject.
+import { BufferStepper } from '@/components/mdx/cpp/buffer-stepper';
+import { MemoryBoxes } from '@/components/mdx/cpp/memory-boxes';
+import { TruthTable } from '@/components/mdx/cpp/truth-table';
+import { RunnableCodeBlock } from '@/components/playground/runnable-code-block';
+import { visualisasiComponents } from '@/components/visualisasi/registry';
 
 const languageTabs = new Set(['C++', 'Python']);
 
@@ -24,9 +31,17 @@ function LanguageCodeTabs(props: ComponentProps<typeof CodeBlockTabs>) {
   return <CodeBlockTabs {...(synced ? { groupId: 'stacklore-bahasa', persist: true } : {})} {...props} />;
 }
 
+/** Code blocks marked by `remarkRunnable` get a "Jalankan" button; others stay static. */
+function CodeBlockPre(props: ComponentProps<'pre'> & { 'data-run'?: 'cpp' | 'python'; 'data-input'?: string }) {
+  if (props['data-run']) return <RunnableCodeBlock {...props} data-run={props['data-run']} />;
+  const DefaultPre = defaultMdxComponents.pre;
+  return <DefaultPre {...props} />;
+}
+
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    pre: CodeBlockPre,
     CodeBlockTabs: LanguageCodeTabs,
     Accordion,
     Accordions,
@@ -46,6 +61,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Soal,
     Term,
     TruthTable,
+    ...visualisasiComponents,
     ...components,
   } satisfies MDXComponents;
 }

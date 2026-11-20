@@ -9,6 +9,7 @@
     "stack",
     "queue",
     "linked-list",
-    "map-dan-set"
+    "map-dan-set",
+    "hash-table"
   ]
 }
